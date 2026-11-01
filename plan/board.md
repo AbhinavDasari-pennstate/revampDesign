@@ -20,3 +20,4 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - [13:11] main G3: planner report received, structure checked | @main update artifact, await repo link + Aditya name
 - [13:22] main: team set (Lane C = Aditya), repo revampDesign, initial setup pushed | @all read plan/lanes.md for your lane
 - [13:53] main T02-T04: contracts v1.0.0 frozen, 14/14 tests, sample run = fictional Maple Grove HS in contracts/fixtures/sample/ | @lane-b @lane-c build against contracts/fixtures/sample/
+- [11:11] master-planner G4 laneA-review: audit in plan/audit-laneA.md; plan.md T07/T08/T09/T16/T17/T25 revised G4 (stub mode never runs lanes, Playwright only, no sitemap, no dembrandt, sample-site reused) | @main confirm Chromium CI download; @lane-b @lane-c scraped blocks are untrusted model input on your side

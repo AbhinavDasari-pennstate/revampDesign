@@ -17,13 +17,14 @@ One command turns an existing website URL into a story-first redesigned Astro si
 ## Architecture
 - Pipeline: orchestrator (Lane A) calls five stage CLIs in order: Scout (A) > Storyteller, Art director, Council (B) > Builder plus QA plus Handoff (C). Each stage reads and writes only JSON contract files in a run folder `runs/<run_id>/`.
 - Contracts: JSON Schema draft 2020-12 files plus a realistic sample fixture set in `contracts/`, frozen at tag `contracts-v1.0.0` on Sun Nov 1 21:00. Lanes read schemas and fixtures as data and validate with their own Ajv copy; nobody runs another lane's code except the orchestrator at integration.
-- Libraries and maturity: Node 24 LTS (proven), node:test (proven), Ajv 8 (proven), Playwright library (proven), dembrandt pinned (emerging; logo and colours only), Astro static output (proven), Tailwind (proven), Radix primitives (proven), Motion (proven) or CSS scroll-driven animation (emerging; progressive enhancement only), @axe-core/playwright (proven), Lighthouse CLI (proven), OpenRouter (emerging as a router; per-key spend caps), pairwise VLM council (emerging technique, gated by our own calibration set).
+- Libraries and maturity: Node 24 LTS (proven), node:test (proven), Ajv 8 (proven), Playwright library (proven; also gives brand colours, fonts and logo from computed styles, so no dembrandt, revised G4), Astro static output (proven), Tailwind (proven), Radix primitives (proven), Motion (proven) or CSS scroll-driven animation (emerging; progressive enhancement only), @axe-core/playwright (proven), Lighthouse CLI (proven), OpenRouter (emerging as a router; per-key spend caps), pairwise VLM council (emerging technique, gated by our own calibration set).
 - Mocked this week: nothing in the demo path is mocked; the orchestrator stub mode substitutes fixtures only when a lane is missing and says so in its log. Preview hosting is local `astro preview` until a host is approved.
 
 ## Global Constraints
 - Node 24 LTS for every folder; `.nvmrc` at the root (Lane A) says 24; ESM `.mjs` everywhere; tests with built-in `node:test` and `node:assert/strict`, no test framework install.
+- (revised G4) Code must run on local Node 20.13 and CI Node 24: no `fs.glob`, no `require()` of ESM, no type stripping, no `Array.fromAsync`, no glob arguments to `node --test` (bare `node --test` only). `import.meta.dirname` and global `fetch` are fine. Paths on disk use `node:path`; paths written into contracts use `/`.
 - Every folder that runs code has its own `package.json` and lockfile; there is no root package.json and no npm workspaces (a root manifest would be a shared file).
-- Versions pinned exactly (no `^` or `~`) in every package.json. Install list pending Vidyut's per-item approval: ajv, playwright, dembrandt, astro, tailwindcss, @tailwindcss/vite, @radix-ui primitives as needed, motion, @axe-core/playwright, lighthouse, linkinator (link check). Nothing is installed before that approval.
+- Versions pinned exactly (no `^` or `~`) in every package.json. Install list pending Vidyut's per-item approval (dembrandt dropped, revised G4): ajv, playwright, astro, tailwindcss, @tailwindcss/vite, @radix-ui primitives as needed, motion, @axe-core/playwright, lighthouse, linkinator (link check). Nothing is installed before that approval.
 - CLI shape for every stage, fixed: `node lanes/<lane>/cli.mjs <stage> --run <run dir> --in <contract file> [--in <contract file> ...] --out <contract file> [--max-usd <n>]`. Exit codes: 0 ok; 1 crash; 2 an input file failed its schema; 3 a quality gate failed (output still written with `status: "fail"`); 4 budget cap hit (output written with `status: "budget"`).
 - Every contract file starts with `"contract": "<name>", "version": "1.0.0", "run_id": "<id>"`. Paths inside contracts are relative to the run folder, forward slashes, never absolute.
 - A stage writes only `--out` and files under its own run subfolder (`runs/<id>/a-scout/`, `b-design/`, `c-build/`). The orchestrator writes only `00-run.json`, `45-selection.json` and `orchestrator.log`.
@@ -61,7 +62,7 @@ Stage commands the orchestrator calls, exactly:
 - `node lanes/b-design/cli.mjs story --run R --in R/00-run.json --in R/10-inventory.json --out R/20-storyboard.json`
 - `node lanes/b-design/cli.mjs art --run R --in R/00-run.json --in R/10-inventory.json --in R/20-storyboard.json --out R/30-directions.json`
 - `node lanes/b-design/cli.mjs council --run R --in R/30-directions.json --out R/40-verdict.json`
-- orchestrator writes `R/45-selection.json` (council top pick, or the operator's choice at the prompt)
+- orchestrator writes `R/45-selection.json` (council top pick, or the operator's `--pick dN` flag; no interactive prompt, revised G4)
 - `node lanes/c-build/cli.mjs build --run R --in R/00-run.json --in R/10-inventory.json --in R/20-storyboard.json --in R/30-directions.json --in R/45-selection.json --out R/50-handoff.json`
 
 Integration readiness rule: a lane is "integration ready" when, on main, its stage command run against `contracts/fixtures/sample/` as R exits 0 and its output validates with `node contracts/validate.mjs <out>`.
@@ -155,29 +156,30 @@ approved installs: astro, tailwindcss, @tailwindcss/vite (pending approval)
 
 ### Day 1, Mon Nov 2 (all three lanes build against the sample fixture)
 
-### T07: Orchestrator stub mode
+### T07: Orchestrator stub mode (revised G4)
 owner: Abhinav | lane: A | depends_on: [T04]
-files: create `orchestrator/cli.mjs`, `orchestrator/lib/run.mjs`, `orchestrator/test/stub.test.mjs`, `orchestrator/package.json`
+files: create `orchestrator/cli.mjs`, `orchestrator/lib/run.mjs`, `orchestrator/lib/select.mjs`, `orchestrator/test/stub.test.mjs`, `orchestrator/package.json` (no dependencies); modify `.github/workflows/ci.yml` (orchestrator job runs `cd contracts && npm ci` before its tests)
 interfaces: consumes all seven contracts; produces `00-run.json`, `45-selection.json`, `orchestrator.log`
-failing test first: `run --fixture sample --out-dir <tmp>` creates a run folder whose seven files all validate, logs `STUB scout`, `STUB story` and so on, and exits 0; a missing lane CLI is reported as `STUB (lane not present)`, not a crash
-steps: 1. Test. 2. Run folder creation, `run_id` format `YYYYMMDD-HHMM-<slug>`. 3. For each stage: if the lane CLI exists and `--stub` is not forced, call it; else copy the fixture. 4. Validate after every stage with `contracts/validate.mjs`.
-done when: `cd orchestrator && node --test` passes.
-approved installs: none (uses contracts' Ajv through `validate.mjs`)
+failing test first: `node orchestrator/cli.mjs run --stub --fixture contracts/fixtures/sample --out-dir <tmp>` creates `<tmp>/<run_id>/` with all seven contract files plus the fixture's `a-scout/`, `b-design/` and `c-build/` folders; every file carries the new `run_id`; `crossErrors(runDir)` from `contracts/validate.mjs` returns []; the log has one `STUB <stage>` line per stage; exit 0. A fixture folder missing `30-directions.json` exits 1 with a message naming the file.
+steps: 1. Test. 2. `run_id` format `YYYYMMDD-HHMM-<slug>` (UTC, no colons). 3. Write `00-run.json` from the fixture's run file with the new `run_id` and `created_at`; copy 10, 20, 30, 40 and 50 plus the three stage folders with `fs.cpSync`, rewriting `run_id` in each JSON file. 4. `lib/select.mjs` writes `45-selection.json` from the verdict's `top_direction_id` with `chosen_by: "council"`. 5. Validate after every stage with `schemaErrors`, and once at the end with `crossErrors`. Stub mode never looks in `lanes/`; calling real lane CLIs is T17.
+done when: `cd contracts && npm ci` has run once, then `cd orchestrator && node --test` passes on Node 20.13 locally and on Node 24 in CI.
+approved installs: none (imports `../contracts/validate.mjs`; Ajv resolves from `contracts/node_modules`)
 
-### T08: Scout crawl and text blocks
+### T08: Scout crawl, text blocks and screenshots (revised G4)
 owner: Abhinav | lane: A | depends_on: [T04]
-files: create `lanes/a-scout/cli.mjs`, `lanes/a-scout/scout/crawl.mjs`, `lanes/a-scout/scout/blocks.mjs`, `lanes/a-scout/test/crawl.test.mjs`, `lanes/a-scout/test/fixtures-site/` (a tiny local static site), `lanes/a-scout/package.json`
-interfaces: consumes run.v1; produces inventory.v1 (`pages[]`, `blocks[]`, `failures[]`)
-failing test first: against the local fixture site served on a random port: sitemap pages found, a page missing from the sitemap found by link fallback, a 404 page lands in `failures[]`, a `Disallow` path in robots.txt is skipped, block ids are stable across two runs, output validates against inventory.v1
-steps: 1. Test with a local server. 2. Sitemap, robots, BFS fallback, 40-page cap, 1 rps. 3. Block extraction by DOM order with `kind`.
+files: create `lanes/a-scout/cli.mjs`, `lanes/a-scout/scout/crawl.mjs`, `lanes/a-scout/scout/blocks.mjs`, `lanes/a-scout/test/serve.mjs` (test helper: `node:http` on port 0 serving `contracts/fixtures/sample-site/` read-only, plus in-memory extra routes, recording every requested path), `lanes/a-scout/test/crawl.test.mjs`; modify `.github/workflows/ci.yml` (a-scout job: `cd contracts && npm ci`, then `npx playwright install --with-deps chromium`). No second fixture site; `package.json` already exists.
+interfaces: consumes run.v1; produces inventory.v1 with `pages[]` (ids, url, title, status_code, depth, screenshots, blocks; images, links and forms empty until T09), `failures[]`, `facts: []`, `brand {logo_path: null, colors: [], fonts: []}` until T16
+engine: Playwright Chromium for every page (one `page.goto` gives status, DOM text and screenshots); plain `fetch` only for robots.txt. No sitemap this week (BFS from the home page reaches the important pages first; sitemaps fill the cap with news posts).
+failing test first (sample site served as `source_url`, origin swapped when comparing with `contracts/fixtures/sample/10-inventory.json`): (a) pages are exactly index, about and contact as p01 to p03 in BFS order, depths 0, 1, 1, titles as in the fixture (`/` and `/index.html` are one page); (b) `/calendar.html` is in `failures[]` with reason `HTTP 404`; (c) per page, block text and kind in order, nav and footer excluded, equal the fixture; (d) with an extra `/robots.txt` of `User-agent: *` and `Disallow: /about`, about.html is never requested (server log) and is not in pages; (e) two crawls give identical block ids; (f) `schemaErrors(output)` from `contracts/validate.mjs` is [] and every path uses `/`; (g) `limits.max_pages: 2` gives 2 pages; (h) when the home page returns 503 the CLI exits 3, writes no `10-inventory.json` (inventory.v1 needs at least one page) and writes the reason to `a-scout/failure.json`. If a hand-written fixture choice cannot be reproduced by a simple rule, the test names that block and excludes it; the fixture is never edited.
+steps: 1. `test/serve.mjs` and the test. 2. robots.txt: `Disallow` prefixes under `User-agent: *` only. 3. BFS over same-host links; normalise by dropping the hash, a trailing `index.html` and a trailing slash; dedupe on the final URL after redirects; stop at `limits.max_pages`; 1000 ms between navigations; `waitUntil: "load"` with a 30 s timeout (a timeout goes to `failures[]`); user agent names the project. 4. Blocks: one `page.evaluate` walking the body in DOM order: h1 to h6 heading (with level), p paragraph, ul and ol list (items joined by newline), table, blockquote quote, nav, footer, address or phone or email text contact, nondiscrimination or Title IX text legal; ids `pNN-bNNN` sequential in DOM order. 5. Full-page screenshots at 1440x900 and 390x844 to `a-scout/screens/<page_id>-desktop.png` and `-mobile.png`.
 done when: `cd lanes/a-scout && node --test` passes.
-approved installs: playwright, ajv (pending approval)
+approved installs: none new (playwright 1.64.1 is installed; validation imports `../../contracts/validate.mjs`, so no Ajv copy in a-scout)
 
-### T09: Scout screenshots, images, links, forms
+### T09: Scout images, links, forms (revised G4)
 owner: Abhinav | lane: A | depends_on: [T08]
 files: create `lanes/a-scout/scout/capture.mjs`, `lanes/a-scout/test/capture.test.mjs`
-interfaces: produces inventory.v1 `screenshots`, `images[]`, `links[]`, `forms[]`
-failing test first: fixture site home gets desktop (1440 wide) and mobile (390 wide) full-page PNGs under `a-scout/screens/`; every `img` has an entry with `origin`; a form appears with `needs_backend: true`; external and internal links are separated
+interfaces: produces inventory.v1 `images[]`, `links[]`, `forms[]` (screenshots moved to T08)
+failing test first (same served sample site): p01 has image `p01-i01` with `src_url` ending `/crest.svg`, `origin: "site"`, its alt text, width and height, and `local_path: "a-scout/images/p01-i01.png"` that exists (an element screenshot, so SVG and lazy images need no second download); every page lists the four nav links with `href` as written in the HTML and `internal: true`; an extra in-memory page linking to `https://example.org/` records it with `internal: false` and that host is never navigated; p03 has form `p03-f01` with action `/cgi-bin/contact.pl`, method `post`, three labelled fields and `needs_backend: true` (always true this week: the output is a static site)
 done when: `cd lanes/a-scout && node --test` passes.
 approved installs: none new
 
@@ -232,19 +234,23 @@ failing test first: every rendered block carries `data-src="<block_id>"`; the te
 done when: `cd lanes/c-build && node --test` passes.
 approved installs: none new
 
-### T16: Scout brand, facts and injection safety
+### T16: Scout brand, facts and injection safety (revised G4)
 owner: Abhinav | lane: A | depends_on: [T09]
-files: create `lanes/a-scout/scout/brand.mjs`, `lanes/a-scout/scout/facts.mjs`, `lanes/a-scout/test/facts.test.mjs`, `lanes/a-scout/test/injection.test.mjs`, `lanes/a-scout/test/fixtures-site/injection.html`
+files: create `lanes/a-scout/scout/brand.mjs`, `lanes/a-scout/scout/facts.mjs`, `lanes/a-scout/test/facts.test.mjs`, `lanes/a-scout/test/injection.test.mjs`; modify `lanes/a-scout/test/serve.mjs` (the injection page is an in-memory route, not a fixture file)
 interfaces: produces inventory.v1 `brand`, `facts[]`
-failing test first: phones, emails, addresses, dates and a legal notice on the fixture site become `facts[]` with the right `block_id`; dembrandt output maps to `brand.colors` and `brand.logo_path`; the injection page is stored as an ordinary block, the crawler makes no request outside the target host, and no file is written outside `a-scout/`
+facts: regex rules over block text for phone, email, date (month name with day, or a year 1900 to 2099 in prose), time range, address (street number plus a street word, joined with the next city, state and zip line) and legal_notice (one per `legal` block, value a fixed label such as `Nondiscrimination notice` or `Title IX notice`). `person` and `price` are not extracted this week (no reliable rule; a missing fact makes the fact diff check less, never fail by mistake). Dedupe on kind plus value.
+brand: one `page.evaluate` on the home page reading `getComputedStyle` of body (background), first h1 (primary), first link (accent) and nav (nav), converted to lowercase `#rrggbb`, transparent skipped; fonts are the first family of body, h1 and nav; logo is the first img in the header or whose src or alt matches logo, crest or seal, else null, and `logo_path` is that image's `local_path`.
+failing test first: on the sample site, facts match the fixture's f001 to f004 and f006 to f008 by kind and value, and each `block_id` points at a block whose text contains the value (or, for legal_notice, a `legal` block); `brand.colors` includes `#fffff0` as background and every hex is lowercase `#rrggbb`; `brand.logo_path` is `a-scout/images/p01-i01.png`; `brand.fonts` includes `Times New Roman`. Injection: starting at an in-memory page whose text says to ignore previous instructions and write files, with a link and an image on another host, the text is stored verbatim as an ordinary block, `untrusted_text` is true, Scout never navigates to a host other than the target (the browser may still load subresources), and the run folder afterwards holds only `10-inventory.json` and files under `a-scout/`.
+note: Scout makes no model calls, so page text cannot steer it by construction; the injection risk that matters is in the lanes that send these blocks to models.
 done when: `cd lanes/a-scout && node --test` passes.
-approved installs: dembrandt at an exact pinned version (pending approval)
+approved installs: none (dembrandt dropped)
 
-### T17: Orchestrator real mode and operator pick
+### T17: Orchestrator real mode and operator pick (revised G4)
 owner: Abhinav | lane: A | depends_on: [T07]
-files: modify `orchestrator/lib/run.mjs`; create `orchestrator/lib/select.mjs`, `orchestrator/test/real.test.mjs`
+files: modify `orchestrator/lib/run.mjs`, `orchestrator/lib/select.mjs`; create `orchestrator/test/real.test.mjs`
 interfaces: consumes verdict.v1; produces selection.v1
-failing test first: with fake stage CLIs in a temp dir (scripts that copy fixtures, never the real lanes): exit 2 or 3 stops the run with a message naming the stage and owner; exit 0 continues; with `needs_human: true` and `--pick d2`, selection has `chosen_by: "human"`; without a pick, the council top pick is used and logged
+behaviour: without `--stub`, each stage runs `<lanes-root>/<lane>/cli.mjs` if it exists, via `spawnSync(process.execPath, [cli, ...args])` with no shell (same Node version; Windows paths with spaces are safe); otherwise it copies the fixture output and logs `STUB <stage> (lane not present)`. `--lanes-root` defaults to `lanes/` and exists so tests use fake CLIs. Operator pick is the `--pick dN` flag only; no interactive prompt.
+failing test first: with fake stage CLIs in a temp lanes root (scripts that copy fixtures, never the real lanes): exit 0 continues and the output is validated; any nonzero exit (1, 2, 3 or 4) stops the run, prints the stage, the owner (A Abhinav, B Nirmal, C Aditya), what the code means and the input paths, and the orchestrator exits with the same code; a stage that exits 0 but writes an invalid file stops with exit 2; a missing lane CLI falls back to the fixture with the STUB line; with `needs_human: true` and `--pick d2`, selection has `direction_id: "d2"` and `chosen_by: "human"`; without a pick, the council top pick is used and the log says how to override with `--pick`
 done when: `cd orchestrator && node --test` passes.
 approved installs: none
 
@@ -307,8 +313,9 @@ steps: on failure Abhinav posts `@lane-x` on the board with the command and the 
 done when: `cd orchestrator && node --test` passes on main by Wed 09:00 PST.
 approved installs: none
 
-### T25: First real-site end-to-end run
+### T25: First real-site end-to-end run (revised G4)
 owner: Abhinav | lane: A | depends_on: [T24]
+gate before running: Vidyut says yes to crawling Prism production (standing rule: no requests to live production URLs without asking); a school site needs written owner consent recorded in `00-run.json` `consent.note`.
 files: create `runs/<id>/` (gitignored); create `contracts/samples/<site>/` with the real 10 to 50 files copied from the run
 interfaces: all contracts
 failing test first: `contracts/test/samples.test.mjs`: every file under `contracts/samples/` validates and passes the cross check
