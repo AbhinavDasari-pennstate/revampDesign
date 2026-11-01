@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { extractBlocks } from './blocks.mjs';
+import { capture } from './capture.mjs';
 
 const USER_AGENT = 'RevampScout/1.0 (+https://github.com/AbhinavDasari-pennstate/revampDesign)';
 const DESKTOP = { width: 1440, height: 900 };
@@ -41,7 +42,6 @@ async function disallowed(origin) {
   return prefixes;
 }
 
-// Pages come back with images, links and forms empty; T09 fills them.
 export async function crawl({ startUrl, maxPages, runDir, delayMs = 1000 }) {
   const blocked = await disallowed(new URL(startUrl).origin);
   let host = new URL(startUrl).host;
@@ -79,10 +79,11 @@ export async function crawl({ startUrl, maxPages, runDir, delayMs = 1000 }) {
         const screenshots = { desktop: `a-scout/screens/${id}-desktop.png`, mobile: `a-scout/screens/${id}-mobile.png` };
         const hrefs = await page.$$eval('a[href]', (anchors) => anchors.map((a) => a.href));
         const blocks = await extractBlocks(page, id);
+        const { images, links, forms } = await capture(page, id, runDir, host);
         await page.screenshot({ path: join(runDir, screenshots.desktop), fullPage: true });
         await page.setViewportSize(MOBILE);
         await page.screenshot({ path: join(runDir, screenshots.mobile), fullPage: true });
-        pages.push({ page_id: id, url: finalUrl, title: await page.title(), status_code: response.status(), depth, screenshots, blocks, images: [], links: [], forms: [] });
+        pages.push({ page_id: id, url: finalUrl, title: await page.title(), status_code: response.status(), depth, screenshots, blocks, images, links, forms });
         for (const href of hrefs) {
           if (!URL.canParse(href)) continue;
           const next = normalise(href);
