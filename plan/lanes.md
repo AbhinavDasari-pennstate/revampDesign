@@ -2,7 +2,7 @@
 
 Rule (LOCKED, decisions.md line 15): "none of us are going to interact with each other's work in any form or way."
 So: three lanes, zero shared files or folders, and every hand-off is a frozen, versioned JSON contract with a schema and a realistic fixture committed on Day 0 (Sun Nov 1, frozen 21:00 PST). Each person can build, test and finish the whole week against fixtures without waiting on, reading, editing or running anyone else's code. The only code that runs another lane's code is the orchestrator, and only Abhinav runs it.
-Tasks referenced here are defined in full (files, failing test, done criteria) in plan/plan.md. Teammate 3's name is not confirmed: find-and-replace "Teammate 3" when it is.
+Tasks referenced here are defined in full (files, failing test, done criteria) in plan/plan.md.
 
 ## Why this split (changed from the suggested one)
 - Storyteller moved from Lane A to Lane B. The storyboard and the three directions are one creative act that iterates together (the story decides the sections, the sections decide the layouts); keeping both in one lane removes the most iterative seam from the contract list. Nirmal knows the Gallant site, which is the fixture site, so he is the right person to judge the story. It also balances load: estimated hours from plan.md are Lane A about 21 (4 of them Day 0 contracts nobody else can write, and Abhinav has Claude full time), Lane B about 13, Lane C about 13.
@@ -32,7 +32,7 @@ redesign-agent/
   lanes/
     a-scout/                    A   cli.mjs scout/ baseline/ blindtest/ test/ package.json models.json .env.example CLAUDE.md STATUS.md README.md
     b-design/                   Nirmal   cli.mjs story/ art/ council/ calibration/ data/ lib/ test/ package.json models.json .env.example CLAUDE.md STATUS.md README.md
-    c-build/                    Teammate 3   cli.mjs template/ builder/ qa/ handoff/ lib/ test/ package.json models.json .env.example CLAUDE.md STATUS.md README.md
+    c-build/                    Aditya   cli.mjs template/ builder/ qa/ handoff/ lib/ test/ package.json models.json .env.example CLAUDE.md STATUS.md README.md
   runs/                         gitignored; runs/<run_id>/ with 00..50 json files and a-scout/ b-design/ c-build/ subfolders
 ```
 No root package.json, no workspaces, no shared lockfile, no shared config, no shared models file. Each lane installs and pins its own dependencies (Playwright appears in three lockfiles; that duplication is the price of isolation and is accepted).
@@ -107,7 +107,7 @@ Never touches: anything outside `lanes/b-design/`, including `contracts/` (read 
 Master agents: master-designer (direction prompts, anti-slop rules, banned patterns), master-auditor (calibration design and judge evaluation: this is an LLM-judge problem), master-builder plus master-reviewer for each task, master-finder (reference sites and Awwwards terms). If Nirmal works in his own Claude Code session, `lanes/b-design/CLAUDE.md` tells it to stay inside the folder.
 Hand-off: his CLI's output files are the hand-off; he posts "integration ready" on the board when T19 passes on main.
 
-## Lane C: Teammate 3: Builder, Red team QA, Handoff
+## Lane C: Aditya: Builder, Red team QA, Handoff
 Owns: `lanes/c-build/` only. Branch prefix `lane-c/`.
 Reads contracts: run.v1, inventory.v1, storyboard.v1, directions.v1, selection.v1. Writes: handoff.v1.
 Secrets: `lanes/c-build/.env` with `C_OPENROUTER_API_KEY` and, only after a host is approved, `C_PREVIEW_TOKEN`. Budget line: 25 USD for the week (proposed).

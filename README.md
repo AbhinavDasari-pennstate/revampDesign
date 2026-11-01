@@ -3,6 +3,7 @@
 Give it the URL of a legacy website. A chain of focused agents researches what the organization does, writes the story its site should tell, designs three directions, picks one with a judging council, builds it, tries to break it, and hands over the new site's repository.
 
 - **Plan (shareable):** https://claude.ai/artifact/GLWHBZZB1mhwbnLqX6vKTk
+- **Repo:** https://github.com/AbhinavDasari-pennstate/revampDesign
 - **Week:** Sun Nov 1 to Sat Nov 7 2026. First real-site run Wed Nov 4. Demo Sat Nov 7.
 - **Quality bar:** [trionn.com](https://trionn.com) (Awwwards Site of the Day, Jul 27 2026), within what each customer can host and maintain.
 - **Status:** planning done, nothing built yet. Contracts freeze Sun Nov 1, 21:00 PST.
@@ -27,7 +28,7 @@ Rule: **nobody touches anyone else's work in any form.** Separate folders, branc
 |---|---|---|---|---|
 | A | Abhinav (lead) | repo root, `.github/`, `plan/`, `contracts/`, `orchestrator/`, `lanes/a-scout/` | `lane-a/` | run, inventory, selection |
 | B | Nirmal | `lanes/b-design/` | `lane-b/` | storyboard, directions, verdict |
-| C | Teammate 3 | `lanes/c-build/` | `lane-c/` | handoff |
+| C | Aditya | `lanes/c-build/` | `lane-c/` | handoff |
 
 Full day-by-day tasks per person: [plan/lanes.md](plan/lanes.md). All 38 tasks with files, failing tests and done criteria: [plan/plan.md](plan/plan.md).
 
@@ -65,7 +66,7 @@ contracts/     schemas/ fixtures/gallant/ fixtures/invalid/ samples/ validate.mj
 orchestrator/  chains the three lanes (Abhinav only)
 lanes/a-scout/   Abhinav
 lanes/b-design/  Nirmal
-lanes/c-build/   Teammate 3
+lanes/c-build/   Aditya
 runs/          gitignored run outputs
 ```
 
@@ -115,7 +116,7 @@ The numeric targets are proposals and can change.
 
 ## Open items
 
-- [ ] Teammate 3's name and everyone's GitHub username (for CODEOWNERS)
+- [ ] Everyone's GitHub username (for CODEOWNERS)
 - [ ] First test tier: public schools, or private schools and small organizations (recommended)
 - [ ] OpenRouter budget per lane (proposed: A 10, B 40, C 25 USD)
 - [ ] Five reviewers for the blind test on Thu Nov 5

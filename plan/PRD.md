@@ -1,6 +1,6 @@
 # Redesign Agent PRD (week of Sun Nov 1 to Sat Nov 7 2026)
 
-Owner: Abhinav (lead). Idea owner: Vidyut. Team: Abhinav, Nirmal, Teammate 3.
+Owner: Abhinav (lead). Idea owner: Vidyut. Team: Abhinav, Nirmal, Aditya.
 Source of truth for decisions: plan/decisions.md. Lane split: plan/lanes.md. Task plan: plan/plan.md.
 Times are PST.
 

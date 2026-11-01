@@ -96,7 +96,7 @@ interfaces: consumes none; produces the folder map and branch-prefix to folder r
 failing test first: `lane-guard.test.mjs`: a changed-file list from branch `lane-b/x` that touches `lanes/c-build/a.mjs` or `contracts/x.json` fails; one that touches only `lanes/b-design/**` passes; branch `lane-a/x` may touch root, `.github/`, `plan/`, `contracts/`, `orchestrator/`, `lanes/a-scout/`
 steps:
 1. Write the test, then `lane-guard.mjs` (reads `git diff --name-only origin/main...HEAD` and the branch name).
-2. CODEOWNERS: `/lanes/b-design/ @<nirmal-gh>`, `/lanes/c-build/ @<teammate3-gh>`, everything else `@<abhinav-gh>`.
+2. CODEOWNERS: `/lanes/b-design/ @<nirmal-gh>`, `/lanes/c-build/ @<aditya-gh>`, everything else `@<abhinav-gh>`.
 3. CI: lane guard on every PR, then only the test folder(s) the PR touches, plus `contracts` validation on every PR.
 4. `.gitignore`: `runs/`, `**/.env`, `node_modules/`, `lanes/b-design/calibration/images/`, `**/dist/`.
 done when: `cd .github/scripts && node --test` passes; CODEOWNERS lists all three owners (GitHub handles filled by Abhinav); Abhinav pushes main and turns on branch protection (owner review required, CI required).
@@ -146,7 +146,7 @@ done when: `cd lanes/b-design && node --test` passes; TERMS.md states the terms 
 approved installs: none
 
 ### T06: Astro base template with token slots
-owner: Teammate 3 | lane: C | depends_on: []
+owner: Aditya | lane: C | depends_on: []
 files: create `lanes/c-build/template/` (Astro project), `lanes/c-build/test/template.test.mjs`, `lanes/c-build/package.json`
 interfaces: internal to Lane C
 failing test first: building the template with a sample `tokens.json` (colours, type families, scale) produces `dist/index.html` whose CSS contains the sample accent hex and body font family, and no `gsap`, `lenis` or `three` string anywhere in `dist/`
@@ -200,7 +200,7 @@ done when: `cd lanes/b-design && node --test` passes; one live run on the fixtur
 approved installs: none new
 
 ### T12: Lane C skeleton CLI and input validation
-owner: Teammate 3 | lane: C | depends_on: [T04, T06]
+owner: Aditya | lane: C | depends_on: [T04, T06]
 files: create `lanes/c-build/cli.mjs`, `lanes/c-build/lib/contracts.mjs`, `lanes/c-build/models.json`, `lanes/c-build/.env.example`, `lanes/c-build/CLAUDE.md`, `lanes/c-build/STATUS.md`, `lanes/c-build/test/cli.test.mjs`
 interfaces: CLI shape and exit codes
 failing test first: `build` with any invalid input exits 2 and names the file; missing `--in` for selection exits 2; `--max-usd 0` exits 4
@@ -208,7 +208,7 @@ done when: `cd lanes/c-build && node --test` passes.
 approved installs: ajv (pending approval)
 
 ### T13: Builder: tokens and pages from storyboard
-owner: Teammate 3 | lane: C | depends_on: [T12]
+owner: Aditya | lane: C | depends_on: [T12]
 files: create `lanes/c-build/builder/tokens.mjs`, `lanes/c-build/builder/pages.mjs`, `lanes/c-build/test/build.test.mjs`
 interfaces: consumes directions.v1 (selected direction tokens), storyboard.v1; produces `c-build/site/` Astro project and `dist/`
 failing test first: from the Gallant fixture: one HTML page per storyboard page slug; nav order equals `storyboard.nav`; the selected direction's accent and fonts appear in CSS; no em or en dash in any built HTML
@@ -226,7 +226,7 @@ done when: `cd lanes/b-design && node --test` passes.
 approved installs: none new
 
 ### T15: Builder: verbatim content with source tags
-owner: Teammate 3 | lane: C | depends_on: [T13]
+owner: Aditya | lane: C | depends_on: [T13]
 files: create `lanes/c-build/builder/content.mjs`, `lanes/c-build/test/content.test.mjs`
 interfaces: consumes inventory.v1 blocks and images
 failing test first: every rendered block carries `data-src="<block_id>"`; the text of each block with `copy_status: "verbatim"` equals the inventory text after whitespace normalisation; forms with `needs_backend` render the fallback component
@@ -274,7 +274,7 @@ done when: `cd lanes/b-design && node --test` passes.
 approved installs: @axe-core/playwright (pending approval)
 
 ### T21: QA gates: axe-core and Lighthouse
-owner: Teammate 3 | lane: C | depends_on: [T15]
+owner: Aditya | lane: C | depends_on: [T15]
 files: create `lanes/c-build/qa/a11y.mjs`, `lanes/c-build/qa/lighthouse.mjs`, `lanes/c-build/test/qa-gates.test.mjs`, `lanes/c-build/test/bad-site/` (a page with known violations)
 interfaces: produces handoff.v1 `qa.axe`, `qa.lighthouse[]`
 failing test first: the bad site yields serious violations and `gates_passed: false` with exit 3; the Gallant fixture build passes with zero serious or critical and mobile accessibility at least 95
@@ -282,7 +282,7 @@ done when: `cd lanes/c-build && node --test` passes.
 approved installs: @axe-core/playwright, lighthouse, playwright (pending approval, Lane C's own copies)
 
 ### T22: QA gates: link check and fact diff
-owner: Teammate 3 | lane: C | depends_on: [T21]
+owner: Aditya | lane: C | depends_on: [T21]
 files: create `lanes/c-build/qa/links.mjs`, `lanes/c-build/qa/factdiff.mjs`, `lanes/c-build/test/factdiff.test.mjs`
 interfaces: consumes inventory.v1 `facts[]`, `links[]`; produces `qa.links`, `qa.fact_diff`
 failing test first: changing one phone digit in a built page fails the gate and names the fact id and page; removing a fact lists it in `missing[]` unless the storyboard dropped its block; a broken internal link fails; external links are checked but only reported
@@ -290,11 +290,11 @@ done when: `cd lanes/c-build && node --test` passes.
 approved installs: linkinator (pending approval)
 
 ### T23: Handoff: report, local repo and handoff.json
-owner: Teammate 3 | lane: C | depends_on: [T22]
+owner: Aditya | lane: C | depends_on: [T22]
 files: create `lanes/c-build/handoff/report.mjs`, `lanes/c-build/handoff/repo.mjs`, `lanes/c-build/test/handoff.test.mjs`
 interfaces: produces handoff.v1 in full
 failing test first: on the Gallant fixture `build` exits 0, writes a valid 50-handoff.json, `c-build/site/` is a git repo with one commit and a README, `report.md` lists every dropped and flagged item in plain language, and `fidelity` counts match the inventory
-done when: `cd lanes/c-build && node --test` passes; Teammate 3 posts "Lane C integration ready" by Tue 21:00 PST.
+done when: `cd lanes/c-build && node --test` passes; Aditya posts "Lane C integration ready" by Tue 21:00 PST.
 approved installs: none new
 
 ### Day 3, Wed Nov 4 (first real-site run; checkpoint with Vidyut)
@@ -343,7 +343,7 @@ done when: `cd lanes/b-design && node --test` passes.
 approved installs: none
 
 ### T29: Builder quality pass on real inventories
-owner: Teammate 3 | lane: C | depends_on: [T23, T25]
+owner: Aditya | lane: C | depends_on: [T23, T25]
 files: modify `lanes/c-build/builder/*.mjs`, `lanes/c-build/template/`; create `lanes/c-build/test/samples.test.mjs`
 interfaces: consumes `contracts/samples/*`
 failing test first: every sample site builds, passes all four gates, and keeps each page under 200 KB of JS on tier A
@@ -351,7 +351,7 @@ done when: `cd lanes/c-build && node --test` passes on all published samples.
 approved installs: motion, Radix primitives as needed (pending approval)
 
 ### T30: Preview publish (approval gated)
-owner: Teammate 3 | lane: C | depends_on: [T23]
+owner: Aditya | lane: C | depends_on: [T23]
 files: create `lanes/c-build/handoff/preview.mjs`, `lanes/c-build/test/preview.test.mjs`
 interfaces: produces handoff.v1 `site.preview_url`
 failing test first: without `C_PREVIEW_TOKEN`, `preview_url` is null and `preview_local` holds the `astro preview` command; with a fake host adapter, the URL is recorded
@@ -386,7 +386,7 @@ done when: tests pass; calibration re-run recorded in `report.json` (accuracy be
 approved installs: none
 
 ### T34: Fix top red-team defects in Lane C
-owner: Teammate 3 | lane: C | depends_on: [T31]
+owner: Aditya | lane: C | depends_on: [T31]
 files: Lane C files named by each defect
 failing test first: one test per defect from the board, written before the fix
 done when: `cd lanes/c-build && node --test` passes; each fixed defect answered on the board with the SHA.
@@ -409,7 +409,7 @@ done when: tests pass.
 approved installs: none
 
 ### T37: Owner report polish and Lane C hardening
-owner: Teammate 3 | lane: C | depends_on: [T34]
+owner: Aditya | lane: C | depends_on: [T34]
 files: modify `lanes/c-build/handoff/report.mjs`; create `lanes/c-build/test/report.test.mjs`
 failing test first: the report opens with a five-line summary a school office can read (pages kept, pages dropped and why, forms needing a backend, how to publish, what needs manual work); no jargon words from a banned list (repo, Astro, CLI, axe)
 done when: tests pass.

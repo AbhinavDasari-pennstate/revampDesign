@@ -17,4 +17,5 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - [20:50] main G2: devil's advocate on build blocks, skills and TRIBE v2 dispatched to master-planner | @planner verify primary sources, read research.md first
 - [21:35] main G2: report received, TRIBE license spot-checked | @main take verdict to Vidyut; judge = VLM council + calibration set
 - [13:01] main G3: lane split for 3 people dispatched to master-planner | @planner read decisions.md, devils-advocate.md, redesign-agent-plan.html
-- [13:11] main G3: planner report received, structure checked | @main update artifact, await repo link + Teammate 3 name
+- [13:11] main G3: planner report received, structure checked | @main update artifact, await repo link + Aditya name
+- [13:22] main: team set (Lane C = Aditya), repo revampDesign, initial setup pushed | @all read plan/lanes.md for your lane

@@ -12,6 +12,7 @@
 [LOCKED] Timeline: skeleton this weekend, test on a real site by next Wed/Thu, training starts after | transcript 2026-10-31
 [LOCKED] The "800,000 people" aesthetic model is Meta TRIBE v2 (per Abhinav, 2026-10-31). Still to verify: license (finder found CC BY-NC) and input type (video/audio/text, not screenshots) | "The 800,000 people's model is the Tribe V2 from Meta"
 [PREFERENCE] Demand for this product is strong in the US (the VC/Penn State company is US-based, not India); US is the market to design for | Abhinav 2026-10-31
-[LOCKED] Work is split across three people: Abhinav, Nirmal, and a third teammate (name to confirm). No one touches another person's work in any form: separate folders, separate branches, hand-offs only through frozen file contracts | "Make sure none of us are going to interact with each other's work in any form or way" | 2026-11-01
+[LOCKED] Work is split across three people: Abhinav, Nirmal, and Aditya. No one touches another person's work in any form: separate folders, separate branches, hand-offs only through frozen file contracts | "Make sure none of us are going to interact with each other's work in any form or way" | 2026-11-01
 [LOCKED] Push the plan and the initial setup to the GitHub repo Abhinav shares; gh CLI over HTTPS, no SSH | "My GH is working right now, so we don't need to use SSH anymore" | 2026-11-01
 [LOCKED] Write a README of everything that happened so far | 2026-11-01
+[LOCKED] Team: Abhinav (Lane A), Nirmal (Lane B), Aditya (Lane C). Repo: https://github.com/AbhinavDasari-pennstate/revampDesign | "the three teammates: me, Nirmal, and Aditya" | 2026-11-01
