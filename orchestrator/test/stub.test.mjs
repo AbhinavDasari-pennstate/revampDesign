@@ -14,11 +14,6 @@ const STAGES = ['scout', 'story', 'art', 'council', 'select', 'build'];
 const run = (...args) => spawnSync(process.execPath, [cli, 'run', ...args], { encoding: 'utf8' });
 const tmp = () => mkdtempSync(join(tmpdir(), 'orch-'));
 
-function jsonFiles(dir) {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? jsonFiles(join(dir, e.name)) : e.name.endsWith('.json') ? [join(dir, e.name)] : []);
-}
-
 test('stub run copies the sample into a new valid run folder', () => {
   const out = tmp();
   try {
@@ -29,7 +24,8 @@ test('stub run copies the sample into a new valid run folder', () => {
     const dir = join(out, runId);
     for (const f of Object.values(FILES)) assert.ok(existsSync(join(dir, f)), f);
     for (const d of ['a-scout', 'b-design', 'c-build']) assert.ok(existsSync(join(dir, d)), d);
-    for (const f of jsonFiles(dir)) assert.equal(JSON.parse(readFileSync(f, 'utf8')).run_id, runId, f);
+    for (const f of Object.values(FILES)) assert.equal(JSON.parse(readFileSync(join(dir, f), 'utf8')).run_id, runId, f);
+    assert.deepEqual(readFileSync(join(dir, 'c-build/axe.json')), readFileSync(join(sample, 'c-build/axe.json')));
     assert.deepEqual(crossErrors(dir), []);
     const log = readFileSync(join(dir, 'orchestrator.log'), 'utf8').trim().split('\n');
     assert.equal(log.length, STAGES.length);

@@ -1,4 +1,4 @@
-import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { FILES, crossErrors, schemaErrors } from '../../contracts/validate.mjs';
 import { writeSelection } from './select.mjs';
@@ -15,11 +15,6 @@ const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
 const writeJson = (p, data) => writeFileSync(p, JSON.stringify(data, null, 2) + '\n');
 const fail = (message, exitCode) => Object.assign(new Error(message), { exitCode });
 
-function jsonFiles(dir) {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? jsonFiles(join(dir, e.name)) : e.name.endsWith('.json') ? [join(dir, e.name)] : []);
-}
-
 // Stub mode: copy the fixture into a new run folder. Never looks in lanes/ (real stages are T17).
 export function runStub({ fixture, outDir, now = new Date() }) {
   for (const name of [FILES.run, ...COPIED.map((k) => FILES[k])]) {
@@ -34,7 +29,7 @@ export function runStub({ fixture, outDir, now = new Date() }) {
   for (const key of COPIED) cpSync(join(fixture, FILES[key]), join(runDir, FILES[key]));
   for (const folder of FOLDERS) if (existsSync(join(fixture, folder))) cpSync(join(fixture, folder), join(runDir, folder), { recursive: true });
   writeJson(join(runDir, FILES.run), { ...run, run_id: runId, created_at: now.toISOString() });
-  for (const f of jsonFiles(runDir)) writeJson(f, { ...readJson(f), run_id: runId });
+  for (const key of COPIED) writeJson(join(runDir, FILES[key]), { ...readJson(join(runDir, FILES[key])), run_id: runId });
 
   const lines = [];
   for (const [stage, key] of STAGES) {
@@ -45,6 +40,6 @@ export function runStub({ fixture, outDir, now = new Date() }) {
   }
   const cross = crossErrors(runDir);
   if (cross.length) throw fail(`run folder failed the cross check:\n${cross.join('\n')}`, 2);
-  appendFileSync(join(runDir, 'orchestrator.log'), lines.join('\n') + '\n');
+  writeFileSync(join(runDir, 'orchestrator.log'), lines.join('\n') + '\n');
   return { runId, runDir, lines };
 }
