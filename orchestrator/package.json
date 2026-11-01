@@ -1,0 +1,6 @@
+{
+  "name": "redesign-orchestrator",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test" }
+}
