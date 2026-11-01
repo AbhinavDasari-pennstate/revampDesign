@@ -1,0 +1,337 @@
+<title>Redesign Agent Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column, a pipeline strip near the top, a day-by-day schedule as the spine. */
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --ink: #14202b;
+  --muted: #5a6875;
+  --line: #d9e0e6;
+  --accent: #0b6b8a;
+  --accent-soft: #dcedf3;
+  --locked: #1c6b45;
+  --locked-soft: #dcf0e5;
+  --assumed: #8a5a00;
+  --assumed-soft: #f8ebcd;
+  --open: #a8321f;
+  --open-soft: #f8dfda;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f171e; --surface: #17222b; --ink: #e6edf2; --muted: #94a3b0; --line: #2a3a46;
+    --accent: #5bbbd8; --accent-soft: #163543;
+    --locked: #6fcf9b; --locked-soft: #173a28;
+    --assumed: #e8b95a; --assumed-soft: #3a2e12;
+    --open: #f08a76; --open-soft: #3d1c16;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f171e; --surface: #17222b; --ink: #e6edf2; --muted: #94a3b0; --line: #2a3a46;
+  --accent: #5bbbd8; --accent-soft: #163543;
+  --locked: #6fcf9b; --locked-soft: #173a28;
+  --assumed: #e8b95a; --assumed-soft: #3a2e12;
+  --open: #f08a76; --open-soft: #3d1c16;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 16px/1.6 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+}
+main { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px; }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); letter-spacing: -0.02em; }
+h2 { font-size: 1.6rem; letter-spacing: -0.01em; }
+h3 { font-size: 1.1rem; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--accent); }
+.eyebrow { font: 500 0.75rem/1 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.lede { font-size: 1.15rem; color: var(--ink); }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; color: var(--muted); font: 400 0.82rem var(--f-mono); }
+
+/* status pills */
+.pill { display: inline-block; font: 500 0.7rem/1 var(--f-mono); letter-spacing: 0.04em; text-transform: uppercase; padding: 5px 8px; border-radius: 3px; white-space: nowrap; }
+.locked { background: var(--locked-soft); color: var(--locked); }
+.assumed { background: var(--assumed-soft); color: var(--assumed); }
+.open { background: var(--open-soft); color: var(--open); }
+
+/* pipeline */
+.pipe { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; counter-reset: stage; }
+.stage { background: var(--surface); border: 1px solid var(--line); padding: 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; counter-increment: stage; }
+.stage::before { content: counter(stage); font: 500 0.75rem var(--f-mono); color: var(--accent); }
+.stage b { font-family: var(--f-display); font-size: 1.02rem; }
+.stage span { color: var(--muted); font-size: 0.88rem; }
+
+/* tables */
+.scroll { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 0.92rem; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font: 500 0.72rem var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+
+/* schedule */
+.days { display: flex; flex-direction: column; gap: 12px; }
+.day { background: var(--surface); border: 1px solid var(--line); display: grid; grid-template-columns: 112px 1fr; min-width: 0; }
+.day > .when { background: var(--accent-soft); padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+.when b { font: 600 0.85rem var(--f-mono); color: var(--accent); }
+.when span { font-size: 0.85rem; color: var(--muted); }
+.day > .what { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.what ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.done { font-size: 0.9rem; color: var(--muted); }
+.done b { color: var(--ink); }
+.checkpoint { border-left: 3px solid var(--accent); }
+@media (max-width: 560px) { .day { grid-template-columns: 1fr; } }
+
+ul.tight { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.box { background: var(--surface); border: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.box ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 0.93rem; }
+code { font: 0.88em var(--f-mono); background: var(--accent-soft); padding: 1px 5px; }
+footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 16px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<main>
+  <header style="display:flex;flex-direction:column;gap:14px">
+    <span class="eyebrow">Plan v1 · drafted Sat Oct 31 2026 · for review</span>
+    <h1>Redesign Agent: give it a legacy website URL, get back a better site and its repo</h1>
+    <p class="lede">A short chain of focused agents researches what an organization does, writes the story its site should tell, designs three directions, picks one with a judging council, builds it, tries to break it, and hands over the code. The target is one finished, tested product in seven days, built by three people in three separate lanes, each working with Claude and the master agents.</p>
+    <div class="meta"><span>Week: Sun Nov 1 to Sat Nov 7</span><span>First real-site run: Wed Nov 4</span><span>Bar: trionn.com, within what each customer can host and read</span></div>
+  </header>
+
+  <section>
+    <span class="eyebrow">Where each item stands</span>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:0.9rem">
+      <span><span class="pill locked">Locked</span> decided by Abhinav</span>
+      <span><span class="pill assumed">Assumed</span> Claude's recommendation, in force until changed</span>
+      <span><span class="pill open">Open</span> needs an answer</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>What it does</h2>
+    <p>Old sites are hard to use, dated, or partly broken: a high school site with four pages where three do not load. The owner types the site's address. The product returns a redesigned site, built around what the organization does, with a repository the owner can keep.</p>
+    <p>Prompt-based builders such as v0 start from a blank page and a wish. This starts from the real site, so the content, images and purpose are already known. The difference is the research and the storyline: the new site is planned like a short film about the organization, then built.</p>
+    <div class="pipe" role="list">
+      <div class="stage" role="listitem"><b>Scout</b><span>Crawls every page. Records text, images, links, forms, and the old site's colors and type. Tags each text block with the page it came from.</span></div>
+      <div class="stage" role="listitem"><b>Storyteller</b><span>Works out what the organization does and for whom. Writes a page-by-page storyboard.</span></div>
+      <div class="stage" role="listitem"><b>Art director</b><span>Writes three design directions with type, color, layout and real reference sites.</span></div>
+      <div class="stage" role="listitem"><b>Council</b><span>Three vision models from different families compare the directions in pairs. A person breaks ties.</span></div>
+      <div class="stage" role="listitem"><b>Builder</b><span>Builds the chosen direction as a static site and runs accessibility and speed checks.</span></div>
+      <div class="stage" role="listitem"><b>Red team</b><span>Tries to break it: changed facts, missing pages, broken links, accessibility failures.</span></div>
+      <div class="stage" role="listitem"><b>Handoff</b><span>Preview link, the repository, and a report of anything it could not carry over.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Decisions</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Decision</th><th>Status</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Input and output</td><td><span class="pill locked">Locked</span></td><td>An existing URL in. A redesigned site and a new repository out.</td></tr>
+        <tr><td>Several focused agents</td><td><span class="pill locked">Locked</span></td><td>A compact, niche version of the master workflow, with judging and red teaming built in.</td></tr>
+        <tr><td>Quality bar</td><td><span class="pill locked">Locked</span></td><td>trionn.com level (the studio from Rajkot, Awwwards Site of the Day, Jul 27 2026). Generic AI output is the failure to avoid.</td></tr>
+        <tr><td>Three directions, one chosen</td><td><span class="pill locked">Locked</span></td><td>The council ranks them and the user picks.</td></tr>
+        <tr><td>Models</td><td><span class="pill locked">Locked</span></td><td>Routed through OpenRouter, with the model for each step kept in one config file.</td></tr>
+        <tr><td>Judge</td><td><span class="pill assumed">Assumed</span></td><td>A council of three vision models plus a calibration test. Meta TRIBE v2 is not used in the product (see risks).</td></tr>
+        <tr><td>First customers</td><td><span class="pill assumed">Assumed</span></td><td>Legacy high-school and small-organization sites in the US. Test on Prism, Gallant and one real legacy school site.</td></tr>
+        <tr><td>Scope of a rebuild</td><td><span class="pill assumed">Assumed</span></td><td>Keep all content and links. Forms, logins and anything needing a backend are flagged in the report, not dropped silently.</td></tr>
+        <tr><td>Form this week</td><td><span class="pill assumed">Assumed</span></td><td>A command-line pipeline plus one page that compares the three directions. No public sign-up site yet.</td></tr>
+        <tr><td>Self-learning</td><td><span class="pill assumed">Assumed</span></td><td>This week it only records signals: which direction was picked and the council's scores. Training on them comes later.</td></tr>
+        <tr><td>Three separate lanes</td><td><span class="pill locked">Locked</span></td><td>Abhinav, Nirmal and Teammate 3 never touch each other's work. Separate folders, branches, keys and dependencies. Hand-offs happen only through frozen contract files.</td></tr>
+        <tr><td>Storyteller sits with design</td><td><span class="pill assumed">Assumed</span></td><td>Moved from Abhinav's lane to Nirmal's, because the storyboard and the three directions iterate together.</td></tr>
+        <tr><td>Ambition by customer</td><td><span class="pill open">Open</span></td><td>Public schools must meet WCAG 2.1 AA, so they get accessible, fast and calm sites. Private schools, brands and studios can get richer motion. Which tier is the first test?</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>What "done" means on Saturday</h2>
+    <ul class="tight">
+      <li>One command takes a URL and produces a site, a preview link, a repository and a fidelity report.</li>
+      <li>Run on three sites. In a blind comparison, at least 4 of 5 reviewers prefer the redesign to the original, and at least 3 of 5 prefer it to a one-shot redesign by plain Claude of the same site. Beating that baseline answers "Claude can already do this".</li>
+      <li>Every page, contact detail and link on the old site is carried over or listed as dropped, with a reason.</li>
+      <li>Zero serious accessibility violations from axe-core, and a Lighthouse accessibility score of at least 95 on mobile. These thresholds are proposed and can change.</li>
+      <li>The council ranks 25 award-winning sites above 25 legacy school sites in at least 90 percent of pairs. If it does not, it is not trusted as a judge.</li>
+      <li>A short demo video and a written summary that name what still needs manual work.</li>
+    </ul>
+  </section>
+
+  <section id="lanes">
+    <h2>Who does what</h2>
+    <p>Three lanes, zero shared files. Each person owns one folder, one branch prefix, one set of API keys and one dependency list. Nobody reads, runs, reviews or edits another lane's code. Work moves between lanes only as JSON files that match a contract frozen on Sunday night.</p>
+    <div class="cols">
+      <div class="box"><span class="eyebrow">Lane A · about 21 hours</span><h3>Abhinav (lead)</h3><ul>
+        <li>Contracts, sample data and the validator</li>
+        <li>Scout: crawl, content inventory, brand colors and type</li>
+        <li>Orchestrator that chains the three lanes</li>
+        <li>Plain Claude baseline and the blind test</li>
+        <li>Folders: <code>contracts/</code> <code>orchestrator/</code> <code>lanes/a-scout/</code> and the repo root</li>
+        <li>Branches: <code>lane-a/</code> · proposed budget 10 USD</li>
+      </ul></div>
+      <div class="box"><span class="eyebrow">Lane B · about 13 hours</span><h3>Nirmal</h3><ul>
+        <li>Storyteller: the page-by-page storyboard</li>
+        <li>Art director: three directions with previews and Gemini imagery</li>
+        <li>Council: pairwise judging, calibration test, preference log</li>
+        <li>Folder: <code>lanes/b-design/</code></li>
+        <li>Branches: <code>lane-b/</code> · proposed budget 40 USD</li>
+      </ul></div>
+      <div class="box"><span class="eyebrow">Lane C · about 13 hours</span><h3>Teammate 3</h3><ul>
+        <li>Builder: the Astro site from the chosen direction</li>
+        <li>QA gates: axe-core, Lighthouse, link check, fact diff</li>
+        <li>Handoff: preview, repository and the owner's report</li>
+        <li>Folder: <code>lanes/c-build/</code></li>
+        <li>Branches: <code>lane-c/</code> · proposed budget 25 USD</li>
+      </ul></div>
+    </div>
+    <p>Abhinav carries more hours on purpose. Only the contract owner can write the contracts on Day 0, and keeping the baseline and blind test out of Lane C means the builder never builds the competitor it is judged against.</p>
+    <h3>The seven contracts</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>File</th><th>Written by</th><th>Holds</th></tr></thead>
+      <tbody>
+        <tr><td>00-run.json</td><td>Orchestrator (A)</td><td>Source URL, tier, owner consent, page and budget limits</td></tr>
+        <tr><td>10-inventory.json</td><td>Scout (A)</td><td>Every page, text block, image, link, form, fact and brand token</td></tr>
+        <tr><td>20-storyboard.json</td><td>Storyteller (B)</td><td>What the organization does, page order, sections, and which source blocks each uses</td></tr>
+        <tr><td>30-directions.json</td><td>Art director (B)</td><td>Exactly three directions with tokens, layout, references, previews and contrast checks</td></tr>
+        <tr><td>40-verdict.json</td><td>Council (B)</td><td>Judge votes, ranking, agreement, calibration accuracy</td></tr>
+        <tr><td>45-selection.json</td><td>Orchestrator (A)</td><td>The chosen direction and who chose it</td></tr>
+        <tr><td>50-handoff.json</td><td>Builder (C)</td><td>Site paths, preview, QA scores, fidelity report</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Rules that keep the lanes apart</h3>
+    <ul class="tight">
+      <li>Every lane has the same command shape: <code>node lanes/&lt;lane&gt;/cli.mjs &lt;stage&gt; --run R --in … --out …</code>. Exit codes: 0 ok, 2 bad input, 3 gate failed, 4 budget hit.</li>
+      <li>Contracts are frozen at tag <code>contracts-v1.0.0</code> on Sun Nov 1, 21:00 PST. A change needs a GitHub issue labelled <code>contract-cr</code>. Abhinav rules within 12 hours. No breaking changes after Wed 09:00.</li>
+      <li>Each lane builds against sample Gallant data until Wednesday, then against real run outputs Abhinav publishes to <code>contracts/samples/</code>. Nobody waits on anybody.</li>
+      <li>CI fails any pull request from a lane branch that touches a file outside that lane's folder. CODEOWNERS makes each person the only reviewer of their own folder.</li>
+      <li>Daily sync: one line in your own <code>STATUS.md</code> by 21:00 PST. Abhinav's Claude rolls them up onto the shared board. Questions go on the board or a GitHub issue, never as edits.</li>
+      <li>If the orchestrator finds a lane failing, Abhinav posts the failing command and input file, and that lane's owner fixes it.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>The week, day by day</h2>
+    <p>The cards below are the product milestones. The table under them shows what each lane does that day. Each day ends with something that runs.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Day</th><th>Abhinav (A)</th><th>Nirmal (B)</th><th>Teammate 3 (C)</th></tr></thead>
+      <tbody>
+        <tr><td>Sun Nov 1</td><td>Repo skeleton, lane guard, seven schemas, Gallant fixtures, freeze contracts by 21:00</td><td>Calibration list: 25 award sites, 25 legacy sites, Awwwards terms read</td><td>Astro base template with token slots</td></tr>
+        <tr><td>Mon Nov 2</td><td>Orchestrator stub mode, Scout crawl, screenshots, images, links, forms</td><td>CLI skeleton, Storyteller</td><td>CLI skeleton, pages from the storyboard</td></tr>
+        <tr><td>Tue Nov 3</td><td>Scout brand, facts, injection safety; orchestrator real mode</td><td>Three directions, previews and imagery, council runner, compare page. "Ready" by 21:00</td><td>Verbatim content, axe and Lighthouse gates, link check, fact diff, handoff file. "Ready" by 21:00</td></tr>
+        <tr><td>Wed Nov 4</td><td>Readiness check 09:00, first real run, publish samples, baseline. Show Vidyut</td><td>Calibration run against the 90 percent gate, preference log</td><td>Quality pass on real samples, preview publish once a host is approved</td></tr>
+        <tr><td>Thu Nov 5</td><td>Three-site runs, route red-team findings, blind test</td><td>Council fixes from calibration and the real run</td><td>Fix the top red-team defects</td></tr>
+        <tr><td>Fri Nov 6</td><td>Root README, clean-machine check</td><td>Budgets, retries, cost log</td><td>Owner report a school office can read</td></tr>
+        <tr><td>Sat Nov 7</td><td>Demo video, summary, final judged review</td><td>Freeze at 12:00, fixes only on request</td><td>Freeze at 12:00, fixes only on request</td></tr>
+      </tbody>
+    </table></div>
+    <div class="days">
+      <div class="day"><div class="when"><b>Day 1</b><span>Sun Nov 1</span></div><div class="what">
+        <h3>Foundations and the Scout</h3>
+        <ul><li>Create the project folder and repository. Pick the three test sites and the legacy school site.</li><li>Scout: Playwright plus the sitemap pull every page into structured data, with dembrandt for colors, type and spacing.</li><li>Start the calibration set: 25 award-winning sites against 25 legacy school sites (check Awwwards' terms first).</li></ul>
+        <p class="done"><b>Done when:</b> clean data and a content inventory exist for all three sites.</p></div></div>
+
+      <div class="day"><div class="when"><b>Day 2</b><span>Mon Nov 2</span></div><div class="what">
+        <h3>Storyteller and Art director</h3>
+        <ul><li>Storyteller turns the inventory into a storyboard: who it is for, the one message, the page order.</li><li>Art director writes three direction briefs, each with tokens, type pairing, layout and named reference sites.</li><li>Ban default component themes so output does not look like every other template.</li></ul>
+        <p class="done"><b>Done when:</b> one site has a storyboard and three directions you would show a customer.</p></div></div>
+
+      <div class="day"><div class="when"><b>Day 3</b><span>Tue Nov 3</span></div><div class="what">
+        <h3>Builder and the checks</h3>
+        <ul><li>Builder outputs a static Astro site with Tailwind and Radix primitives, with Motion or CSS for movement.</li><li>Blocking checks: axe-core, Lighthouse, a link checker, and a fact diff against the source text.</li><li>Publish a static preview link.</li></ul>
+        <p class="done"><b>Done when:</b> site 1 builds from a chosen direction and passes every check.</p></div></div>
+
+      <div class="day checkpoint"><div class="when"><b>Day 4</b><span>Wed Nov 4</span></div><div class="what">
+        <h3>Council and the first full run</h3>
+        <ul><li>Build the council and run the calibration test. Fix it until it passes, or document that it fails.</li><li>First end-to-end run, URL to repository, on a real site.</li><li>Generate the plain Claude one-shot baseline for the same site.</li></ul>
+        <p class="done"><b>Done when:</b> a real site goes through every stage. <b>Checkpoint:</b> show Vidyut the result.</p></div></div>
+
+      <div class="day"><div class="when"><b>Day 5</b><span>Thu Nov 5</span></div><div class="what">
+        <h3>Three sites and the blind test</h3>
+        <ul><li>Run the other two sites.</li><li>Five people compare original, redesign and baseline, without labels.</li><li>Red-team pass by the auditor agent. Fix the top defects.</li></ul>
+        <p class="done"><b>Done when:</b> preference numbers exist for all three sites.</p></div></div>
+
+      <div class="day"><div class="when"><b>Day 6</b><span>Fri Nov 6</span></div><div class="what">
+        <h3>Handoff and hardening</h3>
+        <ul><li>Repository README, setup steps that work from a clean machine, and a plain-language report for a non-technical owner.</li><li>Decide how a school office edits the site (see risks).</li><li>Security pass: the scraping step gets no shell or write tools, and scraped text cannot give the agents instructions.</li></ul>
+        <p class="done"><b>Done when:</b> a stranger can run the project from the README.</p></div></div>
+
+      <div class="day"><div class="when"><b>Day 7</b><span>Sat Nov 7</span></div><div class="what">
+        <h3>Demo, write-up and retro</h3>
+        <ul><li>Demo video and summary with before and after.</li><li>Final judged review against the success list above.</li><li>Retro: record what the next week should learn from.</li></ul>
+        <p class="done"><b>Done when:</b> every line of the done list is checked or marked as a known gap.</p></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The stack</h2>
+    <div class="cols">
+      <div class="box"><h3>Use</h3><ul>
+        <li>Playwright and the sitemap for crawling</li>
+        <li>dembrandt (pinned version) for the old site's colors and type</li>
+        <li>Astro static output, Tailwind, Radix primitives</li>
+        <li>Motion or CSS scroll animation</li>
+        <li>axe-core and Lighthouse as blocking checks</li>
+        <li>OpenRouter for all models</li>
+        <li>screenshot-to-code and open-lovable as references and baselines</li>
+      </ul></div>
+      <div class="box"><h3>Avoid, and why</h3><ul>
+        <li>GSAP: its free license bars use in tools competing with Webflow</li>
+        <li>crawl4ai: adds a credit clause for commercial web apps</li>
+        <li>Magic UI: its stock components look like generic AI output</li>
+        <li>Lenis and WebGL on school sites: heavy on cheap hosting</li>
+        <li>TRIBE v2: non-commercial license, and it takes video, audio or text</li>
+        <li>New skill installs: none this week. Copy rule text at a fixed commit instead.</li>
+      </ul></div>
+    </div>
+    <p>The review of these picks is in the devil's advocate report. The skills that came up (impeccable, taste-skill, Vercel's web-design-guidelines) run unpinned scripts or fetch their rules from a live branch, so their rules are copied into our reviewer prompt instead.</p>
+  </section>
+
+  <section>
+    <h2>Risks and how we handle them</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Risk</th><th>Why it matters</th><th>What we do</th></tr></thead>
+      <tbody>
+        <tr><td>The judge cannot tell great from generic</td><td>The 800,000-person model does not exist as described. TRIBE v2 was trained on 720 people, predicts brain scans and is non-commercial.</td><td>Council of three model families, a calibration test, and a person breaks ties.</td></tr>
+        <tr><td>Handoff</td><td>A school communications office cannot run a repository.</td><td>Preview link now. A hosted way to edit text must exist before anyone is charged.</td></tr>
+        <tr><td>Wrong facts or lost content</td><td>A changed date or rewritten legal notice on a school site is a real harm.</td><td>Tag every text block with its source page and block any changed fact. Fidelity report on every run.</td></tr>
+        <tr><td>Accessibility law</td><td>US public schools need WCAG 2.1 AA (deadline Apr 26 2027 for larger areas, Apr 26 2028 for smaller).</td><td>Accessibility checks block the build. Motion stays modest for this tier.</td></tr>
+        <tr><td>Image and student data rights</td><td>Stock images licensed to the old site may not transfer. Student photos raise privacy questions.</td><td>Demo only on sites whose owner agrees. Flag every image's origin. Keep student data away from model providers.</td></tr>
+        <tr><td>Prompt injection from scraped pages</td><td>A page can contain text that tries to steer the agent.</td><td>Scout has no shell or write tools. Treat scraped text as data only.</td></tr>
+        <tr><td>Competition</td><td>Repaint (YC S23) already turns a URL into a hosted redesign for $25 to $200 a month.</td><td>Compete on the storyline and the owned repository. Collect demand evidence from real schools.</td></tr>
+        <tr><td>Training takes longer than a week</td><td>Vidyut's own warning from the game project.</td><td>The week delivers a working pipeline and a measured result. Training starts after, with signals already logged.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Needed from Abhinav</h2>
+    <ul class="tight">
+      <li><span class="pill open">Open</span> Confirm or change the assumed decisions above. Saying "go" accepts them all.</li>
+      <li><span class="pill open">Open</span> Which tier is the first test: public schools (accessible, calm) or private schools and small organizations (more design freedom)? Recommended: private schools and small organizations first.</li>
+      <li><span class="pill open">Open</span> Name of the Penn State company that raised about $2M, so it can be added to the competitor list.</li>
+      <li><span class="pill open">Open</span> Five people for the blind comparison on Day 5.</li>
+      <li><span class="pill open">Open</span> Teammate 3's name and everyone's GitHub username, for CODEOWNERS.</li>
+      <li><span class="pill open">Open</span> OpenRouter budget per lane. Proposed: A 10 USD, B 40 USD, C 25 USD.</li>
+      <li><span class="pill open">Open</span> Which host serves preview links. Needs Vidyut's OK before any account is created.</li>
+      <li><span class="pill open">Open</span> Nirmal: is the Gallant content OK to use as sample data?</li>
+      <li><span class="pill open">Open</span> A new project folder to build in, for example <code>Documents\website-redesign-agent</code>.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>Built from the Oct 31 meeting with Vidyut, the research report on repositories, skills and references, and a devil's advocate review. Not yet checked: GSAP's final terms, Awwwards' terms of use, FERPA details, the real quality of the skill repositories' stars, and how a school would edit its site. The calibration thresholds and the 4 of 5 preference target are proposals.</p>
+  </footer>
+</main>
