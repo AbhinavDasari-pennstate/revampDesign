@@ -7,7 +7,7 @@ Lanes: plan/lanes.md (ownership, branch prefixes, hand-off rules)
 Base branch: main
 Build branch: one prefix per lane: `lane-a/<task-id>-<slug>`, `lane-b/<task-id>-<slug>`, `lane-c/<task-id>-<slug>`
 Test command: per folder, never repo wide: `cd contracts && node --test`; `cd orchestrator && node --test`; `cd lanes/a-scout && node --test`; `cd lanes/b-design && node --test`; `cd lanes/c-build && node --test`. Each lane runs only its own.
-Run command: `node orchestrator/cli.mjs run --url <site> --tier <A|B|C>` (real); `node orchestrator/cli.mjs run --fixture gallant` (stub mode, no network)
+Run command: `node orchestrator/cli.mjs run --url <site> --tier <A|B|C>` (real); `node orchestrator/cli.mjs run --fixture sample` (stub mode, no network)
 Progress: plan/progress.md (task ledger and rulings, written by the main session)
 Times: PST. Week: Sun Nov 1 (Day 0) to Sat Nov 7 2026.
 
@@ -16,7 +16,7 @@ One command turns an existing website URL into a story-first redesigned Astro si
 
 ## Architecture
 - Pipeline: orchestrator (Lane A) calls five stage CLIs in order: Scout (A) > Storyteller, Art director, Council (B) > Builder plus QA plus Handoff (C). Each stage reads and writes only JSON contract files in a run folder `runs/<run_id>/`.
-- Contracts: JSON Schema draft 2020-12 files plus a realistic Gallant fixture set in `contracts/`, frozen at tag `contracts-v1.0.0` on Sun Nov 1 21:00. Lanes read schemas and fixtures as data and validate with their own Ajv copy; nobody runs another lane's code except the orchestrator at integration.
+- Contracts: JSON Schema draft 2020-12 files plus a realistic sample fixture set in `contracts/`, frozen at tag `contracts-v1.0.0` on Sun Nov 1 21:00. Lanes read schemas and fixtures as data and validate with their own Ajv copy; nobody runs another lane's code except the orchestrator at integration.
 - Libraries and maturity: Node 24 LTS (proven), node:test (proven), Ajv 8 (proven), Playwright library (proven), dembrandt pinned (emerging; logo and colours only), Astro static output (proven), Tailwind (proven), Radix primitives (proven), Motion (proven) or CSS scroll-driven animation (emerging; progressive enhancement only), @axe-core/playwright (proven), Lighthouse CLI (proven), OpenRouter (emerging as a router; per-key spend caps), pairwise VLM council (emerging technique, gated by our own calibration set).
 - Mocked this week: nothing in the demo path is mocked; the orchestrator stub mode substitutes fixtures only when a lane is missing and says so in its log. Preview hosting is local `astro preview` until a host is approved.
 
@@ -40,11 +40,11 @@ One command turns an existing website URL into a story-first redesigned Astro si
 - For every person and every agent: any folder owned by another lane (see CODEOWNERS); `contracts/` is read-only to Lanes B and C; nobody but Abhinav edits root files, `.github/`, `plan/` or `orchestrator/`.
 - `.env` files: never read, printed or committed by any agent.
 - Pushing, merging to main, creating GitHub repos for output sites, deploying previews, signing up for hosts: humans only, after approval for that exact action. Agents never push.
-- Third-party sites without owner consent (except Prism and Gallant); calibration screenshots are never committed (manifest of URLs only); no student photos or names sent to model providers.
+- Third-party sites without owner consent (except Prism and the fictional sample site); calibration screenshots are never committed (manifest of URLs only); no student photos or names sent to model providers.
 - No lane imports, requires, symlinks, copies or runs code from another lane's folder. Reading another lane's contract output files in `runs/` or `contracts/samples/` is allowed; reading their source is not needed and not done.
 
 ## Interfaces
-Contracts v1.0.0 (schemas in `contracts/schemas/`, Gallant fixtures in `contracts/fixtures/gallant/`, one broken file per schema in `contracts/fixtures/invalid/`). Field-level summary in plan/lanes.md section "Shared: contracts".
+Contracts v1.0.0 (schemas in `contracts/schemas/`, sample fixtures in `contracts/fixtures/sample/`, one broken file per schema in `contracts/fixtures/invalid/`). Field-level summary in plan/lanes.md section "Shared: contracts".
 
 | File in run folder | Contract | Producer (lane) | Consumers |
 |---|---|---|---|
@@ -64,7 +64,7 @@ Stage commands the orchestrator calls, exactly:
 - orchestrator writes `R/45-selection.json` (council top pick, or the operator's choice at the prompt)
 - `node lanes/c-build/cli.mjs build --run R --in R/00-run.json --in R/10-inventory.json --in R/20-storyboard.json --in R/30-directions.json --in R/45-selection.json --out R/50-handoff.json`
 
-Integration readiness rule: a lane is "integration ready" when, on main, its stage command run against `contracts/fixtures/gallant/` as R exits 0 and its output validates with `node contracts/validate.mjs <out>`.
+Integration readiness rule: a lane is "integration ready" when, on main, its stage command run against `contracts/fixtures/sample/` as R exits 0 and its output validates with `node contracts/validate.mjs <out>`.
 
 ## Claims we will make
 Nothing is built yet; every claim is planned until its proof passes on a real run.
@@ -85,7 +85,7 @@ Nothing is built yet; every claim is planned until its proof passes on a real ru
 5. A site blocked by Cloudflare or rate limits: Scout exits 3 with `status: "fail"` and a reason, the orchestrator stops cleanly and says which site and why.
 
 ## Tasks
-Each task is one builder session (30 to 90 minutes), test first. Demo path first: the Gallant chain runs end to end in stub mode by Mon night and with real lanes by Wed. No day holds more than 20 tasks. Owner is the human accountable; Claude and master agents help inside that owner's lane folder only.
+Each task is one builder session (30 to 90 minutes), test first. Demo path first: the sample chain runs end to end in stub mode by Mon night and with real lanes by Wed. No day holds more than 20 tasks. Owner is the human accountable; Claude and master agents help inside that owner's lane folder only.
 
 ### Day 0, Sun Nov 1 (contracts freeze at 21:00 PST)
 
@@ -121,17 +121,16 @@ steps: as T02.
 done when: `cd contracts && node --test` passes for all seven schemas.
 approved installs: ajv (pending approval)
 
-### T04: Gallant fixture set, cross-reference validator, freeze
+### T04: sample fixture set, cross-reference validator, freeze
 owner: Abhinav (Claude builds) | lane: A | depends_on: [T03]
-files: create `contracts/fixtures/gallant/00-run.json` to `50-handoff.json`, `contracts/fixtures/gallant/a-scout/screens/*.png`, `contracts/fixtures/gallant/b-design/previews/*.png`, `contracts/fixtures/gallant/c-build/screens/*.png`, `contracts/validate.mjs`, `contracts/test/fixtures.test.mjs`, `contracts/README.md`
+files: create `contracts/fixtures/sample/00-run.json` to `50-handoff.json`, `contracts/fixtures/sample/a-scout/screens/*.png`, `contracts/fixtures/sample/b-design/previews/*.png`, `contracts/fixtures/sample/c-build/screens/*.png`, `contracts/validate.mjs`, `contracts/test/fixtures.test.mjs`, `contracts/README.md`
 interfaces: produces the frozen fixture run every lane builds against
 failing test first: `fixtures.test.mjs`: every fixture validates; every `body_block_ids` and `image_ids` in the storyboard exists in the inventory; `selection.direction_id` exists in directions; every relative path in every fixture exists on disk; no file contains an em or en dash
 steps:
-1. Capture 3 to 5 real Gallant pages (home, about, contact at least) with a throwaway Playwright script kept outside `contracts/` (in `lanes/a-scout/scratch/`, gitignored), then hand-trim into `10-inventory.json` with real text blocks, facts and screenshots.
+1. Write a fictional legacy-style school site (Maple Grove High School, maplegrove-hs.example) in `contracts/fixtures/sample-site/`, serve it locally and capture it with `lanes/a-scout/tools/make-sample-fixture.mjs` into `10-inventory.json` with real text blocks, facts and screenshots.
 2. Claude writes a realistic storyboard, three directions (render each as a one-page HTML board and screenshot it), a verdict, a selection and a handoff (handoff screenshots are the direction-1 previews, labelled `"fixture_stand_in": true` in the README, not in the JSON).
 3. `validate.mjs <file> [--cross <run dir>]` for the orchestrator and CI.
-4. Ask Nirmal on the board one question only: "is this Gallant content current and OK to use as a fixture?" (he answers on the board; he does not edit).
-5. Tag `contracts-v1.0.0`, push, post the board line "contracts frozen".
+4. Tag `contracts-v1.0.0`, push, post the board line "contracts frozen".
 done when: `cd contracts && node --test` passes; tag exists on origin; board line posted by Sun 21:00 PST.
 approved installs: playwright (pending approval)
 
@@ -154,13 +153,13 @@ steps: 1. Test. 2. Astro static project, Tailwind theme read from `tokens.json`,
 done when: `cd lanes/c-build && node --test` passes.
 approved installs: astro, tailwindcss, @tailwindcss/vite (pending approval)
 
-### Day 1, Mon Nov 2 (all three lanes build against the Gallant fixture)
+### Day 1, Mon Nov 2 (all three lanes build against the sample fixture)
 
 ### T07: Orchestrator stub mode
 owner: Abhinav | lane: A | depends_on: [T04]
 files: create `orchestrator/cli.mjs`, `orchestrator/lib/run.mjs`, `orchestrator/test/stub.test.mjs`, `orchestrator/package.json`
 interfaces: consumes all seven contracts; produces `00-run.json`, `45-selection.json`, `orchestrator.log`
-failing test first: `run --fixture gallant --out-dir <tmp>` creates a run folder whose seven files all validate, logs `STUB scout`, `STUB story` and so on, and exits 0; a missing lane CLI is reported as `STUB (lane not present)`, not a crash
+failing test first: `run --fixture sample --out-dir <tmp>` creates a run folder whose seven files all validate, logs `STUB scout`, `STUB story` and so on, and exits 0; a missing lane CLI is reported as `STUB (lane not present)`, not a crash
 steps: 1. Test. 2. Run folder creation, `run_id` format `YYYYMMDD-HHMM-<slug>`. 3. For each stage: if the lane CLI exists and `--stub` is not forced, call it; else copy the fixture. 4. Validate after every stage with `contracts/validate.mjs`.
 done when: `cd orchestrator && node --test` passes.
 approved installs: none (uses contracts' Ajv through `validate.mjs`)
@@ -195,7 +194,7 @@ owner: Nirmal | lane: B | depends_on: [T10]
 files: create `lanes/b-design/story/story.mjs`, `lanes/b-design/story/prompt.md`, `lanes/b-design/test/story.test.mjs`
 interfaces: consumes run.v1 and inventory.v1; produces storyboard.v1
 failing test first: with a recorded model response (no network in tests), output validates; every `body_block_ids` exists in the fixture inventory; every inventory page is either used in `source_page_ids` or listed in `dropped[]` with a reason; `copy_status: "new"` copy contains no digits, emails or phone patterns (facts must come from blocks)
-steps: 1. Test with `test/recorded/story.gallant.json`. 2. Prompt that passes scraped text inside a clearly delimited data section. 3. Live call only behind `--live`.
+steps: 1. Test with `test/recorded/story.sample.json`. 2. Prompt that passes scraped text inside a clearly delimited data section. 3. Live call only behind `--live`.
 done when: `cd lanes/b-design && node --test` passes; one live run on the fixture inventory saved to `lanes/b-design/test/recorded/`.
 approved installs: none new
 
@@ -211,7 +210,7 @@ approved installs: ajv (pending approval)
 owner: Aditya | lane: C | depends_on: [T12]
 files: create `lanes/c-build/builder/tokens.mjs`, `lanes/c-build/builder/pages.mjs`, `lanes/c-build/test/build.test.mjs`
 interfaces: consumes directions.v1 (selected direction tokens), storyboard.v1; produces `c-build/site/` Astro project and `dist/`
-failing test first: from the Gallant fixture: one HTML page per storyboard page slug; nav order equals `storyboard.nav`; the selected direction's accent and fonts appear in CSS; no em or en dash in any built HTML
+failing test first: from the sample fixture: one HTML page per storyboard page slug; nav order equals `storyboard.nav`; the selected direction's accent and fonts appear in CSS; no em or en dash in any built HTML
 done when: `cd lanes/c-build && node --test` passes.
 approved installs: none new
 
@@ -277,7 +276,7 @@ approved installs: @axe-core/playwright (pending approval)
 owner: Aditya | lane: C | depends_on: [T15]
 files: create `lanes/c-build/qa/a11y.mjs`, `lanes/c-build/qa/lighthouse.mjs`, `lanes/c-build/test/qa-gates.test.mjs`, `lanes/c-build/test/bad-site/` (a page with known violations)
 interfaces: produces handoff.v1 `qa.axe`, `qa.lighthouse[]`
-failing test first: the bad site yields serious violations and `gates_passed: false` with exit 3; the Gallant fixture build passes with zero serious or critical and mobile accessibility at least 95
+failing test first: the bad site yields serious violations and `gates_passed: false` with exit 3; the sample fixture build passes with zero serious or critical and mobile accessibility at least 95
 done when: `cd lanes/c-build && node --test` passes.
 approved installs: @axe-core/playwright, lighthouse, playwright (pending approval, Lane C's own copies)
 
@@ -293,7 +292,7 @@ approved installs: linkinator (pending approval)
 owner: Aditya | lane: C | depends_on: [T22]
 files: create `lanes/c-build/handoff/report.mjs`, `lanes/c-build/handoff/repo.mjs`, `lanes/c-build/test/handoff.test.mjs`
 interfaces: produces handoff.v1 in full
-failing test first: on the Gallant fixture `build` exits 0, writes a valid 50-handoff.json, `c-build/site/` is a git repo with one commit and a README, `report.md` lists every dropped and flagged item in plain language, and `fidelity` counts match the inventory
+failing test first: on the sample fixture `build` exits 0, writes a valid 50-handoff.json, `c-build/site/` is a git repo with one commit and a README, `report.md` lists every dropped and flagged item in plain language, and `fidelity` counts match the inventory
 done when: `cd lanes/c-build && node --test` passes; Aditya posts "Lane C integration ready" by Tue 21:00 PST.
 approved installs: none new
 
@@ -302,8 +301,8 @@ approved installs: none new
 ### T24: Integration readiness check on main
 owner: Abhinav | lane: A | depends_on: [T16, T17, T19, T23]
 files: create `orchestrator/test/readiness.test.mjs`
-interfaces: runs each lane's stage command exactly as in Interfaces against the Gallant fixture
-failing test first: each of the five stage commands on main exits 0 against `contracts/fixtures/gallant/` and its output validates; a failure prints the stage, the owner and the input file path
+interfaces: runs each lane's stage command exactly as in Interfaces against the sample fixture
+failing test first: each of the five stage commands on main exits 0 against `contracts/fixtures/sample/` and its output validates; a failure prints the stage, the owner and the input file path
 steps: on failure Abhinav posts `@lane-x` on the board with the command and the input file; he never opens or edits the lane's code.
 done when: `cd orchestrator && node --test` passes on main by Wed 09:00 PST.
 approved installs: none
@@ -313,7 +312,7 @@ owner: Abhinav | lane: A | depends_on: [T24]
 files: create `runs/<id>/` (gitignored); create `contracts/samples/<site>/` with the real 10 to 50 files copied from the run
 interfaces: all contracts
 failing test first: `contracts/test/samples.test.mjs`: every file under `contracts/samples/` validates and passes the cross check
-steps: 1. Run on Gallant (or the consenting school site). 2. Publish samples so Lanes B and C can test on real data without waiting. 3. Show Vidyut the preview, the compare page and the report.
+steps: 1. Run on Prism (or the consenting school site). 2. Publish samples so Lanes B and C can test on real data without waiting. 3. Show Vidyut the preview, the compare page and the report.
 done when: one real run reaches `50-handoff.json`; samples test passes; checkpoint notes posted on the board.
 approved installs: none
 
@@ -363,7 +362,7 @@ approved installs: none until the host is approved
 
 ### T31: Three-site runs and red-team routing
 owner: Abhinav | lane: A | depends_on: [T25, T29]
-files: create `runs/<id>/` for Prism, Gallant and the school site; add their samples to `contracts/samples/`
+files: create `runs/<id>/` for Prism and two consenting school sites; add their samples to `contracts/samples/`
 failing test first: samples test covers all three sites
 steps: run master-auditor red team on each handoff; post each defect on the board as `@lane-x <defect, evidence path>`; owners fix in their lanes.
 done when: three valid handoffs exist; every red-team finding is on the board with an owner.

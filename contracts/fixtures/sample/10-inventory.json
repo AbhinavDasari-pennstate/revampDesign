@@ -1,0 +1,371 @@
+{
+  "contract": "inventory",
+  "version": "1.0.0",
+  "run_id": "sample-0001",
+  "crawled_at": "2026-11-01T18:00:00-08:00",
+  "robots_respected": true,
+  "pages": [
+    {
+      "page_id": "p01",
+      "url": "https://maplegrove-hs.example/index.html",
+      "title": "Home - Maple Grove High School",
+      "status_code": 200,
+      "depth": 0,
+      "screenshots": {
+        "desktop": "a-scout/screens/p01-desktop.png",
+        "mobile": "a-scout/screens/p01-mobile.png"
+      },
+      "blocks": [
+        {
+          "block_id": "p01-b001",
+          "kind": "heading",
+          "level": 1,
+          "order": 0,
+          "text": "Welcome to Maple Grove High School"
+        },
+        {
+          "block_id": "p01-b002",
+          "kind": "paragraph",
+          "level": null,
+          "order": 1,
+          "text": "Maple Grove High School serves about 640 students in grades 9 through 12 in the Maple Grove Local School District. Our mission is to prepare every student for college, career and community life."
+        },
+        {
+          "block_id": "p01-b003",
+          "kind": "list",
+          "level": null,
+          "order": 2,
+          "text": "News and Announcements\nFall parent teacher conferences are November 12 and 13.\nThe Mustangs marching band placed second at the state competition.\nSenior photos are due to the main office by December 1."
+        },
+        {
+          "block_id": "p01-b004",
+          "kind": "contact",
+          "level": null,
+          "order": 3,
+          "text": "Questions? Call the main office at (555) 010-0142."
+        },
+        {
+          "block_id": "p01-b090",
+          "kind": "nav",
+          "level": null,
+          "order": 89,
+          "text": "Home | About Us | Contact | Calendar"
+        },
+        {
+          "block_id": "p01-b091",
+          "kind": "footer",
+          "level": null,
+          "order": 90,
+          "text": "Copyright 2009 Maple Grove Local School District. Best viewed in Internet Explorer 8 at 1024x768."
+        }
+      ],
+      "images": [
+        {
+          "image_id": "p01-i01",
+          "src_url": "https://maplegrove-hs.example/crest.svg",
+          "local_path": "a-scout/images/p01-i01.png",
+          "alt": "Maple Grove High School crest",
+          "width": 64,
+          "height": 64,
+          "origin": "site"
+        }
+      ],
+      "links": [
+        {
+          "href": "/index.html",
+          "text": "Home",
+          "internal": true
+        },
+        {
+          "href": "/about.html",
+          "text": "About Us",
+          "internal": true
+        },
+        {
+          "href": "/contact.html",
+          "text": "Contact",
+          "internal": true
+        },
+        {
+          "href": "/calendar.html",
+          "text": "Calendar",
+          "internal": true
+        }
+      ],
+      "forms": []
+    },
+    {
+      "page_id": "p02",
+      "url": "https://maplegrove-hs.example/about.html",
+      "title": "About Us - Maple Grove High School",
+      "status_code": 200,
+      "depth": 1,
+      "screenshots": {
+        "desktop": "a-scout/screens/p02-desktop.png",
+        "mobile": "a-scout/screens/p02-mobile.png"
+      },
+      "blocks": [
+        {
+          "block_id": "p02-b001",
+          "kind": "heading",
+          "level": 1,
+          "order": 0,
+          "text": "About Us"
+        },
+        {
+          "block_id": "p02-b002",
+          "kind": "paragraph",
+          "level": null,
+          "order": 1,
+          "text": "Maple Grove High School opened in 1962 and moved to its current building on Orchard Road in 1998. Students choose from 14 Advanced Placement courses, a career and technical program, and more than 30 clubs and teams."
+        },
+        {
+          "block_id": "p02-b003",
+          "kind": "paragraph",
+          "level": null,
+          "order": 2,
+          "text": "Principal: Dana Whitfield"
+        },
+        {
+          "block_id": "p02-b004",
+          "kind": "legal",
+          "level": null,
+          "order": 3,
+          "text": "Maple Grove Local School District does not discriminate on the basis of race, color, national origin, sex, disability or age in its programs and activities."
+        },
+        {
+          "block_id": "p02-b090",
+          "kind": "nav",
+          "level": null,
+          "order": 89,
+          "text": "Home | About Us | Contact | Calendar"
+        },
+        {
+          "block_id": "p02-b091",
+          "kind": "footer",
+          "level": null,
+          "order": 90,
+          "text": "Copyright 2009 Maple Grove Local School District. Best viewed in Internet Explorer 8 at 1024x768."
+        }
+      ],
+      "images": [],
+      "links": [
+        {
+          "href": "/index.html",
+          "text": "Home",
+          "internal": true
+        },
+        {
+          "href": "/about.html",
+          "text": "About Us",
+          "internal": true
+        },
+        {
+          "href": "/contact.html",
+          "text": "Contact",
+          "internal": true
+        },
+        {
+          "href": "/calendar.html",
+          "text": "Calendar",
+          "internal": true
+        }
+      ],
+      "forms": []
+    },
+    {
+      "page_id": "p03",
+      "url": "https://maplegrove-hs.example/contact.html",
+      "title": "Contact - Maple Grove High School",
+      "status_code": 200,
+      "depth": 1,
+      "screenshots": {
+        "desktop": "a-scout/screens/p03-desktop.png",
+        "mobile": "a-scout/screens/p03-mobile.png"
+      },
+      "blocks": [
+        {
+          "block_id": "p03-b001",
+          "kind": "heading",
+          "level": 1,
+          "order": 0,
+          "text": "Contact"
+        },
+        {
+          "block_id": "p03-b002",
+          "kind": "contact",
+          "level": null,
+          "order": 1,
+          "text": "Maple Grove High School\n2200 Orchard Road\nMaple Grove, OH 45000"
+        },
+        {
+          "block_id": "p03-b003",
+          "kind": "contact",
+          "level": null,
+          "order": 2,
+          "text": "Phone: (555) 010-0142\nEmail: office@maplegrove-hs.example"
+        },
+        {
+          "block_id": "p03-b004",
+          "kind": "paragraph",
+          "level": null,
+          "order": 3,
+          "text": "Office hours: Monday to Friday, 7:30 AM to 3:30 PM"
+        },
+        {
+          "block_id": "p03-b090",
+          "kind": "nav",
+          "level": null,
+          "order": 89,
+          "text": "Home | About Us | Contact | Calendar"
+        },
+        {
+          "block_id": "p03-b091",
+          "kind": "footer",
+          "level": null,
+          "order": 90,
+          "text": "Copyright 2009 Maple Grove Local School District. Best viewed in Internet Explorer 8 at 1024x768."
+        }
+      ],
+      "images": [],
+      "links": [
+        {
+          "href": "/index.html",
+          "text": "Home",
+          "internal": true
+        },
+        {
+          "href": "/about.html",
+          "text": "About Us",
+          "internal": true
+        },
+        {
+          "href": "/contact.html",
+          "text": "Contact",
+          "internal": true
+        },
+        {
+          "href": "/calendar.html",
+          "text": "Calendar",
+          "internal": true
+        }
+      ],
+      "forms": [
+        {
+          "form_id": "p03-f01",
+          "action": "/cgi-bin/contact.pl",
+          "method": "post",
+          "needs_backend": true,
+          "fields": [
+            {
+              "name": "name",
+              "type": "text",
+              "label": "Your name",
+              "required": false
+            },
+            {
+              "name": "email",
+              "type": "text",
+              "label": "Your email",
+              "required": false
+            },
+            {
+              "name": "message",
+              "type": "textarea",
+              "label": "Message",
+              "required": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "f001",
+      "kind": "phone",
+      "value": "(555) 010-0142",
+      "block_id": "p03-b003"
+    },
+    {
+      "fact_id": "f002",
+      "kind": "email",
+      "value": "office@maplegrove-hs.example",
+      "block_id": "p03-b003"
+    },
+    {
+      "fact_id": "f003",
+      "kind": "address",
+      "value": "2200 Orchard Road, Maple Grove, OH 45000",
+      "block_id": "p03-b002"
+    },
+    {
+      "fact_id": "f004",
+      "kind": "date",
+      "value": "1962",
+      "block_id": "p02-b002"
+    },
+    {
+      "fact_id": "f005",
+      "kind": "person",
+      "value": "Dana Whitfield, Principal",
+      "block_id": "p02-b003"
+    },
+    {
+      "fact_id": "f006",
+      "kind": "legal_notice",
+      "value": "Nondiscrimination notice",
+      "block_id": "p02-b004"
+    },
+    {
+      "fact_id": "f007",
+      "kind": "time",
+      "value": "Monday to Friday, 7:30 AM to 3:30 PM",
+      "block_id": "p03-b004"
+    },
+    {
+      "fact_id": "f008",
+      "kind": "date",
+      "value": "November 12 and 13",
+      "block_id": "p01-b003"
+    }
+  ],
+  "brand": {
+    "logo_path": "a-scout/images/p01-i01.png",
+    "colors": [
+      {
+        "hex": "#003366",
+        "role": "primary"
+      },
+      {
+        "hex": "#ffcc00",
+        "role": "accent"
+      },
+      {
+        "hex": "#fffff0",
+        "role": "background"
+      },
+      {
+        "hex": "#cccccc",
+        "role": "nav"
+      }
+    ],
+    "fonts": [
+      {
+        "family": "Times New Roman",
+        "usage": "headings and body"
+      },
+      {
+        "family": "Arial",
+        "usage": "navigation and footer"
+      }
+    ]
+  },
+  "failures": [
+    {
+      "url": "https://maplegrove-hs.example/calendar.html",
+      "reason": "HTTP 404"
+    }
+  ],
+  "untrusted_text": true
+}

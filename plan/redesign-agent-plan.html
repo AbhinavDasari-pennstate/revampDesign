@@ -147,7 +147,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
         <tr><td>Three directions, one chosen</td><td><span class="pill locked">Locked</span></td><td>The council ranks them and the user picks.</td></tr>
         <tr><td>Models</td><td><span class="pill locked">Locked</span></td><td>Routed through OpenRouter, with the model for each step kept in one config file.</td></tr>
         <tr><td>Judge</td><td><span class="pill assumed">Assumed</span></td><td>A council of three vision models plus a calibration test. Meta TRIBE v2 is not used in the product (see risks).</td></tr>
-        <tr><td>First customers</td><td><span class="pill assumed">Assumed</span></td><td>Legacy high-school and small-organization sites in the US. Test on Prism, Gallant and one real legacy school site.</td></tr>
+        <tr><td>First customers</td><td><span class="pill assumed">Assumed</span></td><td>Legacy high-school and small-organization sites in the US. Test on Prism and real legacy school sites whose owners agree.</td></tr>
         <tr><td>Scope of a rebuild</td><td><span class="pill assumed">Assumed</span></td><td>Keep all content and links. Forms, logins and anything needing a backend are flagged in the report, not dropped silently.</td></tr>
         <tr><td>Form this week</td><td><span class="pill assumed">Assumed</span></td><td>A command-line pipeline plus one page that compares the three directions. No public sign-up site yet.</td></tr>
         <tr><td>Self-learning</td><td><span class="pill assumed">Assumed</span></td><td>This week it only records signals: which direction was picked and the council's scores. Training on them comes later.</td></tr>
@@ -215,7 +215,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
     <ul class="tight">
       <li>Every lane has the same command shape: <code>node lanes/&lt;lane&gt;/cli.mjs &lt;stage&gt; --run R --in … --out …</code>. Exit codes: 0 ok, 2 bad input, 3 gate failed, 4 budget hit.</li>
       <li>Contracts are frozen at tag <code>contracts-v1.0.0</code> on Sun Nov 1, 21:00 PST. A change needs a GitHub issue labelled <code>contract-cr</code>. Abhinav rules within 12 hours. No breaking changes after Wed 09:00.</li>
-      <li>Each lane builds against sample Gallant data until Wednesday, then against real run outputs Abhinav publishes to <code>contracts/samples/</code>. Nobody waits on anybody.</li>
+      <li>Each lane builds against sample data until Wednesday, then against real run outputs Abhinav publishes to <code>contracts/samples/</code>. Nobody waits on anybody.</li>
       <li>CI fails any pull request from a lane branch that touches a file outside that lane's folder. CODEOWNERS makes each person the only reviewer of their own folder.</li>
       <li>Daily sync: one line in your own <code>STATUS.md</code> by 21:00 PST. Abhinav's Claude rolls them up onto the shared board. Questions go on the board or a GitHub issue, never as edits.</li>
       <li>If the orchestrator finds a lane failing, Abhinav posts the failing command and input file, and that lane's owner fixes it.</li>
@@ -228,7 +228,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
     <div class="scroll"><table>
       <thead><tr><th>Day</th><th>Abhinav (A)</th><th>Nirmal (B)</th><th>Aditya (C)</th></tr></thead>
       <tbody>
-        <tr><td>Sun Nov 1</td><td>Repo skeleton, lane guard, seven schemas, Gallant fixtures, freeze contracts by 21:00</td><td>Calibration list: 25 award sites, 25 legacy sites, Awwwards terms read</td><td>Astro base template with token slots</td></tr>
+        <tr><td>Sun Nov 1</td><td>Repo skeleton, lane guard, seven schemas, sample fixtures, freeze contracts by 21:00</td><td>Calibration list: 25 award sites, 25 legacy sites, Awwwards terms read</td><td>Astro base template with token slots</td></tr>
         <tr><td>Mon Nov 2</td><td>Orchestrator stub mode, Scout crawl, screenshots, images, links, forms</td><td>CLI skeleton, Storyteller</td><td>CLI skeleton, pages from the storyboard</td></tr>
         <tr><td>Tue Nov 3</td><td>Scout brand, facts, injection safety; orchestrator real mode</td><td>Three directions, previews and imagery, council runner, compare page. "Ready" by 21:00</td><td>Verbatim content, axe and Lighthouse gates, link check, fact diff, handoff file. "Ready" by 21:00</td></tr>
         <tr><td>Wed Nov 4</td><td>Readiness check 09:00, first real run, publish samples, baseline. Show Vidyut</td><td>Calibration run against the 90 percent gate, preference log</td><td>Quality pass on real samples, preview publish once a host is approved</td></tr>
@@ -326,7 +326,6 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
       <li><span class="pill open">Open</span> Everyone's GitHub username, for CODEOWNERS.</li>
       <li><span class="pill open">Open</span> OpenRouter budget per lane. Proposed: A 10 USD, B 40 USD, C 25 USD.</li>
       <li><span class="pill open">Open</span> Which host serves preview links. Needs Vidyut's OK before any account is created.</li>
-      <li><span class="pill open">Open</span> Nirmal: is the Gallant content OK to use as sample data?</li>
       <li><span class="pill open">Open</span> A new project folder to build in, for example <code>Documents\website-redesign-agent</code>.</li>
     </ul>
   </section>

@@ -16,3 +16,5 @@
 [LOCKED] Push the plan and the initial setup to the GitHub repo Abhinav shares; gh CLI over HTTPS, no SSH | "My GH is working right now, so we don't need to use SSH anymore" | 2026-11-01
 [LOCKED] Write a README of everything that happened so far | 2026-11-01
 [LOCKED] Team: Abhinav (Lane A), Nirmal (Lane B), Aditya (Lane C). Repo: https://github.com/AbhinavDasari-pennstate/revampDesign | "the three teammates: me, Nirmal, and Aditya" | 2026-11-01
+[LOCKED] Installs approved: ajv 8.20.0 (contracts/), Playwright (lanes/a-scout/) | "Both (Recommended)" | 2026-11-01
+[LOCKED] Skip Gallant (no URL). Fixtures use a fictional legacy school site, Maple Grove High School (maplegrove-hs.example), served locally from contracts/fixtures/sample-site/ | "skip that. I dont have a Gallant URL" | 2026-11-01

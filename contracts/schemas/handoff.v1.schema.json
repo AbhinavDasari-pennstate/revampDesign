@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "handoff.v1",
+  "title": "50-handoff.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "version",
+    "run_id",
+    "status",
+    "site",
+    "qa",
+    "fidelity",
+    "report_path",
+    "cost_usd"
+  ],
+  "properties": {
+    "contract": {
+      "const": "handoff"
+    },
+    "version": {
+      "const": "1.0.0"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "fail",
+        "budget"
+      ]
+    },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repo_path",
+        "preview_url",
+        "preview_local",
+        "pages"
+      ],
+      "properties": {
+        "repo_path": {
+          "type": "string",
+          "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+        },
+        "preview_url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^https?://"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "preview_local": {
+          "type": "string",
+          "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+        },
+        "pages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "slug",
+              "path",
+              "screenshots"
+            ],
+            "properties": {
+              "slug": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]+$"
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+              },
+              "screenshots": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "desktop",
+                  "mobile"
+                ],
+                "properties": {
+                  "desktop": {
+                    "type": "string",
+                    "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+                  },
+                  "mobile": {
+                    "type": "string",
+                    "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+                  }
+                }
+              }
+            }
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "qa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "axe",
+        "lighthouse",
+        "links",
+        "fact_diff",
+        "gates_passed"
+      ],
+      "properties": {
+        "axe": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "serious",
+            "critical",
+            "report_path"
+          ],
+          "properties": {
+            "serious": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "critical": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "report_path": {
+              "type": "string",
+              "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+            }
+          }
+        },
+        "lighthouse": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "slug",
+              "form_factor",
+              "accessibility",
+              "performance",
+              "best_practices"
+            ],
+            "properties": {
+              "slug": {
+                "type": "string"
+              },
+              "form_factor": {
+                "enum": [
+                  "mobile",
+                  "desktop"
+                ]
+              },
+              "accessibility": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "performance": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "best_practices": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              }
+            }
+          }
+        },
+        "links": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "checked",
+            "broken"
+          ],
+          "properties": {
+            "checked": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "broken": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "href",
+                  "from"
+                ],
+                "properties": {
+                  "href": {
+                    "type": "string"
+                  },
+                  "from": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "fact_diff": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "checked",
+            "changed",
+            "missing"
+          ],
+          "properties": {
+            "checked": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "changed": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "fact_id",
+                  "before",
+                  "after"
+                ],
+                "properties": {
+                  "fact_id": {
+                    "type": "string",
+                    "pattern": "^f\\d{3}$"
+                  },
+                  "before": {
+                    "type": "string"
+                  },
+                  "after": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "missing": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^f\\d{3}$"
+              }
+            }
+          }
+        },
+        "gates_passed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "fidelity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pages_carried",
+        "pages_total",
+        "dropped",
+        "flagged"
+      ],
+      "properties": {
+        "pages_carried": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pages_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dropped": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ref",
+              "reason"
+            ],
+            "properties": {
+              "ref": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "flagged": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ref",
+              "reason"
+            ],
+            "properties": {
+              "ref": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "report_path": {
+      "type": "string",
+      "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "if": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "const": "pass"
+      }
+    }
+  },
+  "then": {
+    "type": "object",
+    "properties": {
+      "qa": {
+        "type": "object",
+        "properties": {
+          "gates_passed": {
+            "const": true
+          }
+        }
+      }
+    }
+  }
+}

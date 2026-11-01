@@ -1,0 +1,6 @@
+{ "contract": "handoff", "version": "1.0.0", "run_id": "bad", "status": "pass",
+  "site": { "repo_path": "c-build/site", "preview_url": null, "preview_local": "c-build/site/dist",
+    "pages": [ { "slug": "home", "path": "c-build/site/dist/index.html", "screenshots": { "desktop": "a.png", "mobile": "b.png" } } ] },
+  "qa": { "axe": { "serious": 2, "critical": 0, "report_path": "c-build/axe.json" }, "lighthouse": [],
+    "links": { "checked": 0, "broken": [] }, "fact_diff": { "checked": 0, "changed": [], "missing": [] }, "gates_passed": false },
+  "fidelity": { "pages_carried": 1, "pages_total": 1, "dropped": [], "flagged": [] }, "report_path": "c-build/report.md", "cost_usd": 0 }

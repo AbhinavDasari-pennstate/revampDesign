@@ -14,4 +14,12 @@ jobs:
         with: { node-version-file: .nvmrc }
       - run: cd .github/scripts && node --test
       - run: node .github/scripts/lane-guard.mjs
-  # ponytail: per-lane test jobs get added by each lane's first task (T02, T10, T12) once they have a package.json.
+  # ponytail: per-lane test jobs get added by each lane's first task (T10, T12, and Lane A T08) once they have a package.json.
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      - run: cd contracts && npm ci && node --test
+      - run: node contracts/validate.mjs --cross contracts/fixtures/sample

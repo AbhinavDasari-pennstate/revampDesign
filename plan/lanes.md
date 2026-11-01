@@ -5,7 +5,7 @@ So: three lanes, zero shared files or folders, and every hand-off is a frozen, v
 Tasks referenced here are defined in full (files, failing test, done criteria) in plan/plan.md.
 
 ## Why this split (changed from the suggested one)
-- Storyteller moved from Lane A to Lane B. The storyboard and the three directions are one creative act that iterates together (the story decides the sections, the sections decide the layouts); keeping both in one lane removes the most iterative seam from the contract list. Nirmal knows the Gallant site, which is the fixture site, so he is the right person to judge the story. It also balances load: estimated hours from plan.md are Lane A about 21 (4 of them Day 0 contracts nobody else can write, and Abhinav has Claude full time), Lane B about 13, Lane C about 13.
+- Storyteller moved from Lane A to Lane B. The storyboard and the three directions are one creative act that iterates together (the story decides the sections, the sections decide the layouts); keeping both in one lane removes the most iterative seam from the contract list. It also balances load: estimated hours from plan.md are Lane A about 21 (4 of them Day 0 contracts nobody else can write, and Abhinav has Claude full time), Lane B about 13, Lane C about 13.
 - The plain Claude baseline and the blind test stay with Abhinav, not with the builder. The lane that builds the redesign must not also build the competitor it is judged against.
 - Builder, Red team and Handoff stay together in Lane C. They share a built site folder; splitting them across people would need a contract for a whole Astro project, which is the opposite of small.
 
@@ -24,7 +24,7 @@ redesign-agent/
   contracts/                    A   FROZEN at tag contracts-v1.0.0
     README.md                       field docs, change-request rule
     schemas/                        run, inventory, storyboard, directions, verdict, selection, handoff (.v1.schema.json)
-    fixtures/gallant/               00-run.json ... 50-handoff.json plus a-scout/ b-design/ c-build/ images
+    fixtures/sample/               00-run.json ... 50-handoff.json plus a-scout/ b-design/ c-build/ images
     fixtures/invalid/               one broken file per schema
     samples/<site>/                 real run outputs Abhinav publishes from Wed (read-only data)
     validate.mjs  test/  package.json   orchestrator and CI only; lanes never run it
@@ -75,8 +75,8 @@ Why Abhinav owns integration: he owns the contracts, so every integration failur
 
 | Day | Tasks | Done when |
 |---|---|---|
-| Sun Nov 1 | T01 repo skeleton and lane guard; T02 and T03 seven schemas; T04 Gallant fixtures, cross validator, tag contracts-v1.0.0 | `contracts` tests pass, tag on origin, board line "contracts frozen" by 21:00 |
-| Mon Nov 2 | T07 orchestrator stub mode; T08 Scout crawl and blocks; T09 screenshots, images, links, forms | stub run of the whole Gallant chain exits 0; Scout tests pass on the local fixture site |
+| Sun Nov 1 | T01 repo skeleton and lane guard; T02 and T03 seven schemas; T04 sample fixtures, cross validator, tag contracts-v1.0.0 | `contracts` tests pass, tag on origin, board line "contracts frozen" by 21:00 |
+| Mon Nov 2 | T07 orchestrator stub mode; T08 Scout crawl and blocks; T09 screenshots, images, links, forms | stub run of the whole sample chain exits 0; Scout tests pass on the local fixture site |
 | Tue Nov 3 | T16 brand, facts, injection safety; T17 real mode and operator pick | Scout produces a full inventory.v1; orchestrator handles exit codes and the pick |
 | Wed Nov 4 | T24 readiness check by 09:00; T25 first real-site run, publish samples; T26 baseline | one real run reaches 50-handoff.json; checkpoint with Vidyut; samples published for B and C |
 | Thu Nov 5 | T31 three-site runs, red-team routing; T32 blind test | three handoffs; blind test numbers recorded |
@@ -91,12 +91,12 @@ Hand-off: publishes `contracts/` (Day 0) and `contracts/samples/` (Wed onward); 
 Owns: `lanes/b-design/` only. Branch prefix `lane-b/`.
 Reads contracts: run.v1, inventory.v1, selection.v1 (for the preference log). Writes: storyboard.v1, directions.v1, verdict.v1.
 Secrets: `lanes/b-design/.env` with `B_OPENROUTER_API_KEY` (text models, Gemini image generation through OpenRouter, judge models). Budget line: 40 USD for the week (proposed); calibration is the big spend, so it samples 100 pairs, not all 625.
-Builds against: `contracts/fixtures/gallant/00-run.json` and `10-inventory.json` (Mon to Tue), then `contracts/samples/*` (Wed onward).
+Builds against: `contracts/fixtures/sample/00-run.json` and `10-inventory.json` (Mon to Tue), then `contracts/samples/*` (Wed onward).
 
 | Day | Tasks | Done when |
 |---|---|---|
 | Sun Nov 1 | T05 calibration manifest (25 award, 25 legacy, Awwwards terms read) | manifest test passes; TERMS.md written |
-| Mon Nov 2 | T10 CLI skeleton and validation; T11 Storyteller | `story` writes a valid storyboard for Gallant with every block id real |
+| Mon Nov 2 | T10 CLI skeleton and validation; T11 Storyteller | `story` writes a valid storyboard for the sample site with every block id real |
 | Tue Nov 3 | T14 three direction briefs; T18 previews and Gemini imagery; T19 council pairwise runner; T20 compare page | `art` and `council` exit 0 on the fixture; post "Lane B integration ready" by 21:00 |
 | Wed Nov 4 | T27 calibration run and 90 percent gate; T28 preference log | `report.json` with measured accuracy (pass or a documented fail) |
 | Thu Nov 5 | T33 council fixes from calibration and the real run | regression case pinned, accuracy before and after recorded |
@@ -111,13 +111,13 @@ Hand-off: his CLI's output files are the hand-off; he posts "integration ready" 
 Owns: `lanes/c-build/` only. Branch prefix `lane-c/`.
 Reads contracts: run.v1, inventory.v1, storyboard.v1, directions.v1, selection.v1. Writes: handoff.v1.
 Secrets: `lanes/c-build/.env` with `C_OPENROUTER_API_KEY` and, only after a host is approved, `C_PREVIEW_TOKEN`. Budget line: 25 USD for the week (proposed).
-Builds against: the full Gallant fixture (Sun to Tue), then `contracts/samples/*` (Wed onward).
+Builds against: the full sample fixture (Sun to Tue), then `contracts/samples/*` (Wed onward).
 
 | Day | Tasks | Done when |
 |---|---|---|
 | Sun Nov 1 | T06 Astro base template with token slots | template builds with sample tokens, no banned libraries in dist |
 | Mon Nov 2 | T12 CLI skeleton and validation; T13 tokens and pages from storyboard | one page per storyboard slug, nav order right, no dashes |
-| Tue Nov 3 | T15 verbatim content with `data-src`; T21 axe and Lighthouse gates; T22 link check and fact diff; T23 report, local repo, handoff.json | `build` exits 0 on Gallant with a valid handoff; post "Lane C integration ready" by 21:00 |
+| Tue Nov 3 | T15 verbatim content with `data-src`; T21 axe and Lighthouse gates; T22 link check and fact diff; T23 report, local repo, handoff.json | `build` exits 0 on the sample site with a valid handoff; post "Lane C integration ready" by 21:00 |
 | Wed Nov 4 | T29 quality pass on real samples; T30 preview publish (approval gated) | every sample builds and passes all gates |
 | Thu Nov 5 | T34 fix top red-team defects | one test per defect, SHA posted on the board |
 | Fri Nov 6 | T37 owner report polish | a school office can read the report's first five lines |

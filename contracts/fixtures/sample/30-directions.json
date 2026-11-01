@@ -1,0 +1,229 @@
+{
+  "contract": "directions",
+  "version": "1.0.0",
+  "run_id": "sample-0001",
+  "directions": [
+    {
+      "direction_id": "d1",
+      "name": "Orchard Road",
+      "concept": "Calm and civic. Generous type, plain sections, no motion. Built to pass WCAG 2.1 AA with room to spare.",
+      "tokens": {
+        "color": {
+          "bg": "#f7f8f5",
+          "surface": "#ffffff",
+          "text": "#1d2a22",
+          "muted": "#55625a",
+          "accent": "#1f5f3f",
+          "on_accent": "#ffffff"
+        },
+        "type": {
+          "display_family": "Source Serif 4",
+          "body_family": "Source Sans 3",
+          "source": "google",
+          "scale_px": [
+            16,
+            20,
+            28,
+            40
+          ],
+          "line_height": 1.5
+        },
+        "radius_px": 4,
+        "spacing_base_px": 8,
+        "motion": {
+          "level": "none",
+          "reduced_motion_ok": true
+        }
+      },
+      "layout": {
+        "grid": "12 column, 1120 px max",
+        "hero_pattern": "headline left, crest right",
+        "section_patterns": {
+          "news": "dated list",
+          "contact": "two column card"
+        }
+      },
+      "references": [
+        {
+          "url": "https://www.gov.uk/",
+          "why": "Plain language and accessible structure"
+        }
+      ],
+      "imagery": {
+        "strategy": "site_photos",
+        "generated": []
+      },
+      "previews": {
+        "desktop": "b-design/previews/d1-desktop.png",
+        "mobile": "b-design/previews/d1-mobile.png"
+      },
+      "contrast_checks": [
+        {
+          "fg": "#1d2a22",
+          "bg": "#f7f8f5",
+          "ratio": 14.01
+        },
+        {
+          "fg": "#ffffff",
+          "bg": "#1f5f3f",
+          "ratio": 7.59
+        },
+        {
+          "fg": "#55625a",
+          "bg": "#f7f8f5",
+          "ratio": 6
+        }
+      ]
+    },
+    {
+      "direction_id": "d2",
+      "name": "Mustang Gold",
+      "concept": "School pride. Navy and gold from the crest, bold headings, one subtle reveal on scroll.",
+      "tokens": {
+        "color": {
+          "bg": "#ffffff",
+          "surface": "#f2f5f9",
+          "text": "#0f1f33",
+          "muted": "#4a5a6e",
+          "accent": "#003366",
+          "on_accent": "#ffcc00"
+        },
+        "type": {
+          "display_family": "Archivo",
+          "body_family": "Public Sans",
+          "source": "google",
+          "scale_px": [
+            16,
+            22,
+            32,
+            52
+          ],
+          "line_height": 1.5
+        },
+        "radius_px": 8,
+        "spacing_base_px": 8,
+        "motion": {
+          "level": "subtle",
+          "reduced_motion_ok": true
+        }
+      },
+      "layout": {
+        "grid": "12 column, 1200 px max",
+        "hero_pattern": "full width navy band with crest",
+        "section_patterns": {
+          "news": "three cards",
+          "story": "image and text split"
+        }
+      },
+      "references": [
+        {
+          "url": "https://trionn.com/",
+          "why": "Confident type scale and section rhythm"
+        }
+      ],
+      "imagery": {
+        "strategy": "site_photos",
+        "generated": []
+      },
+      "previews": {
+        "desktop": "b-design/previews/d2-desktop.png",
+        "mobile": "b-design/previews/d2-mobile.png"
+      },
+      "contrast_checks": [
+        {
+          "fg": "#0f1f33",
+          "bg": "#ffffff",
+          "ratio": 16.61
+        },
+        {
+          "fg": "#ffcc00",
+          "bg": "#003366",
+          "ratio": 8.34
+        },
+        {
+          "fg": "#4a5a6e",
+          "bg": "#ffffff",
+          "ratio": 7.05
+        }
+      ]
+    },
+    {
+      "direction_id": "d3",
+      "name": "Bulletin Board",
+      "concept": "Editorial and type led, like a printed school bulletin. Big dates, strong grid, no photos needed.",
+      "tokens": {
+        "color": {
+          "bg": "#fbf9f4",
+          "surface": "#ffffff",
+          "text": "#222222",
+          "muted": "#5c5c5c",
+          "accent": "#b3261e",
+          "on_accent": "#ffffff"
+        },
+        "type": {
+          "display_family": "Fraunces",
+          "body_family": "Atkinson Hyperlegible",
+          "source": "google",
+          "scale_px": [
+            17,
+            22,
+            34,
+            60
+          ],
+          "line_height": 1.5
+        },
+        "radius_px": 0,
+        "spacing_base_px": 8,
+        "motion": {
+          "level": "none",
+          "reduced_motion_ok": true
+        }
+      },
+      "layout": {
+        "grid": "6 column, 1080 px max",
+        "hero_pattern": "oversized headline with date stamp",
+        "section_patterns": {
+          "news": "numbered bulletin",
+          "events": "date column"
+        }
+      },
+      "references": [
+        {
+          "url": "https://www.apple.com/",
+          "why": "Restraint and spacing"
+        }
+      ],
+      "imagery": {
+        "strategy": "type_only",
+        "generated": []
+      },
+      "previews": {
+        "desktop": "b-design/previews/d3-desktop.png",
+        "mobile": "b-design/previews/d3-mobile.png"
+      },
+      "contrast_checks": [
+        {
+          "fg": "#222222",
+          "bg": "#fbf9f4",
+          "ratio": 15.12
+        },
+        {
+          "fg": "#ffffff",
+          "bg": "#b3261e",
+          "ratio": 6.54
+        },
+        {
+          "fg": "#5c5c5c",
+          "bg": "#fbf9f4",
+          "ratio": 6.36
+        }
+      ]
+    }
+  ],
+  "banned_patterns_checked": [
+    "purple to blue gradient hero",
+    "default component theme",
+    "emoji section markers",
+    "everything centered"
+  ]
+}

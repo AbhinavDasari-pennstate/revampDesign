@@ -1,0 +1,404 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "inventory.v1",
+  "title": "10-inventory.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "version",
+    "run_id",
+    "crawled_at",
+    "robots_respected",
+    "pages",
+    "facts",
+    "brand",
+    "failures",
+    "untrusted_text"
+  ],
+  "properties": {
+    "contract": {
+      "const": "inventory"
+    },
+    "version": {
+      "const": "1.0.0"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "crawled_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}"
+    },
+    "robots_respected": {
+      "type": "boolean"
+    },
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "page_id",
+          "url",
+          "title",
+          "status_code",
+          "depth",
+          "screenshots",
+          "blocks",
+          "images",
+          "links",
+          "forms"
+        ],
+        "properties": {
+          "page_id": {
+            "type": "string",
+            "pattern": "^p\\d{2}$"
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^https?://"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status_code": {
+            "type": "integer"
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "screenshots": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "desktop",
+              "mobile"
+            ],
+            "properties": {
+              "desktop": {
+                "type": "string",
+                "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+              },
+              "mobile": {
+                "type": "string",
+                "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+              }
+            }
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "block_id",
+                "kind",
+                "level",
+                "order",
+                "text"
+              ],
+              "properties": {
+                "block_id": {
+                  "type": "string",
+                  "pattern": "^p\\d{2}-b\\d{3}$"
+                },
+                "kind": {
+                  "enum": [
+                    "heading",
+                    "paragraph",
+                    "list",
+                    "table",
+                    "quote",
+                    "legal",
+                    "contact",
+                    "nav",
+                    "footer",
+                    "cta"
+                  ]
+                },
+                "level": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "maximum": 6
+                },
+                "order": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "image_id",
+                "src_url",
+                "local_path",
+                "alt",
+                "width",
+                "height",
+                "origin"
+              ],
+              "properties": {
+                "image_id": {
+                  "type": "string",
+                  "pattern": "^p\\d{2}-i\\d{2}$"
+                },
+                "src_url": {
+                  "type": "string",
+                  "pattern": "^https?://"
+                },
+                "local_path": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "alt": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "height": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "origin": {
+                  "enum": [
+                    "site",
+                    "third_party",
+                    "unknown"
+                  ]
+                }
+              }
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "href",
+                "text",
+                "internal"
+              ],
+              "properties": {
+                "href": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "internal": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "forms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "form_id",
+                "action",
+                "method",
+                "fields",
+                "needs_backend"
+              ],
+              "properties": {
+                "form_id": {
+                  "type": "string",
+                  "pattern": "^p\\d{2}-f\\d{2}$"
+                },
+                "action": {
+                  "type": "string"
+                },
+                "method": {
+                  "type": "string"
+                },
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "name",
+                      "type",
+                      "label",
+                      "required"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "needs_backend": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fact_id",
+          "kind",
+          "value",
+          "block_id"
+        ],
+        "properties": {
+          "fact_id": {
+            "type": "string",
+            "pattern": "^f\\d{3}$"
+          },
+          "kind": {
+            "enum": [
+              "phone",
+              "email",
+              "address",
+              "date",
+              "time",
+              "person",
+              "legal_notice",
+              "price"
+            ]
+          },
+          "value": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string",
+            "pattern": "^p\\d{2}-b\\d{3}$"
+          }
+        }
+      }
+    },
+    "brand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "logo_path",
+        "colors",
+        "fonts"
+      ],
+      "properties": {
+        "logo_path": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "colors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "hex",
+              "role"
+            ],
+            "properties": {
+              "hex": {
+                "type": "string",
+                "pattern": "^#[0-9a-f]{6}$"
+              },
+              "role": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "fonts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "family",
+              "usage"
+            ],
+            "properties": {
+              "family": {
+                "type": "string"
+              },
+              "usage": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "reason"
+        ],
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "untrusted_text": {
+      "const": true
+    }
+  }
+}

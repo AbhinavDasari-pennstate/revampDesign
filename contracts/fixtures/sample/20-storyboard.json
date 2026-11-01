@@ -1,0 +1,175 @@
+{
+  "contract": "storyboard",
+  "version": "1.0.0",
+  "run_id": "sample-0001",
+  "organisation": {
+    "name": "Maple Grove High School",
+    "what_it_does": "A public high school for about 640 students in grades 9 to 12, with AP courses, a career and technical program and more than 30 clubs and teams.",
+    "audiences": [
+      "Current families",
+      "Prospective families",
+      "Students",
+      "Community members"
+    ],
+    "one_message": "Every Mustang leaves ready for college, career and community life."
+  },
+  "tier": "A",
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "purpose": "Say who the school is and what is happening now.",
+      "source_page_ids": [
+        "p01"
+      ],
+      "sections": [
+        {
+          "section_id": "s001",
+          "intent": "hero",
+          "body_block_ids": [
+            "p01-b002"
+          ],
+          "image_ids": [
+            "p01-i01"
+          ],
+          "copy": {
+            "headline": "Ready for college, career and community",
+            "subhead": "About 640 students in grades 9 to 12"
+          },
+          "copy_status": "edited",
+          "edited_from_block_id": "p01-b002"
+        },
+        {
+          "section_id": "s002",
+          "intent": "news",
+          "body_block_ids": [
+            "p01-b003"
+          ],
+          "image_ids": [],
+          "copy": {
+            "headline": "News and announcements",
+            "subhead": null
+          },
+          "copy_status": "verbatim",
+          "edited_from_block_id": null
+        },
+        {
+          "section_id": "s003",
+          "intent": "cta",
+          "body_block_ids": [
+            "p01-b004"
+          ],
+          "image_ids": [],
+          "copy": {
+            "headline": "Questions? Call the main office",
+            "subhead": null
+          },
+          "copy_status": "verbatim",
+          "edited_from_block_id": null
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "purpose": "Show history, programs and leadership.",
+      "source_page_ids": [
+        "p02"
+      ],
+      "sections": [
+        {
+          "section_id": "s004",
+          "intent": "story",
+          "body_block_ids": [
+            "p02-b002"
+          ],
+          "image_ids": [],
+          "copy": {
+            "headline": "Since 1962",
+            "subhead": null
+          },
+          "copy_status": "new",
+          "edited_from_block_id": null
+        },
+        {
+          "section_id": "s005",
+          "intent": "people",
+          "body_block_ids": [
+            "p02-b003"
+          ],
+          "image_ids": [],
+          "copy": {
+            "headline": "Leadership",
+            "subhead": null
+          },
+          "copy_status": "verbatim",
+          "edited_from_block_id": null
+        },
+        {
+          "section_id": "s006",
+          "intent": "legal",
+          "body_block_ids": [
+            "p02-b004"
+          ],
+          "image_ids": [],
+          "copy": {
+            "headline": "Nondiscrimination notice",
+            "subhead": null
+          },
+          "copy_status": "verbatim",
+          "edited_from_block_id": null
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "purpose": "Make it easy to reach the office.",
+      "source_page_ids": [
+        "p03"
+      ],
+      "sections": [
+        {
+          "section_id": "s007",
+          "intent": "contact",
+          "body_block_ids": [
+            "p03-b002",
+            "p03-b003",
+            "p03-b004"
+          ],
+          "image_ids": [],
+          "copy": {
+            "headline": "Visit or call",
+            "subhead": null
+          },
+          "copy_status": "verbatim",
+          "edited_from_block_id": null
+        }
+      ]
+    }
+  ],
+  "nav": [
+    {
+      "label": "Home",
+      "slug": "home"
+    },
+    {
+      "label": "About",
+      "slug": "about"
+    },
+    {
+      "label": "Contact",
+      "slug": "contact"
+    }
+  ],
+  "dropped": [
+    {
+      "ref": "https://maplegrove-hs.example/calendar.html",
+      "reason": "Linked page returns 404. Flag for the owner."
+    },
+    {
+      "ref": "p03-f01",
+      "reason": "Contact form posts to a CGI script. Needs a backend, replaced by phone and email."
+    }
+  ]
+}

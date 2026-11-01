@@ -3,3 +3,4 @@ runs/
 node_modules/
 **/dist/
 lanes/b-design/calibration/images/
+lanes/a-scout/scratch/

@@ -1,0 +1,21 @@
+{
+  "contract": "run",
+  "version": "1.0.0",
+  "run_id": "sample-0001",
+  "source_url": "https://maplegrove-hs.example/",
+  "site_slug": "maplegrove-hs",
+  "tier": "A",
+  "consent": {
+    "owner_ok": true,
+    "note": "Fictional site written for the contract fixtures. No real owner."
+  },
+  "created_at": "2026-11-01T18:00:00-08:00",
+  "limits": {
+    "max_pages": 40,
+    "lane_budget_usd": {
+      "a": 1,
+      "b": 4,
+      "c": 2
+    }
+  }
+}

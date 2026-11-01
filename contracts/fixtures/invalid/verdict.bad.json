@@ -1,0 +1,5 @@
+{ "contract": "verdict", "version": "1.0.0", "run_id": "bad", "judges": [ { "model_id": "m", "family": "f" } ], "rubric_version": "r1",
+  "pairs": [ { "a": "d1", "b": "d2", "order_shown": "ab", "judge": "m", "winner": "d4", "rationale": "" } ],
+  "ranking": [ { "direction_id": "d1", "wins": 1, "score": 1 }, { "direction_id": "d2", "wins": 0, "score": 0 }, { "direction_id": "d3", "wins": 0, "score": 0 } ],
+  "top_direction_id": "d1", "agreement": 1, "needs_human": false,
+  "calibration": { "set_version": "c1", "accuracy": null, "passed": false, "measured_at": null }, "compare_path": "b-design/compare.html", "cost_usd": 0 }

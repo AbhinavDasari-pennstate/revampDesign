@@ -1,0 +1,332 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "directions.v1",
+  "title": "30-directions.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "version",
+    "run_id",
+    "directions",
+    "banned_patterns_checked"
+  ],
+  "properties": {
+    "contract": {
+      "const": "directions"
+    },
+    "version": {
+      "const": "1.0.0"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "directions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "direction_id",
+          "name",
+          "concept",
+          "tokens",
+          "layout",
+          "references",
+          "imagery",
+          "previews",
+          "contrast_checks"
+        ],
+        "properties": {
+          "direction_id": {
+            "enum": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "concept": {
+            "type": "string"
+          },
+          "tokens": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "color",
+              "type",
+              "radius_px",
+              "spacing_base_px",
+              "motion"
+            ],
+            "properties": {
+              "color": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "bg",
+                  "surface",
+                  "text",
+                  "muted",
+                  "accent",
+                  "on_accent"
+                ],
+                "properties": {
+                  "bg": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-f]{6}$"
+                  },
+                  "surface": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-f]{6}$"
+                  },
+                  "text": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-f]{6}$"
+                  },
+                  "muted": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-f]{6}$"
+                  },
+                  "accent": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-f]{6}$"
+                  },
+                  "on_accent": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-f]{6}$"
+                  }
+                }
+              },
+              "type": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "display_family",
+                  "body_family",
+                  "source",
+                  "scale_px",
+                  "line_height"
+                ],
+                "properties": {
+                  "display_family": {
+                    "type": "string"
+                  },
+                  "body_family": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "enum": [
+                      "google",
+                      "system",
+                      "self_hosted"
+                    ]
+                  },
+                  "scale_px": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "minItems": 3
+                  },
+                  "line_height": {
+                    "type": "number",
+                    "minimum": 1
+                  }
+                }
+              },
+              "radius_px": {
+                "type": "number",
+                "minimum": 0
+              },
+              "spacing_base_px": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "motion": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "level",
+                  "reduced_motion_ok"
+                ],
+                "properties": {
+                  "level": {
+                    "enum": [
+                      "none",
+                      "subtle",
+                      "expressive"
+                    ]
+                  },
+                  "reduced_motion_ok": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          },
+          "layout": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "grid",
+              "hero_pattern",
+              "section_patterns"
+            ],
+            "properties": {
+              "grid": {
+                "type": "string"
+              },
+              "hero_pattern": {
+                "type": "string"
+              },
+              "section_patterns": {
+                "type": "object",
+                "propertyNames": {
+                  "enum": [
+                    "hero",
+                    "story",
+                    "proof",
+                    "programs",
+                    "people",
+                    "news",
+                    "events",
+                    "contact",
+                    "cta",
+                    "legal",
+                    "faq",
+                    "gallery"
+                  ]
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "why"
+              ],
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "pattern": "^https?://"
+                },
+                "why": {
+                  "type": "string"
+                }
+              }
+            },
+            "minItems": 1
+          },
+          "imagery": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "strategy",
+              "generated"
+            ],
+            "properties": {
+              "strategy": {
+                "enum": [
+                  "site_photos",
+                  "generated",
+                  "illustration",
+                  "type_only"
+                ]
+              },
+              "generated": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "prompt",
+                    "model"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+                    },
+                    "prompt": {
+                      "type": "string"
+                    },
+                    "model": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "previews": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "desktop",
+              "mobile"
+            ],
+            "properties": {
+              "desktop": {
+                "type": "string",
+                "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+              },
+              "mobile": {
+                "type": "string",
+                "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+              }
+            }
+          },
+          "contrast_checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fg",
+                "bg",
+                "ratio"
+              ],
+              "properties": {
+                "fg": {
+                  "type": "string",
+                  "pattern": "^#[0-9a-f]{6}$"
+                },
+                "bg": {
+                  "type": "string",
+                  "pattern": "^#[0-9a-f]{6}$"
+                },
+                "ratio": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 21
+                }
+              }
+            },
+            "minItems": 1
+          }
+        }
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "banned_patterns_checked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

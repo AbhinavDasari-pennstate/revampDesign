@@ -38,7 +38,7 @@ Full day-by-day tasks per person: [plan/lanes.md](plan/lanes.md). All 38 tasks w
    `node lanes/<lane>/cli.mjs <stage> --run <run dir> --in <contract file> --out <contract file> [--max-usd <n>]`
    Exit codes: 0 ok, 1 crash, 2 input failed its schema, 3 quality gate failed, 4 budget hit.
 2. Contracts live in `contracts/` and are edited only by Abhinav. They freeze at tag `contracts-v1.0.0`. To request a change, open a GitHub issue labelled `contract-cr`. Rulings within 12 hours. No breaking changes after Wed Nov 4, 09:00 PST.
-3. Until Wednesday every lane builds against the Gallant fixtures in `contracts/fixtures/gallant/`. From Wednesday, real run outputs appear in `contracts/samples/`.
+3. Until Wednesday every lane builds against the sample fixtures in `contracts/fixtures/sample/`. From Wednesday, real run outputs appear in `contracts/samples/`.
 4. CI fails any pull request whose branch prefix touches a folder outside that lane. CODEOWNERS makes each person the only reviewer of their own folder.
 5. Daily sync: one dated line in your own `lanes/<lane>/STATUS.md` by 21:00 PST. Questions go on `plan/board.md` or a GitHub issue, never as edits to someone else's files.
 6. Each lane has its own `.env` (`A_`, `B_`, `C_OPENROUTER_API_KEY`). Never commit `.env`.
@@ -62,7 +62,7 @@ Full day-by-day tasks per person: [plan/lanes.md](plan/lanes.md). All 38 tasks w
 README.md  .gitignore  .nvmrc
 .github/CODEOWNERS  .github/workflows/ci.yml  .github/scripts/lane-guard.mjs
 plan/          PRD, plan, lanes, decisions, research, devil's advocate, board
-contracts/     schemas/ fixtures/gallant/ fixtures/invalid/ samples/ validate.mjs
+contracts/     schemas/ fixtures/sample/ fixtures/invalid/ samples/ validate.mjs
 orchestrator/  chains the three lanes (Abhinav only)
 lanes/a-scout/   Abhinav
 lanes/b-design/  Nirmal
@@ -121,7 +121,6 @@ The numeric targets are proposals and can change.
 - [ ] OpenRouter budget per lane (proposed: A 10, B 40, C 25 USD)
 - [ ] Five reviewers for the blind test on Thu Nov 5
 - [ ] Preview host (needs Vidyut's OK before any account)
-- [ ] Nirmal: confirm the Gallant content is OK as fixture data
 - [ ] Name of the Penn State company that raised about $2M
 
 ## Documents

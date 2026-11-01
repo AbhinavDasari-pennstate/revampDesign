@@ -1,0 +1,6 @@
+{ "contract": "inventory", "version": "1.0.0", "run_id": "bad", "crawled_at": "2026-11-01T12:00:00-08:00", "robots_respected": true,
+  "pages": [ { "page_id": "p01", "url": "https://example.org/", "title": "Home", "status_code": 200, "depth": 0,
+    "screenshots": { "desktop": "a.png", "mobile": "b.png" },
+    "blocks": [ { "block_id": "p1-b1", "kind": "heading", "level": 1, "order": 0, "text": "Hi" } ],
+    "images": [], "links": [], "forms": [] } ],
+  "facts": [], "brand": { "logo_path": null, "colors": [], "fonts": [] }, "failures": [], "untrusted_text": true }

@@ -1,0 +1,95 @@
+{
+  "contract": "handoff",
+  "version": "1.0.0",
+  "run_id": "sample-0001",
+  "status": "pass",
+  "site": {
+    "repo_path": "c-build/site",
+    "preview_url": null,
+    "preview_local": "c-build/site/dist",
+    "pages": [
+      {
+        "slug": "home",
+        "path": "c-build/site/dist/index.html",
+        "screenshots": {
+          "desktop": "c-build/screens/home-desktop.png",
+          "mobile": "c-build/screens/home-mobile.png"
+        }
+      },
+      {
+        "slug": "about",
+        "path": "c-build/site/dist/about.html",
+        "screenshots": {
+          "desktop": "c-build/screens/about-desktop.png",
+          "mobile": "c-build/screens/about-mobile.png"
+        }
+      },
+      {
+        "slug": "contact",
+        "path": "c-build/site/dist/contact.html",
+        "screenshots": {
+          "desktop": "c-build/screens/contact-desktop.png",
+          "mobile": "c-build/screens/contact-mobile.png"
+        }
+      }
+    ]
+  },
+  "qa": {
+    "axe": {
+      "serious": 0,
+      "critical": 0,
+      "report_path": "c-build/axe.json"
+    },
+    "lighthouse": [
+      {
+        "slug": "home",
+        "form_factor": "mobile",
+        "accessibility": 100,
+        "performance": 98,
+        "best_practices": 100
+      },
+      {
+        "slug": "about",
+        "form_factor": "mobile",
+        "accessibility": 100,
+        "performance": 98,
+        "best_practices": 100
+      },
+      {
+        "slug": "contact",
+        "form_factor": "mobile",
+        "accessibility": 100,
+        "performance": 98,
+        "best_practices": 100
+      }
+    ],
+    "links": {
+      "checked": 12,
+      "broken": []
+    },
+    "fact_diff": {
+      "checked": 8,
+      "changed": [],
+      "missing": []
+    },
+    "gates_passed": true
+  },
+  "fidelity": {
+    "pages_carried": 3,
+    "pages_total": 4,
+    "dropped": [
+      {
+        "ref": "https://maplegrove-hs.example/calendar.html",
+        "reason": "Returned 404 on the old site"
+      }
+    ],
+    "flagged": [
+      {
+        "ref": "p03-f01",
+        "reason": "Contact form needs a backend; replaced by phone and email"
+      }
+    ]
+  },
+  "report_path": "c-build/report.md",
+  "cost_usd": 0
+}

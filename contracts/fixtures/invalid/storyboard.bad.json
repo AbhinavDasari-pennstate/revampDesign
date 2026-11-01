@@ -1,0 +1,5 @@
+{ "contract": "storyboard", "version": "1.0.0", "run_id": "bad",
+  "organisation": { "name": "X", "what_it_does": "Y", "audiences": ["Z"], "one_message": "M" }, "tier": "B",
+  "pages": [ { "slug": "home", "title": "Home", "purpose": "P", "source_page_ids": ["p01"],
+    "sections": [ { "section_id": "s001", "intent": "hero", "image_ids": [], "copy": { "headline": "H", "subhead": null }, "copy_status": "verbatim", "edited_from_block_id": null } ] } ],
+  "nav": [], "dropped": [] }

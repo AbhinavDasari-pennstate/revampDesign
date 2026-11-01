@@ -24,7 +24,7 @@ Small organisations and US schools run sites that are dated, hard to use, or par
 
 ## 4. Success metric (the done list from redesign-agent-plan.html)
 1. One command takes a URL and produces a site, a preview link, a repository and a fidelity report.
-2. Run on three sites (Prism, Gallant, one real legacy school site with owner consent). In a blind comparison, at least 4 of 5 reviewers prefer the redesign to the original, and at least 3 of 5 prefer it to a one-shot redesign by plain Claude of the same site.
+2. Run on three sites (Prism and two real legacy school sites with owner consent). In a blind comparison, at least 4 of 5 reviewers prefer the redesign to the original, and at least 3 of 5 prefer it to a one-shot redesign by plain Claude of the same site.
 3. Every page, contact detail and link on the old site is carried over or listed as dropped, with a reason.
 4. Zero serious or critical axe-core violations, and Lighthouse accessibility at least 95 on mobile (proposed thresholds).
 5. The council ranks 25 award-winning sites above 25 legacy school sites in at least 90 percent of pairs, or it is not trusted as a judge.
@@ -43,13 +43,13 @@ Small organisations and US schools run sites that are dated, hard to use, or par
 - Models routed through OpenRouter; each lane keeps the model for each of its steps in its own `lanes/<x>/models.json` (the decisions.md preference for one config file yields to the LOCKED lane rule; the orchestrator prints all three).
 - Each lane has its own OpenRouter key with its own credit limit (OpenRouter supports per-key USD limits with daily, weekly or monthly reset; REPORTED from openrouter.ai docs search, not tested on a live key).
 - Scraped text is untrusted data: the Scout has no shell or write tools exposed to any model, and no model output from scraped text is executed.
-- Demo only on sites whose owner agreed, or on Prism and Gallant. No student photos to model providers.
+- Demo only on sites whose owner agreed, or on Prism. No student photos to model providers.
 - No em dashes or en dashes in copy, code, comments or commits.
 
 ## 7. Risks
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Contracts wrong on Day 0, lanes build to a bad shape | Integration fails Wed | Realistic Gallant fixture built from a real capture; cross-reference validator; change-request rule with minor bumps only after freeze |
+| Contracts wrong on Day 0, lanes build to a bad shape | Integration fails Wed | Realistic sample fixture captured from a local legacy-style site; cross-reference validator; change-request rule with minor bumps only after freeze |
 | A lane CLI is not ready Wed | First real run slips | Orchestrator has a stub mode that substitutes fixtures for any missing lane; Tue 21:00 readiness gate; the run still shows the other stages |
 | Judge cannot tell great from generic | Council meaningless | Calibration gate at 90 percent before the council's ranking is used; operator pick is the fallback |
 | Builder output looks generic | Fails the blind test | Story-first storyboard, banned-pattern list, three-direction council, Lane A builds the plain Claude baseline independently so Lane C cannot soften its competition |

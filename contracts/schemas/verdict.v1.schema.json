@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "verdict.v1",
+  "title": "40-verdict.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "version",
+    "run_id",
+    "judges",
+    "rubric_version",
+    "pairs",
+    "ranking",
+    "top_direction_id",
+    "agreement",
+    "needs_human",
+    "calibration",
+    "compare_path",
+    "cost_usd"
+  ],
+  "properties": {
+    "contract": {
+      "const": "verdict"
+    },
+    "version": {
+      "const": "1.0.0"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "judges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model_id",
+          "family"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string"
+          },
+          "family": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "rubric_version": {
+      "type": "string"
+    },
+    "pairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "a",
+          "b",
+          "order_shown",
+          "judge",
+          "winner",
+          "rationale"
+        ],
+        "properties": {
+          "a": {
+            "enum": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          },
+          "b": {
+            "enum": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          },
+          "order_shown": {
+            "enum": [
+              "ab",
+              "ba"
+            ]
+          },
+          "judge": {
+            "type": "string"
+          },
+          "winner": {
+            "enum": [
+              "d1",
+              "d2",
+              "d3",
+              "tie"
+            ]
+          },
+          "rationale": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ranking": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "direction_id",
+          "wins",
+          "score"
+        ],
+        "properties": {
+          "direction_id": {
+            "enum": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          },
+          "wins": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "score": {
+            "type": "number"
+          }
+        }
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "top_direction_id": {
+      "enum": [
+        "d1",
+        "d2",
+        "d3"
+      ]
+    },
+    "agreement": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "needs_human": {
+      "type": "boolean"
+    },
+    "calibration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "set_version",
+        "accuracy",
+        "passed",
+        "measured_at"
+      ],
+      "properties": {
+        "set_version": {
+          "type": "string"
+        },
+        "accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "measured_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "compare_path": {
+      "type": "string",
+      "pattern": "^(?![A-Za-z]:)(?!/)[^\\\\]+$"
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0
+    }
+  }
+}

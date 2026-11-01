@@ -1,0 +1,122 @@
+{
+  "contract": "verdict",
+  "version": "1.0.0",
+  "run_id": "sample-0001",
+  "judges": [
+    {
+      "model_id": "anthropic/claude-sonnet-5-5",
+      "family": "anthropic"
+    },
+    {
+      "model_id": "google/gemini-pro",
+      "family": "google"
+    },
+    {
+      "model_id": "openai/gpt-vision",
+      "family": "openai"
+    }
+  ],
+  "rubric_version": "rubric-1",
+  "pairs": [
+    {
+      "a": "d1",
+      "b": "d2",
+      "order_shown": "ab",
+      "judge": "anthropic/claude-sonnet-5-5",
+      "winner": "d2",
+      "rationale": "Fixture vote: d2 reads as clearer for families."
+    },
+    {
+      "a": "d1",
+      "b": "d2",
+      "order_shown": "ba",
+      "judge": "google/gemini-pro",
+      "winner": "d2",
+      "rationale": "Fixture vote: d2 reads as clearer for families."
+    },
+    {
+      "a": "d1",
+      "b": "d2",
+      "order_shown": "ab",
+      "judge": "openai/gpt-vision",
+      "winner": "d1",
+      "rationale": "Fixture vote: d1 reads as clearer for families."
+    },
+    {
+      "a": "d1",
+      "b": "d3",
+      "order_shown": "ab",
+      "judge": "anthropic/claude-sonnet-5-5",
+      "winner": "d1",
+      "rationale": "Fixture vote: d1 reads as clearer for families."
+    },
+    {
+      "a": "d1",
+      "b": "d3",
+      "order_shown": "ba",
+      "judge": "google/gemini-pro",
+      "winner": "d3",
+      "rationale": "Fixture vote: d3 reads as clearer for families."
+    },
+    {
+      "a": "d1",
+      "b": "d3",
+      "order_shown": "ab",
+      "judge": "openai/gpt-vision",
+      "winner": "d1",
+      "rationale": "Fixture vote: d1 reads as clearer for families."
+    },
+    {
+      "a": "d2",
+      "b": "d3",
+      "order_shown": "ab",
+      "judge": "anthropic/claude-sonnet-5-5",
+      "winner": "d2",
+      "rationale": "Fixture vote: d2 reads as clearer for families."
+    },
+    {
+      "a": "d2",
+      "b": "d3",
+      "order_shown": "ba",
+      "judge": "google/gemini-pro",
+      "winner": "d2",
+      "rationale": "Fixture vote: d2 reads as clearer for families."
+    },
+    {
+      "a": "d2",
+      "b": "d3",
+      "order_shown": "ab",
+      "judge": "openai/gpt-vision",
+      "winner": "d2",
+      "rationale": "Fixture vote: d2 reads as clearer for families."
+    }
+  ],
+  "ranking": [
+    {
+      "direction_id": "d2",
+      "wins": 5,
+      "score": 0.83
+    },
+    {
+      "direction_id": "d1",
+      "wins": 3,
+      "score": 0.5
+    },
+    {
+      "direction_id": "d3",
+      "wins": 1,
+      "score": 0.17
+    }
+  ],
+  "top_direction_id": "d2",
+  "agreement": 0.78,
+  "needs_human": false,
+  "calibration": {
+    "set_version": "calibration-1",
+    "accuracy": 0.92,
+    "passed": true,
+    "measured_at": "2026-11-01T18:00:00-08:00"
+  },
+  "compare_path": "b-design/compare.html",
+  "cost_usd": 0
+}

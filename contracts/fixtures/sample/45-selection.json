@@ -1,0 +1,9 @@
+{
+  "contract": "selection",
+  "version": "1.0.0",
+  "run_id": "sample-0001",
+  "direction_id": "d2",
+  "chosen_by": "council",
+  "reason": "Top of the council ranking with 6 of 9 votes. No tie.",
+  "chosen_at": "2026-11-01T18:00:00-08:00"
+}
