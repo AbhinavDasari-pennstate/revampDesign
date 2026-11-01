@@ -107,4 +107,65 @@ test('(i) an input that fails its schema exits 2', async () => {
   writeFileSync(join(d, '00-run.json'), JSON.stringify({ ...fixtureRun, tier: 'Z' }));
   assert.equal(await runCli(d), 2);
 });
+const html = (body) => ({ body: `<html><head><title>t</title></head><body>${body}</body></html>` });
+const withSite = async (extra, fn) => {
+  const s = await serve(extra);
+  try {
+    return await fn(s);
+  } finally {
+    await s.close();
+  }
+};
+
+test('(j) a same-host link that redirects to another host is a failure, not a page', async () => {
+  await withSite({}, (other) => withSite({
+    '/': html('<p>home</p><a href="/out">out</a>'),
+    '/out': { status: 302, headers: { location: `${other.origin}/` } },
+  }, async (s) => {
+    const { pages, failures } = await crawlSite(s.origin);
+    assert.deepEqual(pages.map((p) => p.url), [`${s.origin}/`]);
+    assert.deepEqual(failures, [{ url: `${s.origin}/out`, reason: 'redirected off host' }]);
+  }));
+});
+
+test('(k) an unparsable href is skipped and the other links are still queued', async () => {
+  await withSite({ '/': html('<p>home</p><a href="http://">bad</a><a href="/contact.html">c</a>') }, async (s) => {
+    const { pages, failures } = await crawlSite(s.origin, 2);
+    assert.deepEqual(pages.map((p) => p.url), [`${s.origin}/`, `${s.origin}/contact.html`]);
+    assert.deepEqual(failures, []);
+  });
+});
+
+test('(l) only a whole index.html path segment is stripped', async () => {
+  await withSite({ '/': html('<a href="/siteindex.html">s</a>'), '/siteindex.html': html('<p>s</p>') }, async (s) => {
+    const { pages } = await crawlSite(s.origin);
+    assert.deepEqual(pages.map((p) => p.url), [`${s.origin}/`, `${s.origin}/siteindex.html`]);
+  });
+});
+
+test('(m) consecutive User-agent lines form one robots group', async () => {
+  const robots = { type: 'text/plain', body: 'User-agent: *\nUser-agent: Googlebot\nDisallow: /contact\n' };
+  await withSite({ '/robots.txt': robots }, async (s) => {
+    await crawlSite(s.origin);
+    assert.ok(!s.log.includes('/contact.html'));
+  });
+});
+
+test('(n) nav, data table, blockquote, address and footer become their own blocks', async () => {
+  const body = '<nav><a href="/">Home</a> <a href="/x">Other</a></nav><table><tr><td>Mon</td><td>8 AM</td></tr></table>'
+    + '<blockquote>Be kind.</blockquote><address>1 Main St</address><footer>Copyright</footer>';
+  await withSite({ '/': html(body) }, async (s) => {
+    const [page] = (await crawlSite(s.origin, 1)).pages;
+    assert.deepEqual(page.blocks.map((b) => [b.kind, b.text]), [
+      ['nav', 'Home Other'], ['table', 'Mon | 8 AM'], ['quote', 'Be kind.'], ['contact', '1 Main St'], ['footer', 'Copyright'],
+    ]);
+  });
+});
+
+test('(o) a div or span with only inline content is a block, with legal and contact rules applied', async () => {
+  await withSite({ '/': html('<div>Founded in 1962.</div><div><span>Call (555) 010-0142</span></div>') }, async (s) => {
+    const [page] = (await crawlSite(s.origin, 1)).pages;
+    assert.deepEqual(page.blocks.map((b) => [b.kind, b.text]), [['paragraph', 'Founded in 1962.'], ['contact', 'Call (555) 010-0142']]);
+  });
+});
 });

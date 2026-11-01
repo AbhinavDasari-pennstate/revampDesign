@@ -1,5 +1,5 @@
 // Test helper: serves contracts/fixtures/sample-site/ read-only on a free port, plus in-memory extra routes
-// ({ '/path': { status, type, body } }), and records every requested path in `log`.
+// ({ '/path': { status, type, headers, body } }), and records every requested path in `log`.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
@@ -14,7 +14,7 @@ export async function serve(extra = {}) {
     log.push(path);
     const hit = extra[path];
     if (hit) {
-      res.writeHead(hit.status ?? 200, { 'content-type': hit.type ?? 'text/html' });
+      res.writeHead(hit.status ?? 200, { 'content-type': hit.type ?? 'text/html', ...hit.headers });
       return res.end(hit.body ?? '');
     }
     const name = basename(path) || 'index.html';

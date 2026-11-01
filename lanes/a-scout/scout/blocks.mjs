@@ -13,7 +13,9 @@ export async function extractBlocks(page, pageId) {
         const tag = el.tagName.toLowerCase();
         if (tag === 'form') continue;
         // A table that holds other blocks is page layout: descend. Otherwise it is data: one block.
-        if (!el.matches(BLOCK) || (tag === 'table' && el.querySelector(LAYOUT))) {
+        // A div or span that holds no other block is a block itself: sites without p tags put their copy there.
+        const leaf = (tag === 'div' || tag === 'span') && !el.querySelector(`${BLOCK},div`) && text(el);
+        if ((!el.matches(BLOCK) && !leaf) || (tag === 'table' && el.querySelector(LAYOUT))) {
           walk(el);
         } else if (/^h[1-6]$/.test(tag)) add('heading', Number(tag[1]), text(el));
         else if (tag === 'ul' || tag === 'ol') add('list', null, [...el.children].map(text).join('\n'));

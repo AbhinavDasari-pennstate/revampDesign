@@ -13,7 +13,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 export function normalise(href) {
   const u = new URL(href);
   u.hash = '';
-  u.pathname = u.pathname.replace(/index\.html$/, '');
+  u.pathname = u.pathname.replace(/(^|\/)index\.html$/, '$1');
   if (u.pathname.length > 1) u.pathname = u.pathname.replace(/\/$/, '');
   return u.href;
 }
@@ -24,11 +24,19 @@ async function disallowed(origin) {
   if (!res?.ok) return [];
   const prefixes = [];
   let star = false;
+  let inAgentLines = false;
   for (const line of (await res.text()).split(/\r?\n/)) {
     const [key, ...rest] = line.split('#')[0].split(':');
+    const field = key.trim().toLowerCase();
     const value = rest.join(':').trim();
-    if (key.trim().toLowerCase() === 'user-agent') star = value === '*';
-    else if (key.trim().toLowerCase() === 'disallow' && star && value) prefixes.push(value);
+    if (field === 'user-agent') {
+      // Consecutive User-agent lines share one group (RFC 9309).
+      star = (inAgentLines && star) || value === '*';
+      inAgentLines = true;
+    } else {
+      inAgentLines = false;
+      if (field === 'disallow' && star && value) prefixes.push(value);
+    }
   }
   return prefixes;
 }
@@ -63,6 +71,10 @@ export async function crawl({ startUrl, maxPages, runDir, delayMs = 1000 }) {
         const finalUrl = normalise(page.url());
         if (pages.some((p) => p.url === finalUrl)) continue;
         if (!pages.length) host = new URL(finalUrl).host;
+        else if (new URL(finalUrl).host !== host) {
+          failures.push({ url, reason: 'redirected off host' });
+          continue;
+        }
         const id = `p${String(pages.length + 1).padStart(2, '0')}`;
         const screenshots = { desktop: `a-scout/screens/${id}-desktop.png`, mobile: `a-scout/screens/${id}-mobile.png` };
         const hrefs = await page.$$eval('a[href]', (anchors) => anchors.map((a) => a.href));
@@ -72,6 +84,7 @@ export async function crawl({ startUrl, maxPages, runDir, delayMs = 1000 }) {
         await page.screenshot({ path: join(runDir, screenshots.mobile), fullPage: true });
         pages.push({ page_id: id, url: finalUrl, title: await page.title(), status_code: response.status(), depth, screenshots, blocks, images: [], links: [], forms: [] });
         for (const href of hrefs) {
+          if (!URL.canParse(href)) continue;
           const next = normalise(href);
           if (new URL(next).host === host && !seen.has(next)) {
             seen.add(next);
