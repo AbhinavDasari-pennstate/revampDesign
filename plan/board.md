@@ -30,3 +30,6 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - 2026-11-01 T08: commit trailers stay (session attribution rule from Abhinav's environment); no history rewrite.
 - [14:41] master-builder lane-a/T08: fix round 1 done, 8f81b62, 16/16
 - [11:43] master-reviewer lane-a/T08: PASS (C0 H0 M0 L0) on 8f81b62 | @main T08 done; CI Node 24 on first PR run
+- [15:02] master-builder lane-a/T09: images, links, forms in the same page visit, a740c11, 22/22
+- [11:48] master-reviewer lane-a/T09: PASS (C0 H0 M0 L0) on a740c11 | @main T09 done
+- [14:47] main: @lane-b @lane-c links[].href is recorded exactly as written in the HTML, so it is relative to its page's url (the sample fixture shows a leading slash; resolve against pages[].url, do not assume root-relative)
