@@ -10,9 +10,16 @@ export async function readBrand(page, images) {
     const style = (el) => (el ? getComputedStyle(el) : null);
     const [body, h1, a, nav] = [document.body, ...['h1', 'a[href]', 'nav'].map((s) => document.querySelector(s))];
     const logo = [...document.images].find((i) => i.closest('header') || /logo|crest|seal/i.test(`${i.src} ${i.alt}`));
+    // The school colour is usually a header background: header, nav, then the first element near the page top that has one.
+    const clear = (c) => /^rgba\(.*, 0\)$/.test(c);
+    const bodyBackground = style(body)?.backgroundColor;
+    const top = [...document.querySelectorAll('td,th,div,section')].filter((el) => el.getBoundingClientRect().top < 300);
+    const band = [document.querySelector('header'), nav, ...top]
+      .map((el) => style(el)?.backgroundColor)
+      .find((c) => c && !clear(c) && c !== bodyBackground);
     return {
-      background: style(body).backgroundColor,
-      primary: style(h1)?.color,
+      background: bodyBackground,
+      primary: band ?? style(h1)?.color,
       accent: style(a)?.color,
       nav: style(nav)?.backgroundColor,
       fonts: [['body', style(body)], ['headings', style(h1)], ['navigation', style(nav)]].map(([usage, s]) => [usage, s?.fontFamily]),

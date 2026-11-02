@@ -5,6 +5,8 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { schemaErrors } from '../../../contracts/validate.mjs';
+import { chromium } from 'playwright';
+import { readBrand } from '../scout/brand.mjs';
 import { extractFacts } from '../scout/facts.mjs';
 import { serve } from './serve.mjs';
 
@@ -54,6 +56,7 @@ describe('scout facts and brand on the sample site', () => {
 
   test('brand: background #fffff0, lowercase hex only, crest as logo, Times New Roman', () => {
     assert.ok(out.brand.colors.some((c) => c.hex === '#fffff0' && c.role === 'background'));
+    assert.ok(out.brand.colors.some((c) => c.hex === '#003366' && c.role === 'primary'));
     assert.ok(out.brand.colors.every((c) => /^#[0-9a-f]{6}$/.test(c.hex)));
     assert.equal(out.brand.logo_path, 'a-scout/images/p01-i01.png');
     assert.ok(out.brand.fonts.some((f) => f.family === 'Times New Roman'));
@@ -69,12 +72,24 @@ const block = (block_id, kind, text) => ({ block_id, kind, level: null, order: 0
 describe('extractFacts rules', () => {
   const facts = (...blocks) => extractFacts([{ blocks }]).map((f) => [f.kind, f.value, f.block_id]);
 
-  test('a repeated value keeps its first block only; nav and footer are not read', () => {
+  test('a repeated value keeps its first block only; nav is not read', () => {
     assert.deepEqual(facts(
       block('p01-b001', 'nav', 'Call 555-010-0001'),
       block('p01-b002', 'paragraph', 'Call 555-010-0142'),
       block('p01-b003', 'contact', 'Phone 555-010-0142'),
     ), [['phone', '555-010-0142', 'p01-b002']]);
+  });
+
+  test('footer blocks are read, and a legal footer also gives its notice', () => {
+    assert.deepEqual(facts(
+      block('p01-b001', 'footer', '2200 Orchard Road\nMaple Grove, OH 45000\n(555) 010-0142'),
+      block('p01-b002', 'footer', 'The district does not discriminate on the basis of sex.'),
+    ), [['phone', '(555) 010-0142', 'p01-b001'], ['address', '2200 Orchard Road, Maple Grove, OH 45000', 'p01-b001'],
+      ['legal_notice', 'Nondiscrimination notice', 'p01-b002']]);
+  });
+
+  test('digits that merely contain a phone shape are not a phone', () => {
+    assert.deepEqual(facts(block('p01-b001', 'paragraph', 'Student ID 1234 567 8901')), []);
   });
 
   test('a street number is not read as a year, and a full date keeps its year', () => {
@@ -90,4 +105,16 @@ describe('extractFacts rules', () => {
       block('p01-b002', 'legal', 'Our Title IX coordinator is available.'),
     ), [['legal_notice', 'Nondiscrimination notice', 'p01-b001'], ['legal_notice', 'Title IX notice', 'p01-b002']]);
   });
+});
+
+test('a page with no body does not lose the brand read', async () => {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.setContent('<html><body><p>x</p></body></html>');
+    await page.evaluate(() => document.body.remove());
+    assert.deepEqual(await readBrand(page, []), { logo_path: null, colors: [], fonts: [] });
+  } finally {
+    await browser.close();
+  }
 });

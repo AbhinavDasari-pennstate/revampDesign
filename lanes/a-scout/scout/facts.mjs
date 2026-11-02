@@ -7,7 +7,7 @@ const STREET = 'Street|St|Road|Rd|Avenue|Ave|Drive|Dr|Lane|Ln|Boulevard|Blvd|Way
 // Order matters: each match is cut out of the text so a later rule cannot read it again (a street number is not a year).
 const RULES = [
   ['email', /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, (m) => m[0]],
-  ['phone', /\(?\d{3}\)?[-. ]\d{3}[-. ]\d{4}/g, (m) => m[0]],
+  ['phone', /(?<!\d)\(?\d{3}\)?[-. ]\d{3}[-. ]\d{4}(?!\d)/g, (m) => m[0]],
   ['address', new RegExp(String.raw`\d+ (?:[A-Za-z]+ )*?(?:${STREET})\b\.?[ ]*[\n,][ ]*([A-Za-z .]+),[ ]*([A-Z]{2}) (\d{5})`, 'g'),
     (m) => `${m[0].split(/[\n,]/)[0].trim()}, ${m[1].trim()}, ${m[2]} ${m[3]}`],
   ['time', new RegExp(String.raw`(?:${DAY}(?: to | through |-)${DAY},? )?${CLOCK} (?:to|-) ${CLOCK}`, 'gi'), (m) => m[0]],
@@ -25,8 +25,11 @@ export function extractFacts(pages) {
   };
   for (const { blocks } of pages) {
     for (const { block_id, kind, text } of blocks) {
-      if (kind === 'legal') add('legal_notice', /discriminat/i.test(text) ? 'Nondiscrimination notice' : 'Title IX notice', block_id);
-      if (kind === 'nav' || kind === 'footer') continue;
+      // Same keywords as the legal rule in blocks.mjs; a footer is a legal block only by its text.
+      if (kind === 'legal' || (kind === 'footer' && /discriminat|title ix/i.test(text))) {
+        add('legal_notice', /discriminat/i.test(text) ? 'Nondiscrimination notice' : 'Title IX notice', block_id);
+      }
+      if (kind === 'nav') continue;
       let rest = text;
       for (const [factKind, re, value] of RULES) {
         for (const m of rest.matchAll(re)) add(factKind, value(m), block_id);
