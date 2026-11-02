@@ -21,3 +21,13 @@ File: about.html
 <body><header><nav><a href="index.html">Home</a><a href="about.html">About Us</a></nav></header>
 <main><h1>About Us</h1><p>Our mission is to prepare every student for college, career and community life.</p></main></body></html>
 ```
+
+File: contact.html
+```html
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact - Maple Grove High School</title>
+<style>body{font-family:Georgia,serif;margin:0;color:#1a2b3c}header,main{padding:2rem;max-width:60rem;margin:auto}nav a{margin-right:1rem}h1{color:#003366}</style></head>
+<body><header><nav><a href="index.html">Home</a><a href="about.html">About Us</a><a href="contact.html">Contact</a></nav></header>
+<main><h1>Contact</h1><p>Call the main office at (555) 010-0142.</p></main></body></html>
+```
