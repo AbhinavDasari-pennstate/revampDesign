@@ -7,8 +7,8 @@ import { capture } from './capture.mjs';
 import { readBrand } from './brand.mjs';
 
 const USER_AGENT = 'RevampScout/1.0 (+https://github.com/AbhinavDasari-pennstate/revampDesign)';
-const DESKTOP = { width: 1440, height: 900 };
-const MOBILE = { width: 390, height: 844 };
+export const DESKTOP = { width: 1440, height: 900 };
+export const MOBILE = { width: 390, height: 844 };
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // One page per URL: no hash, no trailing index.html, no trailing slash (root stays "/").
