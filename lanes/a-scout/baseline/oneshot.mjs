@@ -88,14 +88,19 @@ async function screenshot(base, htmlPaths) {
   const browser = await chromium.launch();
   const blocked = [];
   const frames = [];
+  const redirected = [];
   try {
-    const page = await (await browser.newContext({ javaScriptEnabled: true })).newPage();
-    await page.route('**/*', (route) => {
-      const url = route.request().url();
+    const context = await browser.newContext({ serviceWorkers: 'block' });
+    await context.routeWebSocket(/.*/, (ws) => ws.close());
+    await context.route('**/*', (route) => {
+      const request = route.request();
+      const url = request.url();
       if (url.startsWith(`${site.origin}/`) || FONT_ORIGINS.some((o) => url.startsWith(`${o}/`))) return route.continue();
       blocked.push(url);
+      if (request.redirectedFrom()) redirected.push(url);
       return route.abort();
     });
+    const page = await context.newPage();
     for (const path of htmlPaths) {
       await page.goto(`${site.origin}/${path}`, { waitUntil: 'networkidle' });
       frames.push(...page.frames().map((f) => f.url()));
@@ -109,6 +114,7 @@ async function screenshot(base, htmlPaths) {
     await browser.close();
     await site.close();
   }
+  if (redirected.length) throw fail(`the site redirected to a blocked origin: ${redirected[0]}`, 3);
   return { blocked, frames };
 }
 

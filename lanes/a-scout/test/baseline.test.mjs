@@ -123,13 +123,28 @@ describe('baseline one-shot', () => {
     writeFileSync(marker, 'SECRET-MARKER');
     const hits = [];
     const other = createServer((req, res) => (hits.push(req.url), res.end('x')));
+    other.on('upgrade', (req, sock) => (hits.push(req.url), sock.destroy()));
     await new Promise((r) => other.listen(0, '127.0.0.1', r));
     const off = `http://127.0.0.1:${other.address().port}`;
     const fileUrl = pathToFileURL(marker).href;
     const html = `<!doctype html><title>t</title><iframe src="${fileUrl}"></iframe><img src="${off}/pixel.png">`
-      + `<script>fetch("${off}/fetch");setTimeout(()=>{location.href="${fileUrl}"},0)</script>`;
+      + `<script>fetch("${off}/fetch");window.open("${off}/popup");try{new WebSocket("${off.replace('http', 'ws')}/ws")}catch{}`
+      + `navigator.serviceWorker.register("sw.js");setTimeout(()=>{location.href="${fileUrl}"},0)</script>`;
+    const sw = `self.addEventListener('fetch',(e)=>{e.respondWith(fetch("${off}/sw"))})`;
+    const reply = `File: index.html
+\`\`\`html
+${html}
+\`\`\`
+File: sw.js
+\`\`\`js
+${sw}
+\`\`\`
+File: two.html
+\`\`\`html
+${html}
+\`\`\``;
     try {
-      const out = await oneshot({ inventory, runDir: run, complete: async () => `File: index.html\n\`\`\`html\n${html}\n\`\`\`` });
+      const out = await oneshot({ inventory, runDir: run, complete: async () => reply });
       assert.deepEqual(hits, []);
       assert.ok(out.blocked.some((u) => u.startsWith(`${off}/pixel.png`)), out.blocked.join());
       assert.ok(out.blocked.some((u) => u.startsWith(`${off}/fetch`)));
