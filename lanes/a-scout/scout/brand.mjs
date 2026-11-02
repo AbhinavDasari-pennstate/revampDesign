@@ -13,10 +13,13 @@ export async function readBrand(page, images) {
     // The school colour is usually a header background: header, nav, then the first element near the page top that has one.
     const clear = (c) => /^rgba\(.*, 0\)$/.test(c);
     const bodyBackground = style(body)?.backgroundColor;
+    const pageBackground = clear(bodyBackground ?? 'rgba(0, 0, 0, 0)') ? style(document.documentElement).backgroundColor : bodyBackground;
     const top = [...document.querySelectorAll('td,th,div,section')].filter((el) => el.getBoundingClientRect().top < 300);
+    // Only a visible, non-white band counts: not hidden, not a fixed cookie bar, not a white wrapper.
     const band = [document.querySelector('header'), nav, ...top]
-      .map((el) => style(el)?.backgroundColor)
-      .find((c) => c && !clear(c) && c !== bodyBackground);
+      .filter((el) => el && el.getClientRects().length && style(el).visibility !== 'hidden' && (style(el).position !== 'fixed' || el.tagName === 'HEADER'))
+      .map((el) => style(el).backgroundColor)
+      .find((c) => !clear(c) && c !== pageBackground && !c.match(/\d+/g).slice(0, 3).every((n) => n >= 240));
     return {
       background: bodyBackground,
       primary: band ?? style(h1)?.color,

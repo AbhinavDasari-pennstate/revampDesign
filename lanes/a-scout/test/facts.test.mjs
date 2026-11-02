@@ -118,3 +118,33 @@ test('a page with no body does not lose the brand read', async () => {
     await browser.close();
   }
 });
+
+describe('brand primary colour search', () => {
+  const primary = async (html) => {
+    const browser = await chromium.launch();
+    try {
+      const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+      await page.setContent(`<html><body>${html}</body></html>`);
+      return (await readBrand(page, [])).colors.find((c) => c.role === 'primary')?.hex;
+    } finally {
+      await browser.close();
+    }
+  };
+  const band = '<div style="background:#7a0019;height:80px">School</div>';
+
+  test('(a) a white wrapper over a transparent body is skipped for the band inside', async () => {
+    assert.equal(await primary(`<div id="page" style="background:#fff">${band}</div>`), '#7a0019');
+  });
+
+  test('(b) a white header and a near-white body are skipped for the nav', async () => {
+    assert.equal(await primary('<style>body{background:#f5f5f5}</style><header style="background:#fff">h</header><nav style="background:#003366">n</nav>'), '#003366');
+  });
+
+  test('(c) a display:none menu is skipped', async () => {
+    assert.equal(await primary(`<div style="display:none;background:#222">menu</div>${band}`), '#7a0019');
+  });
+
+  test('(d) a fixed cookie bar is skipped', async () => {
+    assert.equal(await primary(`<div style="position:fixed;top:0;left:0;right:0;background:#333">cookies</div>${band}`), '#7a0019');
+  });
+});
