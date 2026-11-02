@@ -64,7 +64,7 @@ export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNo
     throw fail(`--url must be an http or https URL, got ${url}`, 2);
   }
   const template = readJson(join(fixture, FILES.run));
-  const consent = consentNote ? { owner_ok: true, note: consentNote } : { owner_ok: false, note: 'No owner consent recorded for this run.' };
+  const consent = consentNote?.trim() ? { owner_ok: true, note: consentNote.trim() } : { owner_ok: false, note: 'No owner consent recorded for this run.' };
   const siteSlug = host.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const runId = `${stampOf(now)}-${siteSlug}`;
   const runDir = join(outDir, runId);

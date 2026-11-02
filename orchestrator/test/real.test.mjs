@@ -99,7 +99,7 @@ test('each lane stage gets exactly the args plan.md Interfaces lists', () => {
 
 test('real run consent defaults to not recorded; --consent-note records it; empty note does not', () => {
   const none = 'No owner consent recorded for this run.';
-  const cases = [[[], false, none], [['--consent-note', 'Principal emailed OK'], true, 'Principal emailed OK'], [['--consent-note', ''], false, none]];
+  const cases = [[[], false, none], [['--consent-note', 'Principal emailed OK'], true, 'Principal emailed OK'], [['--consent-note', ''], false, none], [['--consent-note', '   '], false, none]];
   for (const [flags, ok, note] of cases) {
     const s = setup();
     try {
