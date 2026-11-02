@@ -18,7 +18,7 @@ import path from 'node:path';
 const a = process.argv.slice(2);
 const arg = (n) => a[a.indexOf(n) + 1];
 const [stage, run, out] = [a[0], arg('--run'), arg('--out')];
-fs.appendFileSync(${JSON.stringify(calls)}, stage + '\\n');
+fs.appendFileSync(${JSON.stringify(calls)}, JSON.stringify(a.map((x) => (x === run ? '<R>' : x.startsWith(run) ? path.relative(run, x) : x))) + '\\n');
 const mode = ${JSON.stringify(behavior)}[stage] ?? 'ok';
 if (mode.startsWith('exit:')) process.exit(Number(mode.slice(5)));
 if (mode === 'invalid') {
@@ -27,6 +27,13 @@ if (mode === 'invalid') {
 }
 const data = JSON.parse(fs.readFileSync(path.join(${JSON.stringify(sample)}, path.basename(out)), 'utf8'));
 data.run_id = JSON.parse(fs.readFileSync(path.join(run, '00-run.json'), 'utf8')).run_id;
+if (mode === 'wrongcontract') {
+  const sel = JSON.parse(fs.readFileSync(path.join(${JSON.stringify(sample)}, '45-selection.json'), 'utf8'));
+  sel.run_id = data.run_id;
+  fs.writeFileSync(out, JSON.stringify(sel));
+  process.exit(0);
+}
+if (mode === 'badid') data.run_id = 'other-run';
 if (mode === 'human') Object.assign(data, { needs_human: true, top_direction_id: 'd1' });
 fs.writeFileSync(out, JSON.stringify(data));
 const lane = path.basename(import.meta.dirname);
@@ -46,9 +53,10 @@ function setup({ behavior = {}, present = ['a-scout', 'b-design', 'c-build'] } =
   const run = (...extra) => spawnSync(process.execPath, [cli, 'run', '--url', 'https://www.Example-School.org/about', '--tier', 'B',
     '--lanes-root', lanesRoot, '--out-dir', outDir, ...extra], { encoding: 'utf8' });
   const runDir = () => join(outDir, readdirSync(outDir)[0]);
-  const called = () => (existsSync(calls) ? readFileSync(calls, 'utf8').trim().split('\n') : []);
+  const argvs = () => (existsSync(calls) ? readFileSync(calls, 'utf8').trim().split('\n').map((l) => JSON.parse(l)) : []);
+  const called = () => argvs().map((a) => a[0]);
   const json = (f) => JSON.parse(readFileSync(join(runDir(), f), 'utf8'));
-  return { root, run, runDir, called, json };
+  return { root, run, runDir, called, argvs, json };
 }
 const cleanup = (s) => rmSync(s.root, { recursive: true, force: true });
 
@@ -66,6 +74,108 @@ test('all stages exit 0: outputs validated, run.json written, cross check passes
     assert.deepEqual(crossErrors(s.runDir()), []);
     assert.equal(s.json(FILES.selection).chosen_by, 'council');
     assert.equal(readFileSync(join(s.runDir(), 'orchestrator.log'), 'utf8').trim(), r.stdout.trim());
+  } finally {
+    cleanup(s);
+  }
+});
+
+test('each lane stage gets exactly the args plan.md Interfaces lists', () => {
+  const s = setup();
+  try {
+    assert.equal(s.run().status, 0);
+    const run = '00-run.json', inv = '10-inventory.json', sb = '20-storyboard.json', dirs = '30-directions.json';
+    const a = (stage, ins, out) => [stage, '--run', '<R>', ...ins.flatMap((f) => ['--in', f]), '--out', out];
+    assert.deepEqual(s.argvs(), [
+      a('scout', [run], inv),
+      a('story', [run, inv], sb),
+      a('art', [run, inv, sb], dirs),
+      a('council', [dirs], '40-verdict.json'),
+      a('build', [run, inv, sb, dirs, '45-selection.json'], '50-handoff.json'),
+    ]);
+  } finally {
+    cleanup(s);
+  }
+});
+
+test('real run consent defaults to not recorded; --consent-note records it; empty note does not', () => {
+  const none = 'No owner consent recorded for this run.';
+  const cases = [[[], false, none], [['--consent-note', 'Principal emailed OK'], true, 'Principal emailed OK'], [['--consent-note', ''], false, none]];
+  for (const [flags, ok, note] of cases) {
+    const s = setup();
+    try {
+      assert.equal(s.run(...flags).status, 0);
+      assert.deepEqual(s.json(FILES.run).consent, { owner_ok: ok, note });
+    } finally {
+      cleanup(s);
+    }
+  }
+});
+
+test('a stage that writes a valid file of another contract stops with exit 2 at that stage', () => {
+  const s = setup({ behavior: { scout: 'wrongcontract' } });
+  try {
+    const r = s.run();
+    assert.equal(r.status, 2);
+    assert.deepEqual(s.called(), ['scout']);
+    assert.match(r.stderr, /scout/);
+    assert.match(r.stderr, /10-inventory\.json/);
+  } finally {
+    cleanup(s);
+  }
+});
+
+test('--url "" is a real run that fails URL validation with exit 2', () => {
+  const s = setup();
+  try {
+    assert.equal(s.run('--url', '').status, 2);
+    assert.deepEqual(s.called(), []);
+  } finally {
+    cleanup(s);
+  }
+});
+
+test('stub mode rejects real-run flags with exit 2', () => {
+  const s = setup();
+  try {
+    for (const flag of [['--url', 'https://x.example'], ['--tier', 'A'], ['--pick', 'd1'], ['--consent-note', 'x']]) {
+      const r = spawnSync(process.execPath, [cli, 'run', '--stub', '--fixture', sample, '--out-dir', join(s.root, 'stubruns'), ...flag], { encoding: 'utf8' });
+      assert.equal(r.status, 2, flag.join(' '));
+      assert.match(r.stderr, new RegExp(flag[0]));
+    }
+  } finally {
+    cleanup(s);
+  }
+});
+
+test('a mixed real and stub run skips the cross check and logs it', () => {
+  const s = setup({ present: ['a-scout', 'b-design'] });
+  try {
+    const r = s.run();
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /CROSS skipped \(mixed real and stub stages\)/);
+  } finally {
+    cleanup(s);
+  }
+});
+
+test('an all-real run still fails the cross check when ids disagree', () => {
+  const s = setup({ behavior: { council: 'badid' } });
+  try {
+    const r = s.run();
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /cross check/);
+  } finally {
+    cleanup(s);
+  }
+});
+
+test('an all-stub run is cross checked', () => {
+  const s = setup({ present: [] });
+  try {
+    const r = s.run();
+    assert.equal(r.status, 0, r.stderr);
+    assert.doesNotMatch(r.stdout, /CROSS skipped/);
+    assert.deepEqual(crossErrors(s.runDir()), []);
   } finally {
     cleanup(s);
   }

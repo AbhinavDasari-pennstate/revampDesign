@@ -52,7 +52,7 @@ export function runStub({ fixture, outDir, now = new Date() }) {
 }
 
 // Real mode: run each lane CLI in order; a lane whose CLI is missing is filled from the fixture.
-export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, now = new Date() }) {
+export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNote, now = new Date() }) {
   if (pick !== undefined && !/^d[123]$/.test(pick)) throw fail(`--pick must be d1, d2 or d3, got ${pick}`, 2);
   if (!['A', 'B', 'C'].includes(tier)) throw fail(`--tier must be A, B or C, got ${tier}`, 2);
   let host;
@@ -64,16 +64,18 @@ export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, now = new
     throw fail(`--url must be an http or https URL, got ${url}`, 2);
   }
   const template = readJson(join(fixture, FILES.run));
+  const consent = consentNote ? { owner_ok: true, note: consentNote } : { owner_ok: false, note: 'No owner consent recorded for this run.' };
   const siteSlug = host.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const runId = `${stampOf(now)}-${siteSlug}`;
   const runDir = join(outDir, runId);
   mkdirSync(runDir, { recursive: true });
-  const runDoc = { ...template, run_id: runId, source_url: url, site_slug: siteSlug, tier, created_at: now.toISOString() };
+  const runDoc = { ...template, run_id: runId, consent, source_url: url, site_slug: siteSlug, tier, created_at: now.toISOString() };
   writeJson(join(runDir, FILES.run), runDoc);
   const runErrors = schemaErrors(runDoc);
   if (runErrors.length) throw fail(`${FILES.run} failed its schema:\n${runErrors.join('\n')}`, 2);
 
   const lines = [];
+  let stubbed = 0;
   for (const [stage, key, lane, inputs] of STAGES) {
     const out = join(runDir, FILES[key]);
     const cli = lane && join(lanesRoot, lane, 'cli.mjs');
@@ -93,15 +95,23 @@ export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, now = new
       cpSync(join(fixture, FILES[key]), out);
       if (existsSync(join(fixture, lane))) cpSync(join(fixture, lane), join(runDir, lane), { recursive: true });
       writeJson(out, { ...readJson(out), run_id: runId });
+      stubbed++;
       lines.push(`STUB ${stage} (lane not present)`);
     }
     if (!existsSync(out)) throw fail(`stage ${stage} wrote no ${FILES[key]}`, 2);
-    const errors = schemaErrors(readJson(out));
+    const doc = readJson(out);
+    if (doc.contract !== key) throw fail(`stage ${stage} wrote ${FILES[key]} declaring contract ${doc.contract}, expected ${key}`, 2);
+    const errors = schemaErrors(doc);
     if (errors.length) throw fail(`${FILES[key]} failed its schema:\n${errors.join('\n')}`, 2);
     lines.push(`ok ${stage} ${FILES[key]}`);
   }
-  const cross = crossErrors(runDir);
-  if (cross.length) throw fail(`run folder failed the cross check:\n${cross.join('\n')}`, 2);
+  // 5 lane stages; stand-in files carry sample ids, so a mixed run cannot pass the cross check.
+  if (stubbed > 0 && stubbed < 5) {
+    lines.push('CROSS skipped (mixed real and stub stages)');
+  } else {
+    const cross = crossErrors(runDir);
+    if (cross.length) throw fail(`run folder failed the cross check:\n${cross.join('\n')}`, 2);
+  }
   writeFileSync(join(runDir, 'orchestrator.log'), lines.join('\n') + '\n');
   return { runId, runDir, lines };
 }
