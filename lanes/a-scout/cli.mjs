@@ -5,6 +5,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { schemaErrors } from '../../contracts/validate.mjs';
 import { crawl } from './scout/crawl.mjs';
+import { extractFacts } from './scout/facts.mjs';
 
 const fail = (message, exitCode) => Object.assign(new Error(message), { exitCode });
 
@@ -21,7 +22,7 @@ try {
   const inputErrors = run.contract === 'run' ? schemaErrors(run) : ['not a run contract'];
   if (inputErrors.length) throw fail(`input failed its schema: ${inputErrors.join('; ')}`, 2);
 
-  const { pages, failures } = await crawl({ startUrl: run.source_url, maxPages: run.limits.max_pages, runDir });
+  const { pages, failures, brand } = await crawl({ startUrl: run.source_url, maxPages: run.limits.max_pages, runDir });
   if (!pages.length) {
     writeFileSync(join(runDir, 'a-scout', 'failure.json'), JSON.stringify({ reason: 'no page could be crawled', failures }, null, 2));
     throw fail('no page could be crawled, see a-scout/failure.json', 3);
@@ -33,8 +34,8 @@ try {
     crawled_at: new Date().toISOString(),
     robots_respected: true,
     pages,
-    facts: [],
-    brand: { logo_path: null, colors: [], fonts: [] },
+    facts: extractFacts(pages),
+    brand,
     failures,
     untrusted_text: true,
   };
