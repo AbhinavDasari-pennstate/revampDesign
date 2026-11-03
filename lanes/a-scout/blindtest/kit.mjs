@@ -2,7 +2,7 @@
 // shuffled with a seeded PRNG, copied under neutral names and shown with no labels.
 // results.json: { "sites": [ { "site": "<name>", "key": "<path to that run's blindtest/key.json, relative to results.json>",
 //   "rankings": { "<reviewer>": ["B", "A", "C"] } } ] }  each ranking lists the letters best first.
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const fail = (message, exitCode) => Object.assign(new Error(message), { exitCode });
@@ -18,6 +18,9 @@ function mulberry32(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+
+// FNV-1a, so the same --seed orders each site differently.
+const mix = (seed, slug) => [...slug].reduce((h, ch) => Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0, (2166136261 ^ seed) >>> 0);
 
 export function shuffle(items, seed) {
   const out = [...items];
@@ -55,6 +58,7 @@ export function buildKit({ runDir, seed }) {
     if (!existsSync(path)) throw fail(`missing input file: ${path}`, 2);
     return JSON.parse(readFileSync(path, 'utf8'));
   };
+  const slug = read('00-run.json').site_slug;
   const original = read('10-inventory.json').pages?.[0]?.screenshots;
   const redesign = read('50-handoff.json').site?.pages?.[0]?.screenshots;
   if (!original || !redesign) throw fail('inventory or handoff has no first page screenshots', 2);
@@ -68,17 +72,17 @@ export function buildKit({ runDir, seed }) {
       if (!existsSync(join(run, rel))) throw fail(`missing screenshot: ${join(run, rel)}`, 2);
     }
   }
-  const order = shuffle(Object.keys(sources), seed);
+  const order = shuffle(Object.keys(sources), mix(seed, slug));
   const base = join(run, 'a-scout', 'blindtest');
   const kit = join(base, 'kit');
   mkdirSync(kit, { recursive: true });
   const versions = {};
   order.forEach((name, i) => {
     versions[LETTERS[i]] = name;
-    for (const view of ['desktop', 'mobile']) copyFileSync(join(run, sources[name][view]), join(kit, `${LETTERS[i]}-${view}.png`));
+    for (const view of ['desktop', 'mobile']) writeFileSync(join(kit, `${LETTERS[i]}-${view}.png`), readFileSync(join(run, sources[name][view])));
   });
   writeFileSync(join(kit, 'index.html'), html());
-  const key = { seed, versions };
+  const key = { seed, site_slug: slug, versions };
   writeFileSync(join(base, 'key.json'), JSON.stringify(key, null, 2));
   return { key };
 }
@@ -87,12 +91,13 @@ export function buildKit({ runDir, seed }) {
 // Pass needs exactly 5 reviewers: 4 of 5 over the original and 3 of 5 over the baseline.
 export function score(results, baseDir = '.') {
   return (results.sites ?? []).map((entry) => {
+    if (typeof entry.key !== 'string') throw fail(`${entry.site}: key must be the path to a key.json`, 2);
     const { versions } = JSON.parse(readFileSync(resolve(baseDir, entry.key), 'utf8'));
     const letter = (name) => Object.keys(versions).find((l) => versions[l] === name);
     const [r, o, b] = ['redesign', 'original', 'baseline'].map(letter);
     const rankings = Object.entries(entry.rankings ?? {});
     for (const [reviewer, order] of rankings) {
-      if ([...order].sort().join('') !== 'ABC') throw fail(`${entry.site}: ${reviewer} must rank A, B and C once each`, 2);
+      if (!Array.isArray(order) || [...order].sort().join('') !== 'ABC') throw fail(`${entry.site}: ${reviewer} must be a list ranking A, B and C once each`, 2);
     }
     const prefers = (other) => rankings.filter(([, order]) => order.indexOf(r) < order.indexOf(other)).length;
     const overOriginal = prefers(o);
