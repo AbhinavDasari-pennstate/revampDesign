@@ -6,7 +6,41 @@ Give it the URL of a legacy website. A chain of focused agents researches what t
 - **Repo:** https://github.com/AbhinavDasari-pennstate/revampDesign
 - **Week:** Sun Nov 1 to Sat Nov 7 2026. First real-site run Wed Nov 4. Demo Sat Nov 7.
 - **Quality bar:** [trionn.com](https://trionn.com) (Awwwards Site of the Day, Jul 27 2026), within what each customer can host and maintain.
-- **Status:** planning done, nothing built yet. Contracts freeze Sun Nov 1, 21:00 PST.
+- **Status:** built so far: contracts v1.0.0, the orchestrator (stub and real mode), Scout (crawl, images, links, forms, facts, brand), and the plain Claude baseline. The blind test kit is finished on branch `lane-a/T32-blindtest` and not yet merged to main. Lanes B and C are in progress; the orchestrator fills any stage whose lane CLI is missing from the sample fixture and logs it as STUB.
+
+## Quick start
+
+Prerequisites: Node 24 (the version in `.nvmrc`). There is no root `package.json`; each lane installs its own dependencies with `npm ci` inside its own folder. Scout also needs the Playwright Chromium browser.
+
+```
+cd contracts && npm ci && node --test
+cd lanes/a-scout && npm ci && npx playwright install chromium
+```
+
+Everything below is run from the repo root. Stub mode needs no keys and no network: it copies the sample run into `runs/` and checks every file against its contract.
+
+```
+node contracts/validate.mjs --cross contracts/fixtures/sample
+node orchestrator/cli.mjs run --stub --fixture sample --out-dir runs
+cd orchestrator && node --test
+cd lanes/a-scout && node --test
+```
+
+Crawl one site with Scout. Copy a run file, set `source_url` in it to a site you have the owner's consent to crawl, then crawl and check the result. Output goes under `runs/`, which git ignores.
+
+```
+mkdir -p runs/my-crawl && cp contracts/fixtures/sample/00-run.json runs/my-crawl/00-run.json
+node lanes/a-scout/cli.mjs scout --run runs/my-crawl --in runs/my-crawl/00-run.json --out runs/my-crawl/10-inventory.json
+node contracts/validate.mjs runs/my-crawl/10-inventory.json
+```
+
+The plain Claude baseline (a one-shot redesign to compare against) calls OpenRouter and spends money. It needs `A_OPENROUTER_API_KEY` exported in your shell (the command does not read `lanes/a-scout/.env`; `lanes/a-scout/.env.example` shows the name). Do not run it casually. With `--response` it reads a recorded reply from a file instead, which is how its tests run.
+
+```
+node lanes/a-scout/cli.mjs baseline --run runs/my-crawl --in runs/my-crawl/10-inventory.json
+```
+
+The blind test kit is `node lanes/a-scout/cli.mjs blindtest --run <run dir> --seed <integer>`, and `node lanes/a-scout/cli.mjs blindtest --score` prints the 4 of 5 and 3 of 5 results. It exists only on branch `lane-a/T32-blindtest` until that branch merges.
 
 ## The pipeline
 
@@ -76,14 +110,14 @@ There is no root `package.json` and no workspaces. Each lane installs and pins i
 
 | Use | Avoid |
 |---|---|
-| Playwright and sitemap crawling | crawl4ai (credit clause for commercial web apps) |
-| dembrandt, pinned | GSAP (free license bars tools that compete with Webflow) |
+| Playwright only (no sitemap crawling) | crawl4ai (credit clause for commercial web apps) |
+| Brand colors and type read from the page with Playwright (dembrandt dropped) | GSAP (free license bars tools that compete with Webflow) |
 | Astro static, Tailwind, Radix primitives | Magic UI (generic AI look) |
 | Motion or CSS scroll animation | Lenis and WebGL on school sites |
 | axe-core, Lighthouse | Meta TRIBE v2 (non-commercial, predicts brain scans, takes no images) |
 | OpenRouter for every model | New skill or MCP installs this week |
 
-Installs are pending approval: nothing has been installed yet.
+Installed and pinned: ajv 8.20.0 in `contracts/` and Playwright 1.64.1 in `lanes/a-scout/`. `orchestrator/` has no dependencies. Nothing else is approved yet.
 
 ## What "done" means on Saturday
 
