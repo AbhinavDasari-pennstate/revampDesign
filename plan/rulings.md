@@ -1,3 +1,5 @@
 # Rulings (main session)
 - 2026-11-01 T07: stub mode rewrites run_id only in the seven contract files (00 to 50). Stage-folder JSON (for example c-build/axe.json) is tool output and is copied untouched.
 - 2026-11-01 T08: Scout makes a paragraph block from a div or span-only container whose direct text is non-empty and that holds no other block element, so React and div-heavy sites keep their text. Commit trailers stay; no history rewrite.
+- 2026-11-01 T17: real runs never inherit the fixture's consent. Default consent is {owner_ok: false, note: "No owner consent recorded for this run."}; `--consent-note <text>` sets owner_ok true with that note. Stub mode unchanged. Stub runs when --stub is given or --url is absent (matches plan.md line 10).
+- 2026-11-01 T17 N1: when a real run mixes real and STUB stages, the end cross check is skipped and logged as `CROSS skipped (mixed real and stub stages)`; the stand-in files carry sample ids. Schema checks per stage still run. A run with all stages real, or all stubbed, is cross checked. Stub mode defaults --out-dir to runs/ so plan.md line 10 works as written.

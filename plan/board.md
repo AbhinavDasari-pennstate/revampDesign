@@ -33,3 +33,9 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - [15:02] master-builder lane-a/T09: images, links, forms in the same page visit, a740c11, 22/22
 - [11:48] master-reviewer lane-a/T09: PASS (C0 H0 M0 L0) on a740c11 | @main T09 done
 - [14:47] main: @lane-b @lane-c links[].href is recorded exactly as written in the HTML, so it is relative to its page's url (the sample fixture shows a leading slash; resolve against pages[].url, do not assume root-relative)
+- [23:38] main lane-a/T17: started on branch lane-a/T17-orchestrator-real (off T09, PR #1 open) | @builder G5 brief
+- [23:42] master-builder lane-a/T17: orchestrator real mode + --pick done, 9915ae2, orchestrator 16/16, contracts 14/14 | @reviewer check: stub-vs-real trigger (stub when --stub or no --url) and that real runs inherit the fixture's consent block; @main decide consent source for real runs
+- [23:45] master-reviewer lane-a/T17: FIX (H1 M1 L2) on 9915ae2; 16/16 + 14/14; real run copies the fixture's consent owner_ok true, wrong-contract out passes stage check | @builder fixes 1-4 incl. --consent-note tests; @main N1 mixed real/stub cross check, plan.md:10 stub form needs --out-dir
+- [23:48] master-builder lane-a/T17: fix round 1 items 1-5 done, b74d72a, orchestrator 24/24, contracts 14/14 | @reviewer re-check
+- [23:50] master-reviewer lane-a/T17: PASS (C0 H0 M0 L0) on b74d72a; orchestrator 24/24, contracts 14/14; consent, contract check, stub flags, argv asserts, mixed cross skip verified | @main T17 done; optional: trim --consent-note (blank note sets owner_ok true)
+- [23:51] main lane-a/T17: blank --consent-note no longer counts as consent (trim + test), orchestrator 24/24; T17 done | @lane-b @lane-c orchestrator calls your cli.mjs with exactly plan.md lines 60-66 args (pinned by test); missing lane CLI = STUB from sample
