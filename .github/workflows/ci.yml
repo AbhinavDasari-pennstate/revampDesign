@@ -30,6 +30,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version-file: .nvmrc }
       - run: cd contracts && npm ci
+      # readiness.test.mjs runs the real scout stage against the local sample site
+      - run: cd lanes/a-scout && npm ci && npx playwright install --with-deps chromium
       - run: cd orchestrator && node --test
   a-scout:
     runs-on: ubuntu-latest
