@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { extractBlocks } from './blocks.mjs';
 import { capture } from './capture.mjs';
+import { readBrand } from './brand.mjs';
 
 const USER_AGENT = 'RevampScout/1.0 (+https://github.com/AbhinavDasari-pennstate/revampDesign)';
 const DESKTOP = { width: 1440, height: 900 };
@@ -50,6 +51,7 @@ export async function crawl({ startUrl, maxPages, runDir, delayMs = 1000 }) {
   const seen = new Set([start]);
   const pages = [];
   const failures = [];
+  let brand = { logo_path: null, colors: [], fonts: [] };
   mkdirSync(join(runDir, 'a-scout', 'screens'), { recursive: true });
   const browser = await chromium.launch();
   try {
@@ -80,6 +82,7 @@ export async function crawl({ startUrl, maxPages, runDir, delayMs = 1000 }) {
         const hrefs = await page.$$eval('a[href]', (anchors) => anchors.map((a) => a.href));
         const blocks = await extractBlocks(page, id);
         const { images, links, forms } = await capture(page, id, runDir, host);
+        if (!pages.length) brand = await readBrand(page, images);
         await page.screenshot({ path: join(runDir, screenshots.desktop), fullPage: true });
         await page.setViewportSize(MOBILE);
         await page.screenshot({ path: join(runDir, screenshots.mobile), fullPage: true });
@@ -99,5 +102,5 @@ export async function crawl({ startUrl, maxPages, runDir, delayMs = 1000 }) {
   } finally {
     await browser.close();
   }
-  return { pages, failures };
+  return { pages, failures, brand };
 }
