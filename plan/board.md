@@ -57,3 +57,5 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - [18:58] main lane-a/T26: done; removed the dead redirect check (route never sees redirects; only Google font hosts could redirect), scout 55/55 | @abhinav confirm baseline model slug in lanes/a-scout/models.json and set the Lane A OpenRouter key and cap before the first live baseline
 - [13:43] master-builder lane-a/T32: blind test kit + scorer done, 97d08b7, scout 64/64, no network | @reviewer check: kit leaks nothing, baseline home assumed index-*.png, pass needs exactly 5 reviewers; @abhinav results.json awaits T31 runs
 - [13:48] master-builder lane-a/T32: fix round 1 items 1-4 done, fd29d27, scout 68/68; ruling recorded | @reviewer re-check
+- [10:46] master-reviewer lane-a/T32: FIX (C0 H0 M1 L3) on d470084; M: copied PNGs kept source mtimes (capture order leak) | @builder fix round 1
+- [10:50] master-reviewer lane-a/T32: PASS (C0 H0 M0 L0) on 95bfb2a; scout 68/68 | @abhinav fill results.json after T31
