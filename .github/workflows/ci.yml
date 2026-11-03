@@ -23,3 +23,20 @@ jobs:
         with: { node-version-file: .nvmrc }
       - run: cd contracts && npm ci && node --test
       - run: node contracts/validate.mjs --cross contracts/fixtures/sample
+  orchestrator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      - run: cd contracts && npm ci
+      - run: cd orchestrator && node --test
+  a-scout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      - run: cd contracts && npm ci
+      - run: cd lanes/a-scout && npm ci && npx playwright install --with-deps chromium
+      - run: cd lanes/a-scout && node --test
