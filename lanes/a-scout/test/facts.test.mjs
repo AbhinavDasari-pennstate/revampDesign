@@ -106,6 +106,15 @@ describe('extractFacts rules', () => {
     ), [['date', '1962', 'p01-b002'], ['date', '1998', 'p01-b002']]);
   });
 
+  test('season, copyright and "Founded:" lead words count; a day never eats a year', () => {
+    assert.deepEqual(facts(
+      block('p01-b001', 'paragraph', 'Spring 2026 classes.'),
+      block('p01-b002', 'paragraph', '© 2025 Maple Grove Schools'),
+      block('p01-b003', 'paragraph', 'Founded:\n1962'),
+      block('p01-b004', 'paragraph', 'Graduation is June 2027.'),
+    ), [['date', '2026', 'p01-b001'], ['date', '2025', 'p01-b002'], ['date', '1962', 'p01-b003']]);
+  });
+
   test('the email rule is linear: 50,000 characters with no @ finish in under 200 ms', () => {
     for (const text of ['a'.repeat(50000), 'a.b-c+d'.repeat(7200)]) {
       const start = performance.now();

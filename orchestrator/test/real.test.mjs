@@ -26,6 +26,10 @@ if (mode === 'notjson') {
   fs.writeFileSync(out, '{"contract": "inventory", ');
   process.exit(0);
 }
+if (mode === 'null') {
+  fs.writeFileSync(out, 'null');
+  process.exit(0);
+}
 if (mode === 'invalid') {
   fs.writeFileSync(out, '{"contract":"inventory","version":"1.0.0"}');
   process.exit(0);
@@ -329,6 +333,17 @@ test('a stage output that is not valid JSON exits 2 with stage, owner and path, 
     assert.match(r.stderr, /Abhinav/);
     assert.match(r.stderr, /10-inventory.json/);
     assert.match(readFileSync(join(s.runDir(), 'orchestrator.log'), 'utf8'), /not valid JSON/);
+  } finally {
+    cleanup(s);
+  }
+});
+
+test('a stage output of JSON null exits 2 and names the stage', () => {
+  const s = setup({ behavior: { scout: 'null' } });
+  try {
+    const r = s.run();
+    assert.equal(r.status, 2, r.stderr);
+    assert.match(r.stderr, /stage scout/);
   } finally {
     cleanup(s);
   }

@@ -11,9 +11,9 @@ const RULES = [
   ['address', new RegExp(String.raw`\d+ (?:[A-Za-z]+ )*?(?:${STREET})\b\.?[ ]*[\n,][ ]*([A-Za-z .]+),[ ]*([A-Z]{2}) (\d{5})`, 'g'),
     (m) => `${m[0].split(/[\n,]/)[0].trim()}, ${m[1].trim()}, ${m[2]} ${m[3]}`],
   ['time', new RegExp(String.raw`(?:${DAY}(?: to | through |-)${DAY},? )?${CLOCK} (?:to|-) ${CLOCK}`, 'gi'), (m) => m[0]],
-  ['date', new RegExp(String.raw`\b(?:${MONTH}) \d{1,2}(?:(?:,? and | to |-)\d{1,2})?(?:, (?:19|20)\d\d)?`, 'g'), (m) => m[0]],
+  ['date', new RegExp(String.raw`\b(?:${MONTH}) \d{1,2}(?!\d)(?:(?:,? and | to |-)\d{1,2})?(?:, (?:19|20)\d\d)?`, 'g'), (m) => m[0]],
   // A bare year needs a lead word, so '2000 students' is not a date.
-  ['date', /(?<=\b(?:in|since|founded|established|est\.?|opened|until|through|by|class of) )(?<![\d-])(?:19|20)\d\d(?![\d-])/gi, (m) => m[0]],
+  ['date', /(?<=\b(?:in|since|founded|established|est\.?|opened|until|through|by|class of|spring|summer|fall|autumn|winter):?\s+|©\s*)(?<![\d-])(?:19|20)\d\d(?![\d-])/gi, (m) => m[0]],
 ];
 
 export function extractFacts(pages) {

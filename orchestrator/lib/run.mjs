@@ -126,7 +126,7 @@ function executeReal({ url, tier, runDir, runId, template, consent, siteSlug, la
     } catch {
       throw fail(`stage ${stage} wrote ${out} which is not valid JSON. Owner: ${OWNERS[lane] ?? 'Abhinav'} (${lane ?? 'orchestrator'})`, 2);
     }
-    if (doc.contract !== key) throw fail(`stage ${stage} wrote ${FILES[key]} declaring contract ${doc.contract}, expected ${key}`, 2);
+    if (doc?.contract !== key) throw fail(`stage ${stage} wrote ${FILES[key]} declaring contract ${doc?.contract}, expected ${key}`, 2);
     const errors = schemaErrors(doc);
     if (errors.length) throw fail(`${FILES[key]} failed its schema:\n${errors.join('\n')}`, 2);
     lines.push(`ok ${stage} ${FILES[key]}`);
