@@ -99,6 +99,22 @@ describe('extractFacts rules', () => {
     ), [['address', '2000 Main Street, Springfield, IL 62701', 'p01-b001'], ['date', 'Dec. 24, 2026', 'p01-b002']]);
   });
 
+  test('a bare four-digit number is a date only with date context', () => {
+    assert.deepEqual(facts(
+      block('p01-b001', 'paragraph', '2000 students and 1500 families joined us.'),
+      block('p01-b002', 'paragraph', 'Founded in 1962, open since 1998.'),
+    ), [['date', '1962', 'p01-b002'], ['date', '1998', 'p01-b002']]);
+  });
+
+  test('the email rule is linear: 50,000 characters with no @ finish in under 200 ms', () => {
+    for (const text of ['a'.repeat(50000), 'a.b-c+d'.repeat(7200)]) {
+      const start = performance.now();
+      assert.deepEqual(facts(block('p01-b001', 'paragraph', text)), []);
+      assert.ok(performance.now() - start < 200, `took ${Math.round(performance.now() - start)} ms`);
+    }
+    assert.deepEqual(facts(block('p01-b001', 'paragraph', 'Write to a.b+c@school.example.org today')), [['email', 'a.b+c@school.example.org', 'p01-b001']]);
+  });
+
   test('legal notices are labelled by keyword', () => {
     assert.deepEqual(facts(
       block('p01-b001', 'legal', 'The district does not discriminate.'),
@@ -146,5 +162,18 @@ describe('brand primary colour search', () => {
 
   test('(d) a fixed cookie bar is skipped', async () => {
     assert.equal(await primary(`<div style="position:fixed;top:0;left:0;right:0;background:#333">cookies</div>${band}`), '#7a0019');
+  });
+
+  test('(e) a computed oklch() header colour is read as hex; a transparent one stays transparent', async () => {
+    const hex = await primary('<header style="background:oklch(0.4 0.15 250)">h</header>');
+    assert.match(hex, /^#[0-9a-f]{6}$/);
+    const [r, , b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    assert.ok(b > r + 40, hex);
+    assert.equal(await primary(`<header style="background:oklch(0.4 0.15 250 / 0)">h</header>${band}`), '#7a0019');
+  });
+
+  test('(f) color(srgb ...) and oklab() backgrounds are read too', async () => {
+    assert.equal(await primary('<header style="background:color(srgb 0 0.2 0.4)">h</header>'), '#003366');
+    assert.match(await primary('<header style="background:oklab(0.4 0.05 -0.1)">h</header>'), /^#[0-9a-f]{6}$/);
   });
 });

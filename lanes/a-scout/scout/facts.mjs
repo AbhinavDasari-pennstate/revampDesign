@@ -6,13 +6,14 @@ const STREET = 'Street|St|Road|Rd|Avenue|Ave|Drive|Dr|Lane|Ln|Boulevard|Blvd|Way
 
 // Order matters: each match is cut out of the text so a later rule cannot read it again (a street number is not a year).
 const RULES = [
-  ['email', /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, (m) => m[0]],
+  ['email', /(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, (m) => m[0]],
   ['phone', /(?<!\d)\(?\d{3}\)?[-. ]\d{3}[-. ]\d{4}(?!\d)/g, (m) => m[0]],
   ['address', new RegExp(String.raw`\d+ (?:[A-Za-z]+ )*?(?:${STREET})\b\.?[ ]*[\n,][ ]*([A-Za-z .]+),[ ]*([A-Z]{2}) (\d{5})`, 'g'),
     (m) => `${m[0].split(/[\n,]/)[0].trim()}, ${m[1].trim()}, ${m[2]} ${m[3]}`],
   ['time', new RegExp(String.raw`(?:${DAY}(?: to | through |-)${DAY},? )?${CLOCK} (?:to|-) ${CLOCK}`, 'gi'), (m) => m[0]],
   ['date', new RegExp(String.raw`\b(?:${MONTH}) \d{1,2}(?:(?:,? and | to |-)\d{1,2})?(?:, (?:19|20)\d\d)?`, 'g'), (m) => m[0]],
-  ['date', /(?<![\d-])(?:19|20)\d\d(?![\d-])/g, (m) => m[0]],
+  // A bare year needs a lead word, so '2000 students' is not a date.
+  ['date', /(?<=\b(?:in|since|founded|established|est\.?|opened|until|through|by|class of) )(?<![\d-])(?:19|20)\d\d(?![\d-])/gi, (m) => m[0]],
 ];
 
 export function extractFacts(pages) {
