@@ -6,7 +6,7 @@ Give it the URL of a legacy website. A chain of focused agents researches what t
 - **Repo:** https://github.com/AbhinavDasari-pennstate/revampDesign
 - **Week:** Sun Nov 1 to Sat Nov 7 2026. First real-site run Wed Nov 4. Demo Sat Nov 7.
 - **Quality bar:** [trionn.com](https://trionn.com) (Awwwards Site of the Day, Jul 27 2026), within what each customer can host and maintain.
-- **Status:** built so far: contracts v1.0.0, the orchestrator (stub and real mode), Scout (crawl, images, links, forms, facts, brand), and the plain Claude baseline. The blind test kit is finished on branch `lane-a/T32-blindtest` and not yet merged to main. Lanes B and C are in progress; the orchestrator fills any stage whose lane CLI is missing from the sample fixture and logs it as STUB.
+- **Status:** built so far: contracts v1.0.0, the orchestrator (stub and real mode), Scout (crawl, images, links, forms, facts, brand), the plain Claude baseline, and the blind test kit. Lanes B and C are in progress; the orchestrator fills any stage whose lane CLI is missing from the sample fixture and logs it as STUB.
 
 ## Quick start
 
@@ -40,7 +40,12 @@ The plain Claude baseline (a one-shot redesign to compare against) calls OpenRou
 node lanes/a-scout/cli.mjs baseline --run runs/my-crawl --in runs/my-crawl/10-inventory.json
 ```
 
-The blind test kit is `node lanes/a-scout/cli.mjs blindtest --run <run dir> --seed <integer>`, and `node lanes/a-scout/cli.mjs blindtest --score` prints the 4 of 5 and 3 of 5 results. It exists only on branch `lane-a/T32-blindtest` until that branch merges.
+The blind test kit shuffles the original, the redesign and the baseline under neutral letters; the seed is mixed with the site slug, so each site gets its own order. The scorer reads `lanes/a-scout/blindtest/results.json` and prints the 4 of 5 and 3 of 5 results per site.
+
+```
+node lanes/a-scout/cli.mjs blindtest --run runs/my-crawl --seed 7
+node lanes/a-scout/cli.mjs blindtest --score
+```
 
 ## The pipeline
 

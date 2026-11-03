@@ -1,6 +1,8 @@
 // Usage: node lanes/a-scout/cli.mjs scout --run <run dir> --in <00-run.json> --out <10-inventory.json>
 // Exit 0 ok, 1 crash, 2 input failed its schema, 3 no page could be crawled (reason in a-scout/failure.json).
 //        node lanes/a-scout/cli.mjs baseline --run <run dir> --in <10-inventory.json> [--response <recorded reply file>]
+//        node lanes/a-scout/cli.mjs blindtest --run <run dir> --seed <integer>   (exit 2 = an input screenshot is missing)
+//        node lanes/a-scout/cli.mjs blindtest --score [--results <results.json>]   (prints per-site 4 of 5 and 3 of 5 results)
 // baseline: exit 3 = reply had no parseable files or a path outside site/, 4 = OpenRouter budget (402 or 403).
 import { parseArgs } from 'node:util';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -8,6 +10,7 @@ import { join, resolve } from 'node:path';
 import { schemaErrors } from '../../contracts/validate.mjs';
 import { crawl } from './scout/crawl.mjs';
 import { extractFacts } from './scout/facts.mjs';
+import { buildKit, score } from './blindtest/kit.mjs';
 import { MODEL, oneshot, openRouterComplete } from './baseline/oneshot.mjs';
 
 const fail = (message, exitCode) => Object.assign(new Error(message), { exitCode });
@@ -15,8 +18,19 @@ const fail = (message, exitCode) => Object.assign(new Error(message), { exitCode
 try {
   const { positionals, values } = parseArgs({
     allowPositionals: true,
-    options: { run: { type: 'string' }, in: { type: 'string' }, out: { type: 'string' }, response: { type: 'string' } },
+    options: { run: { type: 'string' }, in: { type: 'string' }, out: { type: 'string' }, response: { type: 'string' },
+      seed: { type: 'string' }, score: { type: 'boolean' }, results: { type: 'string' } },
   });
+  if (positionals[0] === 'blindtest') {
+    if (values.score) {
+      const file = resolve(values.results ?? join(import.meta.dirname, 'blindtest', 'results.json'));
+      console.log(JSON.stringify(score(JSON.parse(readFileSync(file, 'utf8')), join(file, '..')), null, 2));
+      process.exit(0);
+    }
+    if (!values.run || !/^\d+$/.test(values.seed ?? '')) throw fail('usage: node lanes/a-scout/cli.mjs blindtest --run <run dir> --seed <integer>', 1);
+    buildKit({ runDir: values.run, seed: Number(values.seed) });
+    process.exit(0);
+  }
   if (positionals[0] === 'baseline') {
     if (!values.run || !values.in) throw fail('usage: node lanes/a-scout/cli.mjs baseline --run <run dir> --in <10-inventory.json> [--response <file>]', 1);
     const inventory = JSON.parse(readFileSync(resolve(values.in), 'utf8'));
