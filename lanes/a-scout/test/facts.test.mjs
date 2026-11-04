@@ -153,6 +153,12 @@ describe('extractFacts rules', () => {
     assert.deepEqual(facts(block('p01-b001', 'paragraph', '2000 Main Street, Springfield, IL 62701')), [['address', '2000 Main Street, Springfield, IL 62701', 'p01-b001']]);
   });
 
+  test('the address rule is linear after a street: 50,000 spaces finish in under 200 ms', () => {
+    const start = performance.now();
+    assert.deepEqual(facts(block('p01-b001', 'paragraph', '1 St,' + ' '.repeat(50000))), []);
+    assert.ok(performance.now() - start < 200, `took ${Math.round(performance.now() - start)} ms`);
+  });
+
   test('the year rule is linear: 50,000 spaces or newlines finish in under 200 ms', () => {
     for (const [text, expected] of [[' '.repeat(50000), []], ['\n'.repeat(50000), []], ['x'.repeat(50000) + ' 2020', []],
       ['in' + ' '.repeat(50000) + '2020', [['date', '2020', 'p01-b001']]]]) {

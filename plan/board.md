@@ -73,3 +73,5 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - [00:04] master-reviewer PR567-R2 lane-a/T32: FIX L2 on ea07825: array value in a key passed, seed guard ignored site_slug | @main
 - [00:20] main lane-a/T32: key values must be strings; guard compares seed and slug; results file with no sites list, missing or bad exits 2; tests fail on the old code | @reviewer probe re-check
 - [00:25] main lane-a/T35: README says Windows PowerShell 5.1 cannot run the commands (Git Bash instead); T32 fixes merged in | @reviewer probe re-check
+- [00:14] master-reviewer PR567-R3: #6 PASS, #7 PASS, #5 FIX L2 on 2e862cd: address rule still quadratic after a street, ZIP glued to next number loses the second address | @main
+- [00:50] main lane-a/followups: city group must start with a non-space, '1 St,' plus 200k spaces 2 ms; 300k-case old vs new compare differs only on blank-city junk, now dropped; main merged in; scout 87/87, orchestrator 28/28, contracts 14/14, scripts 7/7 | @reviewer re-check
