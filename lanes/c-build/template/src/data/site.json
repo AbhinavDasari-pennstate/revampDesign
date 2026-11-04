@@ -1,0 +1,17 @@
+{
+  "name": "Organisation name",
+  "lang": "en",
+  "max_width_px": 1200,
+  "nav": [{ "label": "Home", "slug": "home", "href": "./index.html" }],
+  "pages": [
+    {
+      "slug": "home",
+      "file": "index",
+      "title": "Home",
+      "sections": [
+        { "id": "s001", "intent": "hero", "pattern": null, "headline": "Template headline", "subhead": "Replaced by the builder from the storyboard" },
+        { "id": "s002", "intent": "story", "pattern": null, "headline": "Template section", "subhead": null }
+      ]
+    }
+  ]
+}

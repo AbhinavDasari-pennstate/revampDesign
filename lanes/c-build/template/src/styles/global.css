@@ -21,6 +21,18 @@ body {
   line-height: var(--lh);
 }
 
+/* Content column: the direction's grid width, with side gutters on small screens. */
+.wrap {
+  max-width: var(--max);
+  margin-inline: auto;
+  padding-inline: calc(var(--space) * 3);
+}
+
+nav a[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+
 h1, h2, h3 {
   font-family: var(--f-display);
   line-height: 1.15;
