@@ -3,10 +3,11 @@
 //     --in R/30-directions.json --in R/45-selection.json --out R/50-handoff.json [--max-usd <n>]
 // Exit 0 ok, 1 crash, 2 input failed its schema, 3 quality gate failed, 4 budget cap hit.
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { buildPages } from './builder/pages.mjs';
 import { fail, readContract, schemaErrors } from './lib/contracts.mjs';
+import { checkA11y } from './qa/a11y.mjs';
 
 const NEEDS = ['run', 'inventory', 'storyboard', 'directions', 'selection'];
 
@@ -97,8 +98,14 @@ async function main(argv) {
     writeHandoff(out, runDir, budgetHandoff(docs, cap));
     throw fail(`budget cap hit: Lane C has ${cap} USD for this run`, 4);
   }
-  const { siteDir } = await buildPages({ runDir, docs });
-  throw fail(`site built in ${siteDir}, but QA and the handoff are not written yet (T21 to T23)`, 1);
+  const { siteDir, pages } = await buildPages({ runDir, docs });
+  const a11y = await checkA11y({
+    dist: join(siteDir, 'dist'),
+    pages: pages.map((p) => ({ slug: p.slug, file: basename(p.path) })),
+    reportPath: join(runDir, 'c-build', 'axe.json'),
+  });
+  if (!a11y.gates_passed) throw fail(`accessibility gates failed:\n  ${a11y.failures.join('\n  ')}`, 3);
+  throw fail(`site built in ${siteDir} and passed the accessibility gates, but the link check, fact diff and handoff are not written yet (T22, T23)`, 1);
 }
 
 try {
