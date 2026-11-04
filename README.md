@@ -12,7 +12,7 @@ Give it the URL of a legacy website. A chain of focused agents researches what t
 
 Prerequisites: Node 24 (the version in `.nvmrc`). There is no root `package.json`; each lane installs its own dependencies with `npm ci` inside its own folder. Scout also needs the Playwright Chromium browser (on Linux use `npx playwright install --with-deps chromium`, which also installs the system libraries and needs root).
 
-The commands assume bash (macOS, Linux, WSL, Git Bash). PowerShell 7 accepts the same `&&` chains, but it has no subshells, so after a line in parentheses run `Set-Location` back to the repo root.
+The commands assume bash (macOS, Linux, WSL, Git Bash). Windows PowerShell 5.1, the Windows default, cannot run these commands; use Git Bash. PowerShell 7 accepts the same `&&` chains (not tested here), but it has no subshells, so after a line in parentheses run `Set-Location` back to the repo root.
 
 Everything below is run from the repo root, and every line leaves you there: a line in parentheses runs in a subshell, so its `cd` does not carry to the next line.
 

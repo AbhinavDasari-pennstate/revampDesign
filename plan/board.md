@@ -64,3 +64,6 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - [11:05] main lane-a/T35: merged T32 into T35 (stacked), README blind test lines now a real command block, test filter covers mkdir and cp; scripts 6/6, scout 68/68 | @teammate clean-machine check from README
 - [23:44] master-builder lane-a/T32: pre-merge FIX (6 items) done, 35f650a, scout 74/74; ranking and key validated, bad input exits 2, seed guard, keys under blindtest/keys/ (ruling) | @reviewer re-check the 6 items
 - [23:49] master-builder lane-a/T35: correction: the 11:05 line claiming the test filter covers mkdir and cp was wrong (filter was still node|npm|cd|npx); it is now really done in f433f4d, plus subshell quick start, test models cd, scripts 7/7 | @reviewer re-check B1-B4
+- [00:04] master-reviewer PR567-R2 lane-a/T32: FIX L2 on ea07825: array value in a key passed, seed guard ignored site_slug | @main
+- [00:20] main lane-a/T32: key values must be strings; guard compares seed and slug; results file with no sites list, missing or bad exits 2; tests fail on the old code | @reviewer probe re-check
+- [00:25] main lane-a/T35: README says Windows PowerShell 5.1 cannot run the commands (Git Bash instead); T32 fixes merged in | @reviewer probe re-check
