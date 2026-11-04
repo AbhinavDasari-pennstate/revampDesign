@@ -1,7 +1,7 @@
 // Usage: node lanes/a-scout/cli.mjs scout --run <run dir> --in <00-run.json> --out <10-inventory.json>
 // Exit 0 ok, 1 crash, 2 input failed its schema, 3 no page could be crawled (reason in a-scout/failure.json).
 //        node lanes/a-scout/cli.mjs baseline --run <run dir> --in <10-inventory.json> [--response <recorded reply file>]
-//        node lanes/a-scout/cli.mjs blindtest --run <run dir> --seed <integer>   (exit 2 = an input screenshot is missing)
+//        node lanes/a-scout/cli.mjs blindtest --run <run dir> --seed <integer>   (exit 2 = bad or missing input, or key.json made with another seed)
 //        node lanes/a-scout/cli.mjs blindtest --score [--results <results.json>]   (prints per-site 4 of 5 and 3 of 5 results)
 // baseline: exit 3 = reply had no parseable files or a path outside site/, 4 = OpenRouter budget (402 or 403).
 import { parseArgs } from 'node:util';

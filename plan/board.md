@@ -62,3 +62,4 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - [10:50] master-reviewer lane-a/T32: PASS (C0 H0 M0 L0) on 95bfb2a; scout 68/68 | @abhinav fill results.json after T31
 - [10:57] master-reviewer lane-a/T35: PASS (C0 H0 M0 L2) on 08d1ead; .github/scripts 6/6 | @builder L: mkdir|cp in readme.test filter; @main T32 merge must update README
 - [11:05] main lane-a/T35: merged T32 into T35 (stacked), README blind test lines now a real command block, test filter covers mkdir and cp; scripts 6/6, scout 68/68 | @teammate clean-machine check from README
+- [23:44] master-builder lane-a/T32: pre-merge FIX (6 items) done, 35f650a, scout 74/74; ranking and key validated, bad input exits 2, seed guard, keys under blindtest/keys/ (ruling) | @reviewer re-check the 6 items
