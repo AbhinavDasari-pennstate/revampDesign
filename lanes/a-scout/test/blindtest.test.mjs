@@ -1,7 +1,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { buildKit, score, shuffle } from '../blindtest/kit.mjs';
@@ -50,10 +50,23 @@ describe('blind test kit', () => {
   });
 
   test('same seed gives the same key, another seed can differ', () => {
+    const keys = (run, seed) => buildKit({ runDir: run, seed }).key.versions;
     const run = newRun();
-    const keys = (seed) => buildKit({ runDir: run, seed }).key.versions;
-    assert.deepEqual(keys(5), keys(5));
-    assert.ok(new Set(Array.from({ length: 20 }, (_, s) => JSON.stringify(keys(s)))).size > 1);
+    assert.deepEqual(keys(run, 5), keys(run, 5));
+    assert.ok(new Set(Array.from({ length: 20 }, (_, s) => JSON.stringify(keys(newRun(), s)))).size > 1);
+  });
+
+  test('a run that already has a key with another seed is refused and nothing changes', () => {
+    const run = newRun();
+    buildKit({ runDir: run, seed: 5 });
+    const base = join(run, 'a-scout/blindtest');
+    const before = [join(base, 'key.json'), ...readdirSync(join(base, 'kit')).map((f) => join(base, 'kit', f))].map((f) => readFileSync(f));
+    const r = cli(['--run', run, '--seed', '6']);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /already exists with seed 5/);
+    const after = [join(base, 'key.json'), ...readdirSync(join(base, 'kit')).map((f) => join(base, 'kit', f))].map((f) => readFileSync(f));
+    assert.deepEqual(after, before);
+    assert.equal(cli(['--run', run, '--seed', '5']).status, 0);
   });
 
   test('kit file mtimes do not follow the source mtimes', () => {
@@ -66,7 +79,7 @@ describe('blind test kit', () => {
     assert.ok(Math.min(...times) > new Date(2021, 0, 1).getTime());
   });
 
-  test('the same seed orders different sites differently and the key records the slug', () => {
+  test('the same seed usually orders different sites differently and the key records the slug', () => {
     const order = (slug) => buildKit({ runDir: newRun(slug), seed: 1 }).key;
     const slugs = ['maplegrove-hs', 'oak-academy', 'riverside-elementary', 'pine-ridge', 'st-marys'];
     assert.ok(new Set(slugs.map((s) => JSON.stringify(order(s).versions))).size > 1);
@@ -81,6 +94,31 @@ describe('blind test kit', () => {
     assert.match(r.stderr, /index-mobile\.png/);
   });
 
+  test('bad input exits 2 with a clear message and writes no kit', () => {
+    const handoff = (screenshots) => JSON.stringify({ site: { pages: [{ screenshots }] } });
+    const inventory = (screenshots) => JSON.stringify({ pages: [{ screenshots }] });
+    const cases = [
+      ['missing 00-run.json', (run) => rmSync(join(run, '00-run.json')), /missing input file.*00-run\.json/],
+      ['00-run.json is not JSON', (run) => writeFileSync(join(run, '00-run.json'), '{'), /00-run\.json is not valid JSON/],
+      ['00-run.json has no site_slug', (run) => writeFileSync(join(run, '00-run.json'), '{}'), /site_slug/],
+      ['10-inventory.json is not JSON', (run) => writeFileSync(join(run, '10-inventory.json'), 'oops'), /10-inventory\.json is not valid JSON/],
+      ['inventory screenshots miss the mobile width', (run) => writeFileSync(join(run, '10-inventory.json'), inventory({ desktop: SHOTS[0] })), /10-inventory\.json.*mobile/],
+      ['50-handoff.json is not JSON', (run) => writeFileSync(join(run, '50-handoff.json'), '{"site":'), /50-handoff\.json is not valid JSON/],
+      ['50-handoff.json is null', (run) => writeFileSync(join(run, '50-handoff.json'), 'null'), /50-handoff\.json.*desktop/],
+      ['handoff screenshots miss the mobile width', (run) => writeFileSync(join(run, '50-handoff.json'), handoff({ desktop: SHOTS[2] })), /50-handoff\.json.*mobile/],
+      ['handoff screenshots miss the desktop width', (run) => writeFileSync(join(run, '50-handoff.json'), handoff({ mobile: SHOTS[3] })), /50-handoff\.json.*desktop/],
+    ];
+    for (const [name, damage, message] of cases) {
+      const run = newRun();
+      damage(run);
+      assert.throws(() => buildKit({ runDir: run, seed: 1 }), (e) => e.exitCode === 2 && message.test(e.message), name);
+      assert.equal(existsSync(join(run, 'a-scout/blindtest')), false, name);
+    }
+    const run = newRun();
+    writeFileSync(join(run, '50-handoff.json'), 'null');
+    assert.equal(cli(['--run', run, '--seed', '1']).status, 2);
+  });
+
   test('the CLI builds the kit and a bad seed is a usage error', () => {
     const run = newRun();
     assert.equal(cli(['--run', run, '--seed', '3']).status, 0);
@@ -90,8 +128,10 @@ describe('blind test kit', () => {
 
 describe('blind test scorer', () => {
   const dir = mkdtempSync(join(tmpdir(), 'blind-score-'));
-  writeFileSync(join(dir, 'key.json'), JSON.stringify({ seed: 1, versions: { A: 'original', B: 'redesign', C: 'baseline' } }));
-  const site = (name, rankings) => ({ site: name, key: 'key.json', rankings });
+  const goodKey = (name) => ({ seed: 1, site_slug: name, versions: { A: 'original', B: 'redesign', C: 'baseline' } });
+  const keyFile = (name, key) => { writeFileSync(join(dir, `${name}.json`), typeof key === 'string' ? key : JSON.stringify(key)); return `${name}.json`; };
+  const site = (name, rankings) => ({ site: name, key: keyFile(name, goodKey(name)), rankings });
+  const exits2 = (fn, message) => assert.throws(fn, (e) => e.exitCode === 2 && message.test(e.message));
   const win = ['B', 'A', 'C']; // redesign first
   const loseBoth = ['A', 'C', 'B'];
   const beatOriginalOnly = ['C', 'B', 'A'];
@@ -125,6 +165,46 @@ describe('blind test scorer', () => {
     assert.match(r.stderr, /list ranking/);
   });
 
+  test('a ranking is exactly three single letters A, B and C once each', () => {
+    const bad = [['A', 'BC'], [['A'], 'B', 'C'], ['A', 'B'], ['A', 'B', 'C', 'A'], ['a', 'b', 'c'], [1, 2, 3], 'ABC', {}];
+    for (const order of bad) exits2(() => score({ sites: [site('rank', { r1: order })] }, dir), /list ranking A, B and C/);
+  });
+
+  test('a key must map A, B and C to the three versions once each', () => {
+    const bad = {
+      'no redesign': { A: 'original', B: 'baseline', C: 'baseline' },
+      'letter C missing': { A: 'original', B: 'baseline' },
+      'unknown version': { A: 'original', B: 'redesign', C: 'plain' },
+      'extra letter': { A: 'original', B: 'redesign', C: 'baseline', D: 'original' },
+      'a list': ['original', 'redesign', 'baseline'],
+      'a string': 'redesign',
+    };
+    for (const [name, versions] of Object.entries(bad)) {
+      const entry = { site: 'k', key: keyFile('k', { ...goodKey('k'), versions }), rankings: { r1: ['B', 'A', 'C'] } };
+      assert.throws(() => score({ sites: [entry] }, dir), (e) => e.exitCode === 2 && /versions/.test(e.message), name);
+    }
+  });
+
+  test('a key from another site cannot score', () => {
+    const entry = (key) => ({ site: 'a-school', key: keyFile('other', key), rankings: { r1: win } });
+    exits2(() => score({ sites: [entry(goodKey('b-school'))] }, dir), /site_slug "b-school".*"a-school"/);
+    exits2(() => score({ sites: [entry({ seed: 1, versions: goodKey('x').versions })] }, dir), /site_slug/);
+    assert.equal(score({ sites: [entry(goodKey('a-school'))] }, dir)[0].site, 'a-school');
+  });
+
+  test('a missing key file, bad JSON in the key or a key without versions exits 2', () => {
+    const entry = (key) => ({ site: 'k', key, rankings: { r1: win } });
+    exits2(() => score({ sites: [entry('nope.json')] }, dir), /key file not found.*nope\.json/);
+    exits2(() => score({ sites: [entry(keyFile('broken', '{'))] }, dir), /broken\.json is not valid JSON/);
+    exits2(() => score({ sites: [entry(keyFile('novers', { site_slug: 'k' }))] }, dir), /versions/);
+    exits2(() => score({ sites: [entry(keyFile('nullkey', 'null'))] }, dir), /versions/);
+    const file = join(dir, 'missing-key-results.json');
+    writeFileSync(file, JSON.stringify({ sites: [entry('nope.json')] }));
+    const r = cli(['--score', '--results', file]);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /key file not found/);
+  });
+
   test('the CLI scores a results file with a relative key path', () => {
     const file = join(dir, 'cli-results.json');
     writeFileSync(file, JSON.stringify({ sites: [site('cli', { r1: win, r2: win, r3: win, r4: beatOriginalOnly, r5: loseBoth })] }));
@@ -136,10 +216,13 @@ describe('blind test scorer', () => {
     assert.ok(row.pass_original && row.pass_baseline);
   });
 
-  test('the committed results.json is the empty shape and the scorer accepts it', () => {
-    assert.deepEqual(score(JSON.parse(readFileSync(RESULTS, 'utf8')), dirname(RESULTS)), []);
+  test('the committed results.json scores without error whatever it holds, and its keys are committed under keys/', () => {
+    const results = JSON.parse(readFileSync(RESULTS, 'utf8'));
+    assert.equal(score(results, dirname(RESULTS)).length, results.sites.length);
+    assert.ok(existsSync(join(dirname(RESULTS), 'keys')));
+    for (const entry of results.sites) assert.match(entry.key, /^keys\/[^/\\]+\.json$/);
     const r = cli(['--score']);
     assert.equal(r.status, 0);
-    assert.equal(r.stdout.trim(), '[]');
+    assert.equal(JSON.parse(r.stdout).length, results.sites.length);
   });
 });

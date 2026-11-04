@@ -1,7 +1,9 @@
 // Blind test kit and scorer. Three versions of the home page (original, redesign, plain Claude baseline) are
 // shuffled with a seeded PRNG, copied under neutral names and shown with no labels.
-// results.json: { "sites": [ { "site": "<name>", "key": "<path to that run's blindtest/key.json, relative to results.json>",
+// results.json: { "sites": [ { "site": "<site_slug>", "key": "keys/<site_slug>.json",
 //   "rankings": { "<reviewer>": ["B", "A", "C"] } } ] }  each ranking lists the letters best first.
+// "key" is relative to results.json. Once review of a site ends, copy that run's a-scout/blindtest/key.json to
+// blindtest/keys/<site_slug>.json (committed; runs/ is ignored) and point "key" at it. The key's site_slug must equal "site".
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
@@ -19,7 +21,7 @@ function mulberry32(seed) {
   };
 }
 
-// FNV-1a, so the same --seed orders each site differently.
+// FNV-1a, so the same --seed usually orders different sites differently (only 6 orders exist).
 const mix = (seed, slug) => [...slug].reduce((h, ch) => Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0, (2166136261 ^ seed) >>> 0);
 
 export function shuffle(items, seed) {
@@ -50,18 +52,31 @@ ${LETTERS.map((l) => `<h2>Version ${l}</h2>
 </body></html>
 `;
 
+const readJson = (path, ifMissing) => {
+  if (!existsSync(path)) throw fail(`${ifMissing}: ${path}`, 2);
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    throw fail(`${path} is not valid JSON`, 2);
+  }
+};
+
 // Returns { key } after writing runDir/a-scout/blindtest/kit/ and runDir/a-scout/blindtest/key.json.
+// Every input is checked before anything is written. Exit 2 on any bad input or a key made with another seed.
 export function buildKit({ runDir, seed }) {
   const run = resolve(runDir);
-  const read = (file) => {
-    const path = join(run, file);
-    if (!existsSync(path)) throw fail(`missing input file: ${path}`, 2);
-    return JSON.parse(readFileSync(path, 'utf8'));
+  const read = (file) => readJson(join(run, file), 'missing input file');
+  const slug = read('00-run.json')?.site_slug;
+  if (typeof slug !== 'string' || !slug) throw fail(`${join(run, '00-run.json')} has no site_slug`, 2);
+  const firstPage = (file, page) => {
+    const shots = page?.screenshots;
+    for (const view of ['desktop', 'mobile']) {
+      if (typeof shots?.[view] !== 'string' || !shots[view]) throw fail(`${file} has no ${view} screenshot for its first page`, 2);
+    }
+    return shots;
   };
-  const slug = read('00-run.json').site_slug;
-  const original = read('10-inventory.json').pages?.[0]?.screenshots;
-  const redesign = read('50-handoff.json').site?.pages?.[0]?.screenshots;
-  if (!original || !redesign) throw fail('inventory or handoff has no first page screenshots', 2);
+  const original = firstPage('10-inventory.json', read('10-inventory.json')?.pages?.[0]);
+  const redesign = firstPage('50-handoff.json', read('50-handoff.json')?.site?.pages?.[0]);
   const sources = {
     original: original,
     redesign: redesign,
@@ -72,8 +87,14 @@ export function buildKit({ runDir, seed }) {
       if (!existsSync(join(run, rel))) throw fail(`missing screenshot: ${join(run, rel)}`, 2);
     }
   }
-  const order = shuffle(Object.keys(sources), mix(seed, slug));
   const base = join(run, 'a-scout', 'blindtest');
+  const keyPath = join(base, 'key.json');
+  if (existsSync(keyPath)) {
+    let earlier;
+    try { earlier = JSON.parse(readFileSync(keyPath, 'utf8')).seed; } catch { /* unreadable key, handled below */ }
+    if (earlier !== seed) throw fail(`${keyPath} already exists with ${earlier === undefined ? 'no readable seed' : `seed ${earlier}`}, not seed ${seed}; answers already collected would be scored against changed letters`, 2);
+  }
+  const order = shuffle(Object.keys(sources), mix(seed, slug));
   const kit = join(base, 'kit');
   mkdirSync(kit, { recursive: true });
   const versions = {};
@@ -83,21 +104,36 @@ export function buildKit({ runDir, seed }) {
   });
   writeFileSync(join(kit, 'index.html'), html());
   const key = { seed, site_slug: slug, versions };
-  writeFileSync(join(base, 'key.json'), JSON.stringify(key, null, 2));
+  writeFileSync(keyPath, JSON.stringify(key, null, 2));
   return { key };
 }
+
+// A key is only usable if it maps exactly A, B and C to the three versions and was made for this site.
+function loadKey(entry, baseDir) {
+  const path = resolve(baseDir, entry.key);
+  const key = readJson(path, `${entry.site}: key file not found`);
+  const versions = key?.versions;
+  const plain = versions && typeof versions === 'object' && !Array.isArray(versions);
+  if (!plain || Object.keys(versions).sort().join() !== 'A,B,C' || Object.values(versions).sort().join() !== 'baseline,original,redesign') {
+    throw fail(`${entry.site}: ${path} needs "versions" mapping exactly A, B and C to original, redesign and baseline once each`, 2);
+  }
+  if (key.site_slug !== entry.site) throw fail(`${entry.site}: ${path} has site_slug ${JSON.stringify(key.site_slug)}, expected ${JSON.stringify(entry.site)}`, 2);
+  return versions;
+}
+
+const isRanking = (order) => Array.isArray(order) && order.length === LETTERS.length && LETTERS.every((l) => order.filter((x) => x === l).length === 1);
 
 // Per site: how many reviewers ranked the redesign above the original and above the baseline.
 // Pass needs exactly 5 reviewers: 4 of 5 over the original and 3 of 5 over the baseline.
 export function score(results, baseDir = '.') {
   return (results.sites ?? []).map((entry) => {
     if (typeof entry.key !== 'string') throw fail(`${entry.site}: key must be the path to a key.json`, 2);
-    const { versions } = JSON.parse(readFileSync(resolve(baseDir, entry.key), 'utf8'));
+    const versions = loadKey(entry, baseDir);
     const letter = (name) => Object.keys(versions).find((l) => versions[l] === name);
     const [r, o, b] = ['redesign', 'original', 'baseline'].map(letter);
     const rankings = Object.entries(entry.rankings ?? {});
     for (const [reviewer, order] of rankings) {
-      if (!Array.isArray(order) || [...order].sort().join('') !== 'ABC') throw fail(`${entry.site}: ${reviewer} must be a list ranking A, B and C once each`, 2);
+      if (!isRanking(order)) throw fail(`${entry.site}: ${reviewer} must be a list ranking A, B and C once each`, 2);
     }
     const prefers = (other) => rankings.filter(([, order]) => order.indexOf(r) < order.indexOf(other)).length;
     const overOriginal = prefers(o);
