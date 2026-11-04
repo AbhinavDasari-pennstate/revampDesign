@@ -1,0 +1,12 @@
+---
+interface Props { id: string; headline: string; subhead?: string | null; image?: { src: string; alt: string } | null }
+const { id, headline, subhead = null, image = null } = Astro.props;
+---
+<section id={id} class="reveal mx-auto max-w-[1200px] px-6 py-16" aria-labelledby={`${id}-h`}>
+  <h2 id={`${id}-h`} class="font-display text-accent" style="font-size: var(--t-2)">{headline}</h2>
+  {subhead && <p class="mt-2 text-muted" style="font-size: var(--t-1)">{subhead}</p>}
+  <div class="mt-6">
+    <slot />
+  </div>
+  {image && <img class="mt-6 w-full rounded-token" src={image.src} alt={image.alt} loading="lazy" />}
+</section>

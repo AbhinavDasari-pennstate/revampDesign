@@ -1,0 +1,43 @@
+---
+// Writes the direction's tokens (../../tokens.json) as CSS custom properties; global.css maps them into Tailwind.
+import tokens from '../../tokens.json';
+import '../styles/global.css';
+
+interface Props { title: string; lang?: string }
+const { title, lang = 'en' } = Astro.props;
+const { color, type, radius_px, spacing_base_px } = tokens;
+
+const family = (name: string, fallback: string) => `"${name}", ${fallback}`;
+const rootCss = `:root {
+  --c-bg: ${color.bg}; --c-surface: ${color.surface}; --c-text: ${color.text};
+  --c-muted: ${color.muted}; --c-accent: ${color.accent}; --c-on-accent: ${color.on_accent};
+  --f-display: ${family(type.display_family, 'system-ui, sans-serif')};
+  --f-body: ${family(type.body_family, 'system-ui, sans-serif')};
+  ${type.scale_px.map((px, i) => `--t-${i}: ${px}px;`).join(' ')}
+  --lh: ${type.line_height}; --radius: ${radius_px}px; --space: ${spacing_base_px}px;
+}`;
+
+const fontsHref = type.source === 'google'
+  ? `https://fonts.googleapis.com/css2?${[...new Set([type.display_family, type.body_family])]
+      .map((f) => `family=${f.replace(/ /g, '+')}:wght@400;700`).join('&')}&display=swap`
+  : null;
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {fontsHref && <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />}
+    {fontsHref && <link rel="stylesheet" href={fontsHref} />}
+    <style is:global set:html={rootCss}></style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <slot name="header" />
+    <main id="main">
+      <slot />
+    </main>
+    <slot name="footer" />
+  </body>
+</html>
