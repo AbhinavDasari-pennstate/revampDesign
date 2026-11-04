@@ -10,23 +10,27 @@ Give it the URL of a legacy website. A chain of focused agents researches what t
 
 ## Quick start
 
-Prerequisites: Node 24 (the version in `.nvmrc`). There is no root `package.json`; each lane installs its own dependencies with `npm ci` inside its own folder. Scout also needs the Playwright Chromium browser.
+Prerequisites: Node 24 (the version in `.nvmrc`). There is no root `package.json`; each lane installs its own dependencies with `npm ci` inside its own folder. Scout also needs the Playwright Chromium browser (on Linux use `npx playwright install --with-deps chromium`, which also installs the system libraries and needs root).
+
+The commands assume bash (macOS, Linux, WSL, Git Bash). PowerShell 7 accepts the same `&&` chains, but it has no subshells, so after a line in parentheses run `Set-Location` back to the repo root.
+
+Everything below is run from the repo root, and every line leaves you there: a line in parentheses runs in a subshell, so its `cd` does not carry to the next line.
 
 ```
-cd contracts && npm ci && node --test
-cd lanes/a-scout && npm ci && npx playwright install chromium
+(cd contracts && npm ci && node --test)
+(cd lanes/a-scout && npm ci && npx playwright install chromium)
 ```
 
-Everything below is run from the repo root. Stub mode needs no keys and no network: it copies the sample run into `runs/` and checks every file against its contract.
+Stub mode needs no keys and no network: it copies the sample run into `runs/` and checks every file against its contract.
 
 ```
 node contracts/validate.mjs --cross contracts/fixtures/sample
 node orchestrator/cli.mjs run --stub --fixture sample --out-dir runs
-cd orchestrator && node --test
-cd lanes/a-scout && node --test
+(cd orchestrator && node --test)
+(cd lanes/a-scout && node --test)
 ```
 
-Crawl one site with Scout. Copy a run file, set `source_url` in it to a site you have the owner's consent to crawl, then crawl and check the result. Output goes under `runs/`, which git ignores.
+Crawl one site with Scout. Copy the sample run file, then edit the copy: set `source_url` to a site you have the owner's consent to crawl, set `site_slug` to a short name for it, and set `consent.owner_ok` to `false` (or record real consent: `true` plus a note saying who agreed and when). The sample says `true` only because its site is fictional. Then crawl and check the result. Output goes under `runs/`, which git ignores.
 
 ```
 mkdir -p runs/my-crawl && cp contracts/fixtures/sample/00-run.json runs/my-crawl/00-run.json
@@ -40,12 +44,14 @@ The plain Claude baseline (a one-shot redesign to compare against) calls OpenRou
 node lanes/a-scout/cli.mjs baseline --run runs/my-crawl --in runs/my-crawl/10-inventory.json
 ```
 
-The blind test kit shuffles the original, the redesign and the baseline under neutral letters; the seed is mixed with the site slug, so each site gets its own order. The scorer reads `lanes/a-scout/blindtest/results.json` and prints the 4 of 5 and 3 of 5 results per site.
+The blind test kit shuffles the original, the redesign and the baseline under neutral letters; the seed is mixed with the site slug, so the order usually differs per site. It needs a finished run in `runs/<run id>/` (replace `<run id>` with that folder's name): `00-run.json`, `10-inventory.json`, `50-handoff.json` (written by the build stage, Lane C), the baseline screenshots `a-scout/baseline/screens/index-desktop.png` and `index-mobile.png`, and every screenshot those files name. It writes `a-scout/blindtest/kit/` and `key.json` into that folder. Hand reviewers only the `kit/` folder, never `key.json`. Running it again with another seed is refused, so collected answers cannot be scored against changed letters.
 
 ```
-node lanes/a-scout/cli.mjs blindtest --run runs/my-crawl --seed 7
+node lanes/a-scout/cli.mjs blindtest --run runs/<run id> --seed 7
 node lanes/a-scout/cli.mjs blindtest --score
 ```
+
+Write each reviewer's ranking, best first, into `lanes/a-scout/blindtest/results.json` as `{"sites": [{"site": "<site_slug>", "key": "keys/<site_slug>.json", "rankings": {"<reviewer>": ["B", "A", "C"]}}]}`, five reviewers per site. When a site's review ends, copy its `key.json` to `lanes/a-scout/blindtest/keys/<site_slug>.json` and commit it (`runs/` is git ignored), so anyone can score. The scorer prints the 4 of 5 and 3 of 5 results per site.
 
 ## The pipeline
 
