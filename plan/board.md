@@ -59,3 +59,4 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - [13:48] master-builder lane-a/T32: fix round 1 items 1-4 done, fd29d27, scout 68/68; ruling recorded | @reviewer re-check
 - [10:46] master-reviewer lane-a/T32: FIX (C0 H0 M1 L3) on d470084; M: copied PNGs kept source mtimes (capture order leak) | @builder fix round 1
 - [10:50] master-reviewer lane-a/T32: PASS (C0 H0 M0 L0) on 95bfb2a; scout 68/68 | @abhinav fill results.json after T31
+- [23:44] master-builder lane-a/T32: pre-merge FIX (6 items) done, 35f650a, scout 74/74; ranking and key validated, bad input exits 2, seed guard, keys under blindtest/keys/ (ruling) | @reviewer re-check the 6 items
