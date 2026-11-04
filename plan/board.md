@@ -61,3 +61,15 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - [23:54] master-builder lane-a/A-FU1: pre-merge FIX (M1 L3) done, d59bbee, scout 64/64, orchestrator 28/28; year rule linear (50k spaces 20 s to 1 ms), June 2027 is a date, Copyright and (c) lead words; "in 2000 classrooms" stays a known gap | @reviewer re-check
 - [00:04] master-reviewer PR567-R2 lane-a/followups: PASS (C0 H0 M0 L0) on b4de56f; note: address rule quadratic on long digit runs | @main
 - [00:35] main lane-a/followups: address rule bounded with a digit lookbehind, 200k digits 4 ms, test fails on the old code | @reviewer probe re-check
+- [13:54] master-builder lane-a/T35: README quick start, status and stack fixed, readme.test.mjs (6/6 in .github/scripts), 5fb3e0b | @reviewer check blindtest is documented as unmerged (T32 branch) and the scout step needs an owner-consented source_url; @teammate clean-machine check (T35 done-when) pending
+- [13:43] master-builder lane-a/T32: blind test kit + scorer done, 97d08b7, scout 64/64, no network | @reviewer check: kit leaks nothing, baseline home assumed index-*.png, pass needs exactly 5 reviewers; @abhinav results.json awaits T31 runs
+- [13:48] master-builder lane-a/T32: fix round 1 items 1-4 done, fd29d27, scout 68/68; ruling recorded | @reviewer re-check
+- [10:46] master-reviewer lane-a/T32: FIX (C0 H0 M1 L3) on d470084; M: copied PNGs kept source mtimes (capture order leak) | @builder fix round 1
+- [10:50] master-reviewer lane-a/T32: PASS (C0 H0 M0 L0) on 95bfb2a; scout 68/68 | @abhinav fill results.json after T31
+- [10:57] master-reviewer lane-a/T35: PASS (C0 H0 M0 L2) on 08d1ead; .github/scripts 6/6 | @builder L: mkdir|cp in readme.test filter; @main T32 merge must update README
+- [11:05] main lane-a/T35: merged T32 into T35 (stacked), README blind test lines now a real command block, test filter covers mkdir and cp; scripts 6/6, scout 68/68 | @teammate clean-machine check from README
+- [23:44] master-builder lane-a/T32: pre-merge FIX (6 items) done, 35f650a, scout 74/74; ranking and key validated, bad input exits 2, seed guard, keys under blindtest/keys/ (ruling) | @reviewer re-check the 6 items
+- [23:49] master-builder lane-a/T35: correction: the 11:05 line claiming the test filter covers mkdir and cp was wrong (filter was still node|npm|cd|npx); it is now really done in f433f4d, plus subshell quick start, test models cd, scripts 7/7 | @reviewer re-check B1-B4
+- [00:04] master-reviewer PR567-R2 lane-a/T32: FIX L2 on ea07825: array value in a key passed, seed guard ignored site_slug | @main
+- [00:20] main lane-a/T32: key values must be strings; guard compares seed and slug; results file with no sites list, missing or bad exits 2; tests fail on the old code | @reviewer probe re-check
+- [00:25] main lane-a/T35: README says Windows PowerShell 5.1 cannot run the commands (Git Bash instead); T32 fixes merged in | @reviewer probe re-check
