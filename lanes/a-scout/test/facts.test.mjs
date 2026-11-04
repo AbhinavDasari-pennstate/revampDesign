@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { schemaErrors } from '../../../contracts/validate.mjs';
 import { chromium } from 'playwright';
+import { extractBlocks } from '../scout/blocks.mjs';
 import { readBrand } from '../scout/brand.mjs';
 import { extractFacts } from '../scout/facts.mjs';
 import { serve } from './serve.mjs';
@@ -174,6 +175,21 @@ describe('extractFacts rules', () => {
       block('p01-b002', 'legal', 'Our Title IX coordinator is available.'),
     ), [['legal_notice', 'Nondiscrimination notice', 'p01-b001'], ['legal_notice', 'Title IX notice', 'p01-b002']]);
   });
+});
+
+test('the contact block rule is linear on a long word and still finds an email', async () => {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.setContent(`<html><body><p>${'a'.repeat(50000)}</p><p>Write to office@school.example today</p></body></html>`);
+    const start = performance.now();
+    const blocks = await extractBlocks(page, 'p01');
+    const ms = performance.now() - start;
+    assert.deepEqual(blocks.map((b) => b.kind), ['paragraph', 'contact']);
+    assert.ok(ms < 300, `took ${Math.round(ms)} ms`);
+  } finally {
+    await browser.close();
+  }
 });
 
 test('a page with no body does not lose the brand read', async () => {

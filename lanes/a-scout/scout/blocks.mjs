@@ -4,7 +4,7 @@ export async function extractBlocks(page, pageId) {
     const BLOCK = 'h1,h2,h3,h4,h5,h6,p,ul,ol,table,blockquote,nav,footer,address';
     const LAYOUT = 'table,h1,h2,h3,h4,h5,h6,p,ul,ol,blockquote';
     const LEGAL = /discriminat|title ix/i;
-    const CONTACT = /\(?\d{3}\)?[-. ]\d{3}[-. ]\d{4}|[\w.+-]+@[\w-]+\.[\w.-]+|,\s*[A-Z]{2}\s+\d{5}/;
+    const CONTACT = /\(?\d{3}\)?[-. ]\d{3}[-. ]\d{4}|(?<![\w.+-])[\w.+-]+@[\w-]+\.[\w.-]+|,\s*[A-Z]{2}\s+\d{5}/;
     const text = (el) => el.innerText.trim();
     const out = [];
     const add = (kind, level, body) => body && out.push({ kind, level, text: body });
