@@ -3,6 +3,6 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   output: 'static',
-  build: { format: 'file' },
+  build: { format: 'file', assetsPrefix: '.' },
   vite: { plugins: [tailwindcss()] },
 });

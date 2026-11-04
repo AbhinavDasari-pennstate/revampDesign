@@ -5,6 +5,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
+import { buildPages } from './builder/pages.mjs';
 import { fail, readContract, schemaErrors } from './lib/contracts.mjs';
 
 const NEEDS = ['run', 'inventory', 'storyboard', 'directions', 'selection'];
@@ -88,7 +89,7 @@ function writeHandoff(out, runDir, { doc, report }) {
   writeFileSync(out, JSON.stringify(doc, null, 2) + '\n');
 }
 
-function main(argv) {
+async function main(argv) {
   const { runDir, ins, out, maxUsd } = parse(argv);
   const docs = loadInputs(ins);
   const cap = Math.min(maxUsd ?? Infinity, docs.run.limits.lane_budget_usd.c);
@@ -96,11 +97,12 @@ function main(argv) {
     writeHandoff(out, runDir, budgetHandoff(docs, cap));
     throw fail(`budget cap hit: Lane C has ${cap} USD for this run`, 4);
   }
-  throw fail('inputs are valid, but the build itself is not written yet (T13 to T23)', 1);
+  const { siteDir } = await buildPages({ runDir, docs });
+  throw fail(`site built in ${siteDir}, but QA and the handoff are not written yet (T21 to T23)`, 1);
 }
 
 try {
-  main(process.argv.slice(2));
+  await main(process.argv.slice(2));
 } catch (e) {
   console.error(e.exitCode ? e.message : e.stack);
   process.exit(e.exitCode ?? 1);

@@ -1,0 +1,10 @@
+---
+interface Props { id: string; headline: string; subhead?: string | null; pattern?: string | null }
+const { id, headline, subhead = null, pattern = null } = Astro.props;
+---
+<section id={id} data-intent="hero" data-pattern={pattern} class="bg-accent text-on-accent">
+  <div class="wrap reveal py-20">
+    <h1 class="font-display font-bold" style="font-size: var(--t-3)">{headline}</h1>
+    {subhead && <p class="mt-4" style="font-size: var(--t-1)">{subhead}</p>}
+  </div>
+</section>
