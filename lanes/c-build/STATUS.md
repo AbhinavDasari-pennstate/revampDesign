@@ -1,2 +1,2 @@
 # Lane C status (one dated line per day: done task ids with SHAs, next, blockers)
-- 2026-11-04 T06 done (Astro template, build helper, test 1/1) on lane-c/T06-template, PR pending. Next: T12 CLI, then T13. Blockers: no c-build CI job yet (ask Abhinav); orchestrator must run on Node 24 for Astro 7.
+- 2026-11-04 T06 done (fea9afc, pushed on lane-c/T06-template, PR to open). T12 done on lane-c/T12-cli (CLI, input checks exit 2, budget exit 4, tests 12/12); hold its merge until T23 so the orchestrator keeps stubbing the build stage. Next: T13. Blockers: no c-build CI job yet (ask Abhinav); orchestrator must run on Node 24 for Astro 7.
