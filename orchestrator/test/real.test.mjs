@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crossErrors, FILES } from '../../contracts/validate.mjs';
+import { runReal } from '../lib/run.mjs';
 
 const cli = fileURLToPath(new URL('../cli.mjs', import.meta.url));
 const sample = fileURLToPath(new URL('../../contracts/fixtures/sample', import.meta.url));
@@ -21,6 +22,14 @@ const [stage, run, out] = [a[0], arg('--run'), arg('--out')];
 fs.appendFileSync(${JSON.stringify(calls)}, JSON.stringify(a.map((x) => (x === run ? '<R>' : x.startsWith(run) ? path.relative(run, x) : x))) + '\\n');
 const mode = ${JSON.stringify(behavior)}[stage] ?? 'ok';
 if (mode.startsWith('exit:')) process.exit(Number(mode.slice(5)));
+if (mode === 'notjson') {
+  fs.writeFileSync(out, '{"contract": "inventory", ');
+  process.exit(0);
+}
+if (mode === 'null') {
+  fs.writeFileSync(out, 'null');
+  process.exit(0);
+}
 if (mode === 'invalid') {
   fs.writeFileSync(out, '{"contract":"inventory","version":"1.0.0"}');
   process.exit(0);
@@ -297,6 +306,66 @@ test('a bad tier exits 2', () => {
     const r = s.run('--tier', 'Z');
     assert.equal(r.status, 2);
     assert.deepEqual(s.called(), []);
+  } finally {
+    cleanup(s);
+  }
+});
+
+test('a run that stops on a failed stage still writes orchestrator.log with the failure line', () => {
+  const s = setup({ behavior: { story: 'exit:3' } });
+  try {
+    assert.equal(s.run().status, 3);
+    const log = readFileSync(join(s.runDir(), 'orchestrator.log'), 'utf8');
+    assert.match(log, /^ok scout 10-inventory.json$/m);
+    assert.match(log, /stage story failed with exit 3/);
+    assert.match(log, /Nirmal/);
+  } finally {
+    cleanup(s);
+  }
+});
+
+test('a stage output that is not valid JSON exits 2 with stage, owner and path, and is logged', () => {
+  const s = setup({ behavior: { scout: 'notjson' } });
+  try {
+    const r = s.run();
+    assert.equal(r.status, 2, r.stderr);
+    assert.match(r.stderr, /scout/);
+    assert.match(r.stderr, /Abhinav/);
+    assert.match(r.stderr, /10-inventory.json/);
+    assert.match(readFileSync(join(s.runDir(), 'orchestrator.log'), 'utf8'), /not valid JSON/);
+  } finally {
+    cleanup(s);
+  }
+});
+
+test('a stage output of JSON null exits 2 and names the stage', () => {
+  const s = setup({ behavior: { scout: 'null' } });
+  try {
+    const r = s.run();
+    assert.equal(r.status, 2, r.stderr);
+    assert.match(r.stderr, /stage scout/);
+  } finally {
+    cleanup(s);
+  }
+});
+
+test('a retry in the same minute gets a fresh run id and never overwrites the first run folder', () => {
+  const s = setup();
+  try {
+    const now = new Date('2026-11-03T20:15:30Z');
+    const go = () => runReal({ url: 'https://school.example/', tier: 'B', outDir: join(s.root, 'runs'), lanesRoot: join(s.root, 'lanes'), fixture: sample, now });
+    const first = go();
+    const marker = join(first.runDir, 'marker.txt');
+    writeFileSync(marker, 'keep');
+    const second = go();
+    const third = go();
+    assert.deepEqual([first.runId, second.runId, third.runId], ['20261103-2015-school-example', '20261103-2015-school-example-2', '20261103-2015-school-example-3']);
+    assert.equal(readFileSync(marker, 'utf8'), 'keep');
+    for (const r of [second, third]) {
+      assert.match(r.runId, /^[a-z0-9-]+$/);
+      assert.equal(JSON.parse(readFileSync(join(r.runDir, FILES.run), 'utf8')).run_id, r.runId);
+      assert.deepEqual(crossErrors(r.runDir), []);
+    }
   } finally {
     cleanup(s);
   }

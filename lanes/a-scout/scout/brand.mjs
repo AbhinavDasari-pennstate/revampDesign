@@ -7,7 +7,18 @@ const hex = (css) => {
 
 export async function readBrand(page, images) {
   const raw = await page.evaluate(() => {
-    const style = (el) => (el ? getComputedStyle(el) : null);
+    // Computed colours can be oklch(), oklab() or color(srgb ...): let a 1x1 canvas turn them into rgb. An unparsable one stays transparent.
+    const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+    const rgb = (c) => {
+      if (!c || /^rgba?\(/.test(c)) return c;
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+      ctx.fillStyle = c;
+      ctx.fillRect(0, 0, 1, 1);
+      const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+      return a === 255 ? `rgb(${r}, ${g}, ${b})` : a === 0 ? 'rgba(0, 0, 0, 0)' : `rgba(${r}, ${g}, ${b}, ${+(a / 255).toFixed(3)})`;
+    };
+    const style = (el) => (el ? new Proxy(getComputedStyle(el), { get: (s, k) => (/[cC]olor$/.test(k) ? rgb(s[k]) : s[k]) }) : null);
     const [body, h1, a, nav] = [document.body, ...['h1', 'a[href]', 'nav'].map((s) => document.querySelector(s))];
     const logo = [...document.images].find((i) => i.closest('header') || /logo|crest|seal/i.test(`${i.src} ${i.alt}`));
     // The school colour is usually a header background: header, nav, then the first element near the page top that has one.
