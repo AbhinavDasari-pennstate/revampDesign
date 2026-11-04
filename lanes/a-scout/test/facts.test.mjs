@@ -112,7 +112,29 @@ describe('extractFacts rules', () => {
       block('p01-b002', 'paragraph', '© 2025 Maple Grove Schools'),
       block('p01-b003', 'paragraph', 'Founded:\n1962'),
       block('p01-b004', 'paragraph', 'Graduation is June 2027.'),
-    ), [['date', '2026', 'p01-b001'], ['date', '2025', 'p01-b002'], ['date', '1962', 'p01-b003']]);
+    ), [['date', '2026', 'p01-b001'], ['date', '2025', 'p01-b002'], ['date', '1962', 'p01-b003'], ['date', 'June 2027', 'p01-b004']]);
+  });
+
+  test('"Copyright 2025", "(c) 2025" and "(c)2025" give the year', () => {
+    assert.deepEqual(facts(
+      block('p01-b001', 'paragraph', 'Copyright 2025 Maple Grove Schools'),
+      block('p01-b002', 'paragraph', '© Copyright 2024'),
+      block('p01-b003', 'paragraph', '(c) 2023 Maple Grove'),
+      block('p01-b004', 'paragraph', '(C)2022 Maple Grove'),
+    ), [['date', '2025', 'p01-b001'], ['date', '2024', 'p01-b002'], ['date', '2023', 'p01-b003'], ['date', '2022', 'p01-b004']]);
+  });
+
+  test('a month with a year is one date; a year glued to letters is not a date', () => {
+    assert.deepEqual(facts(
+      block('p01-b001', 'paragraph', 'Graduation is June 2027.'),
+      block('p01-b002', 'paragraph', 'Applications close Dec. 2026 and reopen in March 5.'),
+    ), [['date', 'June 2027', 'p01-b001'], ['date', 'Dec. 2026', 'p01-b002'], ['date', 'March 5', 'p01-b002']]);
+    assert.deepEqual(facts(block('p01-b001', 'paragraph', 'Take in 2000mg daily, or June 2000mg.')), []);
+  });
+
+  test('a day range does not eat the first digits of a following year', () => {
+    assert.deepEqual(facts(block('p01-b001', 'paragraph', 'Open June 5 to 2027 only.')), [['date', 'June 5', 'p01-b001']]);
+    assert.deepEqual(facts(block('p01-b001', 'paragraph', 'Open June 5 to 9 and May 1-3, 2027.')), [['date', 'June 5 to 9', 'p01-b001'], ['date', 'May 1-3, 2027', 'p01-b001']]);
   });
 
   test('the email rule is linear: 50,000 characters with no @ finish in under 200 ms', () => {
@@ -122,6 +144,15 @@ describe('extractFacts rules', () => {
       assert.ok(performance.now() - start < 200, `took ${Math.round(performance.now() - start)} ms`);
     }
     assert.deepEqual(facts(block('p01-b001', 'paragraph', 'Write to a.b+c@school.example.org today')), [['email', 'a.b+c@school.example.org', 'p01-b001']]);
+  });
+
+  test('the year rule is linear: 50,000 spaces or newlines finish in under 200 ms', () => {
+    for (const [text, expected] of [[' '.repeat(50000), []], ['\n'.repeat(50000), []], ['x'.repeat(50000) + ' 2020', []],
+      ['in' + ' '.repeat(50000) + '2020', [['date', '2020', 'p01-b001']]]]) {
+      const start = performance.now();
+      assert.deepEqual(facts(block('p01-b001', 'paragraph', text)), expected);
+      assert.ok(performance.now() - start < 200, `took ${Math.round(performance.now() - start)} ms`);
+    }
   });
 
   test('legal notices are labelled by keyword', () => {
