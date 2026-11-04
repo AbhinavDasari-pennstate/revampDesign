@@ -6,7 +6,7 @@ Every Lane C task and every change made in `lanes/c-build/`. Task specs live in 
 
 | Task | Builds | Depends on | Status | Branch | PR | Commits |
 |---|---|---|---|---|---|---|
-| T06 | Astro base template with token slots | none | done, PR pending | lane-c/T06-template | | see change log |
+| T06 | Astro base template with token slots | none | done, PR pending | lane-c/T06-template | | fea9afc |
 | T12 | CLI skeleton and input validation (exit codes 2 and 4) | T06 | not started | lane-c/T12-cli | | |
 | T13 | Pages from the storyboard, direction tokens, nav order | T12 | not started | lane-c/T13-pages | | |
 | T15 | Verbatim content with `data-src`, images, form fallback | T13 | not started | lane-c/T15-content | | |
@@ -40,4 +40,4 @@ Every Lane C task and every change made in `lanes/c-build/`. Task specs live in 
 
 ## Change log
 
-- 2026-11-04 T06 (lane-c/T06-template): added `package.json`, `package-lock.json`, `.gitignore`, `template/` (astro.config.mjs, tokens.json from sample direction d2, Base layout writing tokens as CSS properties, global.css mapping them into Tailwind with a reduced-motion guard, Section component, index page), `lib/astro-build.mjs`, `test/template.test.mjs`, this file. Test written first and failed (no build helper), then passed. `node --test`: 1/1 pass. No em or en dashes in the lane.
+- 2026-11-04 T06 (lane-c/T06-template): added `package.json`, `package-lock.json`, `.gitignore`, `template/` (astro.config.mjs, tokens.json from sample direction d2, Base layout writing tokens as CSS properties, global.css mapping them into Tailwind with a reduced-motion guard, Section component, index page), `lib/astro-build.mjs`, `test/template.test.mjs`, this file. Test written first and failed (no build helper), then passed. `node --test`: 1/1 pass. No em or en dashes in the lane. Commit fea9afc; lane guard ok (13 files).
