@@ -32,8 +32,8 @@ const startsWithHero = page.sections[0]?.intent === 'hero';
     </div>
   )}
   {page.sections.map((s) => s.intent === 'hero'
-    ? <Hero id={s.id} headline={s.headline} subhead={s.subhead} pattern={s.pattern} />
-    : <Section id={s.id} intent={s.intent} pattern={s.pattern} headline={s.headline} subhead={s.subhead} />)}
+    ? <Hero id={s.id} headline={s.headline} subhead={s.subhead} pattern={s.pattern} blocks={s.blocks} images={s.images} />
+    : <Section id={s.id} intent={s.intent} pattern={s.pattern} headline={s.headline} subhead={s.subhead} blocks={s.blocks} images={s.images} forms={s.forms} />)}
 
   <footer slot="footer" class="bg-surface mt-16">
     <p class="wrap py-8 text-muted">{site.name}</p>

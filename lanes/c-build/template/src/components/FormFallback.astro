@@ -1,0 +1,18 @@
+---
+// Stands in for a form that posted to the old site's server, which a static site cannot receive.
+interface Props { id: string; phone: string | null; email: string | null }
+const { id, phone, email } = Astro.props;
+const tel = phone && `tel:${phone.replace(/[^\d+]/g, '')}`;
+---
+<div data-src={id} data-fallback="form" class="mt-6 rounded-token bg-surface p-6">
+  <p class="font-display font-bold">Send us a message</p>
+  {phone || email ? (
+    <p class="mt-2">
+      {phone && <>Call <a class="underline" href={tel}>{phone}</a></>}
+      {phone && email && ' or '}
+      {email && <>{phone ? 'email' : 'Email'} <a class="underline" href={`mailto:${email}`}>{email}</a></>}.
+    </p>
+  ) : (
+    <p class="mt-2">Please contact the office.</p>
+  )}
+</div>

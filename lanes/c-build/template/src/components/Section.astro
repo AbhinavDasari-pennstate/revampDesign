@@ -1,19 +1,28 @@
 ---
+import Blocks from './Blocks.astro';
+import FormFallback from './FormFallback.astro';
+
+interface Image { id: string; src: string; alt: string; width: number | null; height: number | null }
 interface Props {
   id: string;
   intent: string;
   pattern?: string | null;
   headline: string;
   subhead?: string | null;
-  image?: { src: string; alt: string } | null;
+  blocks?: { id: string; kind: string; text: string }[];
+  images?: Image[];
+  forms?: { id: string; phone: string | null; email: string | null }[];
 }
-const { id, intent, pattern = null, headline, subhead = null, image = null } = Astro.props;
+const { id, intent, pattern = null, headline, subhead = null, blocks = [], images = [], forms = [] } = Astro.props;
 ---
 <section id={id} data-intent={intent} data-pattern={pattern} class="wrap reveal py-16" aria-labelledby={`${id}-h`}>
   <h2 id={`${id}-h`} class="font-display text-accent" style="font-size: var(--t-2)">{headline}</h2>
   {subhead && <p class="mt-2 text-muted" style="font-size: var(--t-1)">{subhead}</p>}
-  <div class="mt-6">
-    <slot />
+  <div class="mt-2 max-w-[70ch]">
+    <Blocks blocks={blocks} />
+    {forms.map((f) => <FormFallback id={f.id} phone={f.phone} email={f.email} />)}
   </div>
-  {image && <img class="mt-6 w-full rounded-token" src={image.src} alt={image.alt} loading="lazy" />}
+  {images.map((img) => (
+    <img data-src={img.id} class="mt-6 rounded-token" src={img.src} alt={img.alt} width={img.width} height={img.height} loading="lazy" />
+  ))}
 </section>

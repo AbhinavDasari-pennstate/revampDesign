@@ -1,0 +1,20 @@
+---
+// The old site's blocks, word for word. Each element carries data-src with its inventory block id,
+// which the fact diff and the fidelity report use to trace text back to its source.
+interface Block { id: string; kind: string; text: string }
+interface Props { blocks: Block[] }
+const { blocks } = Astro.props;
+const lines = (text: string) => text.split('\n').map((l) => l.trim()).filter(Boolean);
+---
+{blocks.map((b) => {
+  if (b.kind === 'list') {
+    return <ul data-src={b.id} class="mt-4 list-disc space-y-1 pl-6">{lines(b.text).map((l) => <li>{l}</li>)}</ul>;
+  }
+  if (b.kind === 'heading') {
+    return <h3 data-src={b.id} class="font-display mt-6" style="font-size: var(--t-1)">{b.text}</h3>;
+  }
+  if (b.kind === 'quote') {
+    return <blockquote data-src={b.id} class="mt-4 border-l-4 border-accent pl-4 italic">{b.text}</blockquote>;
+  }
+  return <p data-src={b.id} class="mt-4">{lines(b.text).map((l, i) => <>{i > 0 && <br />}{l}</>)}</p>;
+})}
