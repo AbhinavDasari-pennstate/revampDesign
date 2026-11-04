@@ -7,7 +7,7 @@ import { writeSelection } from './select.mjs';
 const COPIED = ['inventory', 'storyboard', 'directions', 'verdict', 'handoff'];
 const FOLDERS = ['a-scout', 'b-design', 'c-build'];
 // stage name, contract file it produces, lane folder that owns it, contract files it reads
-const STAGES = [
+export const STAGES = [
   ['scout', 'inventory', 'a-scout', ['run']],
   ['story', 'storyboard', 'b-design', ['run', 'inventory']],
   ['art', 'directions', 'b-design', ['run', 'inventory', 'storyboard']],
@@ -15,7 +15,7 @@ const STAGES = [
   ['select', 'selection'],
   ['build', 'handoff', 'c-build', ['run', 'inventory', 'storyboard', 'directions', 'selection']],
 ];
-const OWNERS = { 'a-scout': 'Abhinav', 'b-design': 'Nirmal', 'c-build': 'Aditya' };
+export const OWNERS = { 'a-scout': 'Abhinav', 'b-design': 'Nirmal', 'c-build': 'Aditya' };
 const EXIT_MEANING = { 1: 'crash', 2: 'input failed its schema', 3: 'quality gate failed', 4: 'budget cap hit' };
 
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
