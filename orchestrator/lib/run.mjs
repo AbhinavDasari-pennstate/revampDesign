@@ -66,15 +66,36 @@ export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNo
   const template = readJson(join(fixture, FILES.run));
   const consent = consentNote?.trim() ? { owner_ok: true, note: consentNote.trim() } : { owner_ok: false, note: 'No owner consent recorded for this run.' };
   const siteSlug = host.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  const runId = `${stampOf(now)}-${siteSlug}`;
+  // A retry in the same minute must not reuse a run folder: take the next free suffix (-2, -3, ...).
+  mkdirSync(outDir, { recursive: true });
+  let runId = `${stampOf(now)}-${siteSlug}`;
+  for (let n = 2; ; n++) {
+    try {
+      mkdirSync(join(outDir, runId));
+      break;
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+      runId = `${stampOf(now)}-${siteSlug}-${n}`;
+    }
+  }
   const runDir = join(outDir, runId);
-  mkdirSync(runDir, { recursive: true });
+  const lines = [];
+  // Every exit path leaves the log so far, failure line included.
+  try {
+    return executeReal({ url, tier, runDir, runId, template, consent, siteSlug, lanesRoot, fixture, pick, now, lines });
+  } catch (e) {
+    lines.push(`FAILED ${e.message}`);
+    writeFileSync(join(runDir, 'orchestrator.log'), lines.join('\n') + '\n');
+    throw e;
+  }
+}
+
+function executeReal({ url, tier, runDir, runId, template, consent, siteSlug, lanesRoot, fixture, pick, now, lines }) {
   const runDoc = { ...template, run_id: runId, consent, source_url: url, site_slug: siteSlug, tier, created_at: now.toISOString() };
   writeJson(join(runDir, FILES.run), runDoc);
   const runErrors = schemaErrors(runDoc);
   if (runErrors.length) throw fail(`${FILES.run} failed its schema:\n${runErrors.join('\n')}`, 2);
 
-  const lines = [];
   let stubbed = 0;
   for (const [stage, key, lane, inputs] of STAGES) {
     const out = join(runDir, FILES[key]);
@@ -99,8 +120,13 @@ export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNo
       lines.push(`STUB ${stage} (lane not present)`);
     }
     if (!existsSync(out)) throw fail(`stage ${stage} wrote no ${FILES[key]}`, 2);
-    const doc = readJson(out);
-    if (doc.contract !== key) throw fail(`stage ${stage} wrote ${FILES[key]} declaring contract ${doc.contract}, expected ${key}`, 2);
+    let doc;
+    try {
+      doc = readJson(out);
+    } catch {
+      throw fail(`stage ${stage} wrote ${out} which is not valid JSON. Owner: ${OWNERS[lane] ?? 'Abhinav'} (${lane ?? 'orchestrator'})`, 2);
+    }
+    if (doc?.contract !== key) throw fail(`stage ${stage} wrote ${FILES[key]} declaring contract ${doc?.contract}, expected ${key}`, 2);
     const errors = schemaErrors(doc);
     if (errors.length) throw fail(`${FILES[key]} failed its schema:\n${errors.join('\n')}`, 2);
     lines.push(`ok ${stage} ${FILES[key]}`);
