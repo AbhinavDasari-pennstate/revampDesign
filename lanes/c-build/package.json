@@ -1,0 +1,13 @@
+{
+  "name": "lane-c-build",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "astro": "7.4.1",
+    "tailwindcss": "4.3.3"
+  }
+}
