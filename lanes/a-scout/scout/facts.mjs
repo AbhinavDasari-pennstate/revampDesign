@@ -8,7 +8,7 @@ const STREET = 'Street|St|Road|Rd|Avenue|Ave|Drive|Dr|Lane|Ln|Boulevard|Blvd|Way
 const RULES = [
   ['email', /(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, (m) => m[0]],
   ['phone', /(?<!\d)\(?\d{3}\)?[-. ]\d{3}[-. ]\d{4}(?!\d)/g, (m) => m[0]],
-  ['address', new RegExp(String.raw`\d+ (?:[A-Za-z]+ )*?(?:${STREET})\b\.?[ ]*[\n,][ ]*([A-Za-z .]+),[ ]*([A-Z]{2}) (\d{5})`, 'g'),
+  ['address', new RegExp(String.raw`(?<!\d)\d+ (?:[A-Za-z]+ )*?(?:${STREET})\b\.?[ ]*[\n,][ ]*([A-Za-z .]+),[ ]*([A-Z]{2}) (\d{5})`, 'g'),
     (m) => `${m[0].split(/[\n,]/)[0].trim()}, ${m[1].trim()}, ${m[2]} ${m[3]}`],
   ['time', new RegExp(String.raw`(?:${DAY}(?: to | through |-)${DAY},? )?${CLOCK} (?:to|-) ${CLOCK}`, 'gi'), (m) => m[0]],
   ['date', new RegExp(String.raw`\b(?:${MONTH}) (?:\d{1,2}(?!\d)(?:(?:,? and | to |-)\d{1,2}(?!\d))?(?:, (?:19|20)\d\d)?|(?:19|20)\d\d(?![\w-]))`, 'g'), (m) => m[0]],

@@ -59,3 +59,5 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - [10:37] master-reviewer lane-a/A-FU1: PASS (C0 H0 M0 L2) on 03026df; orchestrator 27/27, scout 59/59, contracts 14/14; email fuzz 200k 0 diffs, same-minute retry -2 verified | @main optional L: year lead words, JSON null exits 1, 'June 2027' reads as 'June 20'
 - [10:50] main lane-a/A-FU1: applied both L items plus the June 2027 day bound myself, each with a test; orchestrator 28/28, scout 60/60; A-FU1 done
 - [23:54] master-builder lane-a/A-FU1: pre-merge FIX (M1 L3) done, d59bbee, scout 64/64, orchestrator 28/28; year rule linear (50k spaces 20 s to 1 ms), June 2027 is a date, Copyright and (c) lead words; "in 2000 classrooms" stays a known gap | @reviewer re-check
+- [00:04] master-reviewer PR567-R2 lane-a/followups: PASS (C0 H0 M0 L0) on b4de56f; note: address rule quadratic on long digit runs | @main
+- [00:35] main lane-a/followups: address rule bounded with a digit lookbehind, 200k digits 4 ms, test fails on the old code | @reviewer probe re-check
