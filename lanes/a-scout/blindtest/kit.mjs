@@ -52,7 +52,7 @@ ${LETTERS.map((l) => `<h2>Version ${l}</h2>
 </body></html>
 `;
 
-const readJson = (path, ifMissing) => {
+export const readJson = (path, ifMissing) => {
   if (!existsSync(path)) throw fail(`${ifMissing}: ${path}`, 2);
   try {
     return JSON.parse(readFileSync(path, 'utf8'));
@@ -91,8 +91,8 @@ export function buildKit({ runDir, seed }) {
   const keyPath = join(base, 'key.json');
   if (existsSync(keyPath)) {
     let earlier;
-    try { earlier = JSON.parse(readFileSync(keyPath, 'utf8')).seed; } catch { /* unreadable key, handled below */ }
-    if (earlier !== seed) throw fail(`${keyPath} already exists with ${earlier === undefined ? 'no readable seed' : `seed ${earlier}`}, not seed ${seed}; answers already collected would be scored against changed letters`, 2);
+    try { earlier = JSON.parse(readFileSync(keyPath, 'utf8')); } catch { /* unreadable key, refused below */ }
+    if (earlier?.seed !== seed || earlier?.site_slug !== slug) throw fail(`${keyPath} already exists with seed ${earlier?.seed} for site ${earlier?.site_slug}, not seed ${seed} for site ${slug}; answers already collected would be scored against changed letters (delete the key only if no answers were collected)`, 2);
   }
   const order = shuffle(Object.keys(sources), mix(seed, slug));
   const kit = join(base, 'kit');
@@ -114,7 +114,7 @@ function loadKey(entry, baseDir) {
   const key = readJson(path, `${entry.site}: key file not found`);
   const versions = key?.versions;
   const plain = versions && typeof versions === 'object' && !Array.isArray(versions);
-  if (!plain || Object.keys(versions).sort().join() !== 'A,B,C' || Object.values(versions).sort().join() !== 'baseline,original,redesign') {
+  if (!plain || Object.values(versions).some((v) => typeof v !== 'string') || Object.keys(versions).sort().join() !== 'A,B,C' || Object.values(versions).sort().join() !== 'baseline,original,redesign') {
     throw fail(`${entry.site}: ${path} needs "versions" mapping exactly A, B and C to original, redesign and baseline once each`, 2);
   }
   if (key.site_slug !== entry.site) throw fail(`${entry.site}: ${path} has site_slug ${JSON.stringify(key.site_slug)}, expected ${JSON.stringify(entry.site)}`, 2);
@@ -126,7 +126,8 @@ const isRanking = (order) => Array.isArray(order) && order.length === LETTERS.le
 // Per site: how many reviewers ranked the redesign above the original and above the baseline.
 // Pass needs exactly 5 reviewers: 4 of 5 over the original and 3 of 5 over the baseline.
 export function score(results, baseDir = '.') {
-  return (results.sites ?? []).map((entry) => {
+  if (!Array.isArray(results?.sites)) throw fail('results file needs a "sites" list', 2);
+  return results.sites.map((entry) => {
     if (typeof entry.key !== 'string') throw fail(`${entry.site}: key must be the path to a key.json`, 2);
     const versions = loadKey(entry, baseDir);
     const letter = (name) => Object.keys(versions).find((l) => versions[l] === name);

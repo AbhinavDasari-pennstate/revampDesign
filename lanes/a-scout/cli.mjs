@@ -10,7 +10,7 @@ import { join, resolve } from 'node:path';
 import { schemaErrors } from '../../contracts/validate.mjs';
 import { crawl } from './scout/crawl.mjs';
 import { extractFacts } from './scout/facts.mjs';
-import { buildKit, score } from './blindtest/kit.mjs';
+import { buildKit, readJson, score } from './blindtest/kit.mjs';
 import { MODEL, oneshot, openRouterComplete } from './baseline/oneshot.mjs';
 
 const fail = (message, exitCode) => Object.assign(new Error(message), { exitCode });
@@ -24,7 +24,7 @@ try {
   if (positionals[0] === 'blindtest') {
     if (values.score) {
       const file = resolve(values.results ?? join(import.meta.dirname, 'blindtest', 'results.json'));
-      console.log(JSON.stringify(score(JSON.parse(readFileSync(file, 'utf8')), join(file, '..')), null, 2));
+      console.log(JSON.stringify(score(readJson(file, 'results file not found'), join(file, '..')), null, 2));
       process.exit(0);
     }
     if (!values.run || !/^\d+$/.test(values.seed ?? '')) throw fail('usage: node lanes/a-scout/cli.mjs blindtest --run <run dir> --seed <integer>', 1);

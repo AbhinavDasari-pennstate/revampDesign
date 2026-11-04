@@ -60,3 +60,5 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - [10:46] master-reviewer lane-a/T32: FIX (C0 H0 M1 L3) on d470084; M: copied PNGs kept source mtimes (capture order leak) | @builder fix round 1
 - [10:50] master-reviewer lane-a/T32: PASS (C0 H0 M0 L0) on 95bfb2a; scout 68/68 | @abhinav fill results.json after T31
 - [23:44] master-builder lane-a/T32: pre-merge FIX (6 items) done, 35f650a, scout 74/74; ranking and key validated, bad input exits 2, seed guard, keys under blindtest/keys/ (ruling) | @reviewer re-check the 6 items
+- [00:04] master-reviewer PR567-R2 lane-a/T32: FIX L2 on ea07825: array value in a key passed, seed guard ignored site_slug | @main
+- [00:20] main lane-a/T32: key values must be strings; guard compares seed and slug; results file with no sites list, missing or bad exits 2; tests fail on the old code | @reviewer probe re-check

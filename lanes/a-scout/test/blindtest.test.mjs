@@ -69,6 +69,16 @@ describe('blind test kit', () => {
     assert.equal(cli(['--run', run, '--seed', '5']).status, 0);
   });
 
+  test('a run whose slug changed after the key was made is refused, so letters cannot move', () => {
+    const run = newRun('oak-school');
+    const { key } = buildKit({ runDir: run, seed: 7 });
+    writeFileSync(join(run, '00-run.json'), JSON.stringify({ site_slug: 'other-school' }));
+    const r = cli(['--run', run, '--seed', '7']);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /already exists/);
+    assert.deepEqual(JSON.parse(readFileSync(join(run, 'a-scout/blindtest/key.json'), 'utf8')), key);
+  });
+
   test('kit file mtimes do not follow the source mtimes', () => {
     const run = newRun();
     SHOTS.forEach((rel, i) => utimesSync(join(run, rel), new Date(2020, 0, 1 + i * 100), new Date(2020, 0, 1 + i * 100)));
@@ -163,6 +173,18 @@ describe('blind test scorer', () => {
     const r = cli(['--score', '--results', file]);
     assert.equal(r.status, 2);
     assert.match(r.stderr, /list ranking/);
+  });
+
+  test('a key value that is not a string, and a results file with no sites list, exit 2', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'blind-'));
+    writeFileSync(join(dir, 'k.json'), JSON.stringify({ seed: 1, site_slug: 's', versions: { A: ['redesign'], B: 'original', C: 'baseline' } }));
+    const rankings = Object.fromEntries(['r1', 'r2', 'r3', 'r4', 'r5'].map((r) => [r, ['A', 'B', 'C']]));
+    assert.throws(() => score({ sites: [{ site: 's', key: 'k.json', rankings }] }, dir), (e) => e.exitCode === 2);
+    for (const body of ['null', '{"sitez":[]}', '{"sites":{}}', 'not json']) {
+      writeFileSync(join(dir, 'r.json'), body);
+      assert.equal(cli(['--score', '--results', join(dir, 'r.json')]).status, 2, body);
+    }
+    assert.equal(cli(['--score', '--results', join(dir, 'gone.json')]).status, 2);
   });
 
   test('a ranking is exactly three single letters A, B and C once each', () => {
