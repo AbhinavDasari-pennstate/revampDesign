@@ -54,7 +54,8 @@ export async function buildPages({ runDir, docs }) {
     const siteDir = join(runDir, 'c-build', 'site');
     rmSync(siteDir, { recursive: true, force: true });
     cpSync(workDir, siteDir, { recursive: true, filter: (src) => !['node_modules', '.astro'].includes(basename(src)) });
-    return { siteDir, workDir, pages: site.pages.map((p) => ({ slug: p.slug, path: `c-build/site/dist/${p.file}.html` })) };
+    const pages = site.pages.map((p) => ({ slug: p.slug, title: p.title, file: p.file, path: `c-build/site/dist/${p.file}.html` }));
+    return { siteDir, workDir, pages };
   } finally {
     rmSync(workDir, { recursive: true, force: true });
   }

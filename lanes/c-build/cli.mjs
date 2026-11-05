@@ -6,6 +6,11 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { buildPages } from './builder/pages.mjs';
+import { noDashes, noDashesDeep } from './builder/text.mjs';
+import { fidelity } from './handoff/fidelity.mjs';
+import { ownerReport } from './handoff/report.mjs';
+import { makeRepo } from './handoff/repo.mjs';
+import { takeScreens } from './handoff/screens.mjs';
 import { fail, readContract, schemaErrors } from './lib/contracts.mjs';
 import { checkA11y } from './qa/a11y.mjs';
 import { factDiff } from './qa/factdiff.mjs';
@@ -108,8 +113,39 @@ async function main(argv) {
   const links = await checkLinks({ dist, pages: files });
   const facts = factDiff({ dist, pages: files, inventory: docs.inventory, storyboard: docs.storyboard });
   const failures = [...a11y.failures, ...links.failures, ...facts.failures];
-  if (failures.length) throw fail(`quality gates failed:\n  ${failures.join('\n  ')}`, 3);
-  throw fail(`site built in ${siteDir} and passed every gate, but the handoff is not written yet (T23)`, 1);
+
+  // The handoff is written on a pass and on a fail, so the owner and the orchestrator always get one.
+  const shots = await takeScreens({ dist, pages: files, runDir });
+  const qa = {
+    axe: { serious: a11y.axe.serious, critical: a11y.axe.critical, report_path: 'c-build/axe.json' },
+    lighthouse: a11y.lighthouse,
+    links: { checked: links.checked, broken: links.broken },
+    fact_diff: { checked: facts.checked, changed: facts.changed, missing: facts.missing },
+    gates_passed: failures.length === 0,
+  };
+  const carried = noDashesDeep(fidelity({ inventory: docs.inventory, storyboard: docs.storyboard, runDir }));
+  const name = docs.storyboard.organisation.name;
+  makeRepo({ siteDir, name, pages });
+  const doc = {
+    contract: 'handoff',
+    version: '1.0.0',
+    run_id: docs.run.run_id,
+    status: qa.gates_passed ? 'pass' : 'fail',
+    site: {
+      repo_path: 'c-build/site',
+      preview_url: null,
+      preview_local: 'c-build/site/dist',
+      pages: pages.map((p) => ({ slug: p.slug, path: p.path, screenshots: shots[p.slug] })),
+    },
+    qa,
+    fidelity: carried,
+    report_path: 'c-build/report.md',
+    cost_usd: 0,
+  };
+  const report = noDashes(ownerReport({ name, pages, fidelity: carried, qa, failures }));
+  writeHandoff(out, runDir, { doc, report });
+  if (failures.length) throw fail(`quality gates failed (handoff written with status fail):\n  ${failures.join('\n  ')}`, 3);
+  console.log(`handoff written: ${out} (status pass)`);
 }
 
 try {

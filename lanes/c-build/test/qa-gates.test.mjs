@@ -7,6 +7,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } 
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { buildPages } from '../builder/pages.mjs';
+import { schemaErrors } from '../lib/contracts.mjs';
 import { checkA11y } from '../qa/a11y.mjs';
 
 const SAMPLE = join(import.meta.dirname, '..', '..', '..', 'contracts', 'fixtures', 'sample');
@@ -74,4 +75,11 @@ test('the CLI exits 3 when the chosen direction has unreadable text colours', ()
   assert.equal(r.status, 3, r.stderr);
   assert.match(r.stderr, /color-contrast/);
   assert.ok(existsSync(join(run, 'c-build', 'axe.json')));
+  // T23: a failed gate still hands over everything, marked as a fail.
+  const handoff = read(join(run, '50-handoff.json'));
+  assert.deepEqual(schemaErrors(handoff), []);
+  assert.equal(handoff.status, 'fail');
+  assert.equal(handoff.qa.gates_passed, false);
+  assert.ok(handoff.qa.axe.serious > 0);
+  assert.match(readFileSync(join(run, handoff.report_path), 'utf8'), /Not ready to publish[\s\S]*color-contrast/);
 });
