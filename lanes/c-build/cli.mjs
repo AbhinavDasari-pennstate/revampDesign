@@ -8,6 +8,8 @@ import { parseArgs } from 'node:util';
 import { buildPages } from './builder/pages.mjs';
 import { fail, readContract, schemaErrors } from './lib/contracts.mjs';
 import { checkA11y } from './qa/a11y.mjs';
+import { factDiff } from './qa/factdiff.mjs';
+import { checkLinks } from './qa/links.mjs';
 
 const NEEDS = ['run', 'inventory', 'storyboard', 'directions', 'selection'];
 
@@ -99,13 +101,15 @@ async function main(argv) {
     throw fail(`budget cap hit: Lane C has ${cap} USD for this run`, 4);
   }
   const { siteDir, pages } = await buildPages({ runDir, docs });
-  const a11y = await checkA11y({
-    dist: join(siteDir, 'dist'),
-    pages: pages.map((p) => ({ slug: p.slug, file: basename(p.path) })),
-    reportPath: join(runDir, 'c-build', 'axe.json'),
-  });
-  if (!a11y.gates_passed) throw fail(`accessibility gates failed:\n  ${a11y.failures.join('\n  ')}`, 3);
-  throw fail(`site built in ${siteDir} and passed the accessibility gates, but the link check, fact diff and handoff are not written yet (T22, T23)`, 1);
+  const dist = join(siteDir, 'dist');
+  const files = pages.map((p) => ({ slug: p.slug, file: basename(p.path) }));
+  // Every gate runs, so one failed run reports everything that needs fixing.
+  const a11y = await checkA11y({ dist, pages: files, reportPath: join(runDir, 'c-build', 'axe.json') });
+  const links = await checkLinks({ dist, pages: files });
+  const facts = factDiff({ dist, pages: files, inventory: docs.inventory, storyboard: docs.storyboard });
+  const failures = [...a11y.failures, ...links.failures, ...facts.failures];
+  if (failures.length) throw fail(`quality gates failed:\n  ${failures.join('\n  ')}`, 3);
+  throw fail(`site built in ${siteDir} and passed every gate, but the handoff is not written yet (T23)`, 1);
 }
 
 try {
