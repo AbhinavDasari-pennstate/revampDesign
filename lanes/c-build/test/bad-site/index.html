@@ -1,0 +1,16 @@
+<!doctype html>
+<!-- Known accessibility failures for the T21 gate test: no lang, an image with no alt, grey on white
+     text below 4.5:1, a button with no name, a link with no text, and a form field with no label. -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Bad site</title>
+  </head>
+  <body>
+    <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="200" height="100" />
+    <p style="color: #c8c8c8; background: #ffffff">This text is too faint to read.</p>
+    <button><svg width="16" height="16"></svg></button>
+    <a href="./index.html"></a>
+    <input type="text" />
+  </body>
+</html>
