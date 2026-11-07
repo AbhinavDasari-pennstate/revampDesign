@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crossErrors, FILES } from '../../contracts/validate.mjs';
+import { runStub } from '../lib/run.mjs';
 
 const cli = fileURLToPath(new URL('../cli.mjs', import.meta.url));
 const sample = fileURLToPath(new URL('../../contracts/fixtures/sample', import.meta.url));
@@ -55,6 +56,19 @@ test('a fixture missing 30-directions.json exits 1 and names the file', () => {
     const r = run('--fixture', fix, '--out-dir', join(out, 'runs'));
     assert.equal(r.status, 1);
     assert.match(r.stderr, /30-directions\.json/);
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test('two stub runs in the same minute get separate folders', () => {
+  const out = tmp();
+  try {
+    const now = new Date('2026-11-06T12:00:00Z');
+    const first = runStub({ fixture: sample, outDir: out, now });
+    const second = runStub({ fixture: sample, outDir: out, now });
+    assert.equal(second.runId, `${first.runId}-2`);
+    assert.equal(readdirSync(out).length, 2);
   } finally {
     rmSync(out, { recursive: true, force: true });
   }

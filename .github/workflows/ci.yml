@@ -14,7 +14,7 @@ jobs:
         with: { node-version-file: .nvmrc }
       - run: cd .github/scripts && node --test
       - run: node .github/scripts/lane-guard.mjs
-  # ponytail: per-lane test jobs get added by each lane's first task (T10, T12, and Lane A T08) once they have a package.json.
+  # ponytail: the b-design job gets added once Lane B has a package.json (T10).
   contracts:
     runs-on: ubuntu-latest
     steps:
@@ -40,3 +40,11 @@ jobs:
       - run: cd contracts && npm ci
       - run: cd lanes/a-scout && npm ci && npx playwright install --with-deps chromium
       - run: cd lanes/a-scout && node --test
+  c-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      - run: cd lanes/c-build && npm ci && npx playwright install --with-deps chromium
+      - run: cd lanes/c-build && node --test

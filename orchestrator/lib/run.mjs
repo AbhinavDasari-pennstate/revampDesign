@@ -23,15 +23,28 @@ const writeJson = (p, data) => writeFileSync(p, JSON.stringify(data, null, 2) + 
 const fail = (message, exitCode) => Object.assign(new Error(message), { exitCode });
 const stampOf = (now) => now.toISOString().replace(/[-:]/g, '').replace(/^(\d{8})T(\d{4}).*/, '$1-$2');
 
+// A run in the same minute must not reuse a run folder: take the next free suffix (-2, -3, ...).
+function newRunDir(outDir, base) {
+  mkdirSync(outDir, { recursive: true });
+  for (let n = 1; ; n++) {
+    const runId = n === 1 ? base : `${base}-${n}`;
+    try {
+      mkdirSync(join(outDir, runId));
+      return runId;
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
+  }
+}
+
 // Stub mode: copy the fixture into a new run folder. Never looks in lanes/.
 export function runStub({ fixture, outDir, now = new Date() }) {
   for (const name of [FILES.run, ...COPIED.map((k) => FILES[k])]) {
     if (!existsSync(join(fixture, name))) throw fail(`fixture is missing ${join(fixture, name)}`, 1);
   }
   const run = readJson(join(fixture, FILES.run));
-  const runId = `${stampOf(now)}-${run.site_slug}`;
+  const runId = newRunDir(outDir, `${stampOf(now)}-${run.site_slug}`);
   const runDir = join(outDir, runId);
-  mkdirSync(runDir, { recursive: true });
 
   for (const key of COPIED) cpSync(join(fixture, FILES[key]), join(runDir, FILES[key]));
   for (const folder of FOLDERS) if (existsSync(join(fixture, folder))) cpSync(join(fixture, folder), join(runDir, folder), { recursive: true });
@@ -66,18 +79,7 @@ export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNo
   const template = readJson(join(fixture, FILES.run));
   const consent = consentNote?.trim() ? { owner_ok: true, note: consentNote.trim() } : { owner_ok: false, note: 'No owner consent recorded for this run.' };
   const siteSlug = host.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  // A retry in the same minute must not reuse a run folder: take the next free suffix (-2, -3, ...).
-  mkdirSync(outDir, { recursive: true });
-  let runId = `${stampOf(now)}-${siteSlug}`;
-  for (let n = 2; ; n++) {
-    try {
-      mkdirSync(join(outDir, runId));
-      break;
-    } catch (e) {
-      if (e.code !== 'EEXIST') throw e;
-      runId = `${stampOf(now)}-${siteSlug}-${n}`;
-    }
-  }
+  const runId = newRunDir(outDir, `${stampOf(now)}-${siteSlug}`);
   const runDir = join(outDir, runId);
   const lines = [];
   // Every exit path leaves the log so far, failure line included.

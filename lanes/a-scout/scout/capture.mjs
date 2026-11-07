@@ -39,6 +39,10 @@ export async function capture(page, pageId, runDir, host) {
   const images = [];
   for (const [index, img] of raw.images.entries()) {
     if (!/^https?:\/\//.test(img.src)) continue;
+    if (images.length === 99) {
+      console.warn(`${pageId}: more than 99 images, only the first 99 are recorded (image ids stop at i99)`);
+      break;
+    }
     const image_id = `${pageId}-i${pad(images.length + 1)}`;
     const local_path = `a-scout/images/${image_id}.png`;
     // An element screenshot needs no second download and works for SVG and lazy images.

@@ -20,7 +20,34 @@ export function normalise(href) {
   return u.href;
 }
 
-// Disallow prefixes under "User-agent: *" only.
+// The first page may move from example.org to www.example.org or back, and nowhere else.
+export const sameSite = (a, b) => a.replace(/^www\./, '') === b.replace(/^www\./, '');
+
+// RFC 9309 rule match: "*" is any run of characters, a final "$" anchors the end, otherwise a prefix.
+// A two-pointer glob, not a RegExp, so a hostile robots.txt cannot cause catastrophic backtracking.
+function robotsMatch(rule, path) {
+  const pat = rule.endsWith('$') ? rule.slice(0, -1) : `${rule}*`;
+  let p = 0;
+  let i = 0;
+  let star = -1;
+  let mark = 0;
+  while (i < path.length) {
+    if (pat[p] === '*') {
+      star = p++;
+      mark = i;
+    } else if (p < pat.length && pat[p] === path[i]) {
+      p++;
+      i++;
+    } else if (star >= 0) {
+      p = star + 1;
+      i = ++mark;
+    } else return false;
+  }
+  while (pat[p] === '*') p++;
+  return p === pat.length;
+}
+
+// Disallow rules under "User-agent: *" only.
 async function disallowed(origin) {
   const res = await fetch(`${origin}/robots.txt`, { headers: { 'user-agent': USER_AGENT } }).catch(() => null);
   if (!res?.ok) return [];
@@ -44,7 +71,7 @@ async function disallowed(origin) {
 }
 
 export async function crawl({ startUrl, maxPages, runDir, delayMs = 1000 }) {
-  const blocked = await disallowed(new URL(startUrl).origin);
+  let blocked = await disallowed(new URL(startUrl).origin);
   let host = new URL(startUrl).host;
   const start = normalise(startUrl);
   const queue = [{ url: start, depth: 0 }];
@@ -56,13 +83,14 @@ export async function crawl({ startUrl, maxPages, runDir, delayMs = 1000 }) {
   const browser = await chromium.launch();
   try {
     const page = await (await browser.newContext({ userAgent: USER_AGENT })).newPage();
-    let navigated = false;
-    while (queue.length && pages.length < maxPages) {
+    let navigations = 0;
+    // ponytail: 4 navigations per allowed page bounds a site full of dead links; raise it if real sites stop short of max_pages.
+    while (queue.length && pages.length < maxPages && navigations < maxPages * 4) {
       const { url, depth } = queue.shift();
       const { pathname, search } = new URL(url);
-      if (blocked.some((prefix) => (pathname + search).startsWith(prefix))) continue;
-      if (navigated) await sleep(delayMs);
-      navigated = true;
+      if (blocked.some((rule) => robotsMatch(rule, pathname + search))) continue;
+      if (navigations) await sleep(delayMs);
+      navigations++;
       try {
         await page.setViewportSize(DESKTOP);
         const response = await page.goto(url, { waitUntil: 'load', timeout: 30_000 });
@@ -72,10 +100,14 @@ export async function crawl({ startUrl, maxPages, runDir, delayMs = 1000 }) {
         }
         const finalUrl = normalise(page.url());
         if (pages.some((p) => p.url === finalUrl)) continue;
-        if (!pages.length) host = new URL(finalUrl).host;
-        else if (new URL(finalUrl).host !== host) {
-          failures.push({ url, reason: 'redirected off host' });
-          continue;
+        const finalHost = new URL(finalUrl).host;
+        if (finalHost !== host) {
+          if (pages.length || !sameSite(host, finalHost)) {
+            failures.push({ url, reason: 'redirected off host' });
+            continue;
+          }
+          host = finalHost;
+          blocked = await disallowed(new URL(finalUrl).origin);
         }
         const id = `p${String(pages.length + 1).padStart(2, '0')}`;
         const screenshots = { desktop: `a-scout/screens/${id}-desktop.png`, mobile: `a-scout/screens/${id}-mobile.png` };
