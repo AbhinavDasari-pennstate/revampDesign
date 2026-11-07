@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { buildKit, score, shuffle } from '../blindtest/kit.mjs';
 
 const CLI = join(import.meta.dirname, '../cli.mjs');
@@ -247,4 +247,17 @@ describe('blind test scorer', () => {
     assert.equal(r.status, 0);
     assert.equal(JSON.parse(r.stdout).length, results.sites.length);
   });
+});
+
+test('a screenshot path that leaves the run folder exits 2 and copies nothing', () => {
+  const run = newRun();
+  const secret = join(run, '..', `${basename(run)}-secret.png`);
+  writeFileSync(secret, 'secret');
+  try {
+    writeFileSync(join(run, '50-handoff.json'), JSON.stringify({ site: { pages: [{ screenshots: { desktop: `../${basename(secret)}`, mobile: SHOTS[3] } }] } }));
+    assert.throws(() => buildKit({ runDir: run, seed: 1 }), (e) => e.exitCode === 2 && /outside the run folder/.test(e.message));
+    assert.equal(existsSync(join(run, 'a-scout/blindtest')), false);
+  } finally {
+    rmSync(secret, { force: true });
+  }
 });

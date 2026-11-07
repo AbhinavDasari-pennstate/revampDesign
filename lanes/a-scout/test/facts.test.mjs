@@ -246,3 +246,24 @@ describe('brand primary colour search', () => {
     assert.match(await primary('<header style="background:oklab(0.4 0.05 -0.1)">h</header>'), /^#[0-9a-f]{6}$/);
   });
 });
+
+test('an address split by br inside a table cell with other blocks is still an address fact', async () => {
+  const s = await serve({ '/': { body: '<html><body><table><tr><td>2200 Orchard Road<br>Maple Grove, OH 45000<p>Office</p></td></tr></table></body></html>' } });
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.goto(`${s.origin}/`);
+    const facts = extractFacts([{ blocks: await extractBlocks(page, 'p01') }]);
+    assert.deepEqual(facts.filter((f) => f.kind === 'address').map((f) => f.value), ['2200 Orchard Road, Maple Grove, OH 45000']);
+  } finally {
+    await browser.close();
+    await s.close();
+  }
+});
+
+test('facts stop at f999, the most the fact id pattern allows', () => {
+  const blocks = Array.from({ length: 1001 }, (_, i) => ({ block_id: 'p01-b001', kind: 'paragraph', text: `mail u${i}@x.example` }));
+  const facts = extractFacts([{ blocks }]);
+  assert.equal(facts.length, 999);
+  assert.equal(facts.at(-1).fact_id, 'f999');
+});

@@ -6,6 +6,7 @@
 // blindtest/keys/<site_slug>.json (committed; runs/ is ignored) and point "key" at it. The key's site_slug must equal "site".
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { outside } from '../../../contracts/validate.mjs';
 
 const fail = (message, exitCode) => Object.assign(new Error(message), { exitCode });
 const LETTERS = ['A', 'B', 'C'];
@@ -84,6 +85,7 @@ export function buildKit({ runDir, seed }) {
   };
   for (const version of Object.values(sources)) {
     for (const rel of Object.values(version)) {
+      if (outside(run, rel)) throw fail(`screenshot path ${rel} is outside the run folder`, 2);
       if (!existsSync(join(run, rel))) throw fail(`missing screenshot: ${join(run, rel)}`, 2);
     }
   }
