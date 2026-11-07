@@ -1,0 +1,11 @@
+{
+  "name": "lane-b-design",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test" },
+  "dependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "ajv": "8.20.0",
+    "playwright": "1.64.1"
+  }
+}
