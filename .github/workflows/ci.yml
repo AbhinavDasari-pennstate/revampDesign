@@ -14,7 +14,14 @@ jobs:
         with: { node-version-file: .nvmrc }
       - run: cd .github/scripts && node --test
       - run: node .github/scripts/lane-guard.mjs
-  # ponytail: the b-design job gets added once Lane B has a package.json (T10).
+  b-design:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      - run: cd lanes/b-design && npm ci && npx playwright install --with-deps chromium
+      - run: cd lanes/b-design && node --test
   contracts:
     runs-on: ubuntu-latest
     steps:
