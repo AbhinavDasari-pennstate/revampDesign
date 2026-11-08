@@ -375,4 +375,29 @@ test('an older Node than .nvmrc gets a warning, the same or newer gets none', ()
   assert.match(nodeNote('20.13.1', '24'), /Node 20.*Node 24/);
   assert.equal(nodeNote('24.0.0', '24'), null);
   assert.equal(nodeNote('25.1.0', '24'), null);
+  assert.match(nodeNote('20.13.1', 'v24.2.0\r\n'), /Node 24/);
+  assert.equal(nodeNote('20.13.1', undefined), null);
+  assert.equal(nodeNote('20.13.1', 'lts/*'), null);
+});
+
+test('real mode logs the Node warning first, on success and before a failed stage; Node 24 logs none', () => {
+  const go = (s, nodeVersion) => runReal({ url: 'https://school.example/', tier: 'B', outDir: join(s.root, 'runs'), lanesRoot: join(s.root, 'lanes'), fixture: sample, nodeVersion });
+  const log = (s) => readFileSync(join(s.runDir(), 'orchestrator.log'), 'utf8');
+  for (const [behavior, nodeVersion, warned] of [[{}, '20.1.0', true], [{ story: 'exit:3' }, '20.1.0', true], [{}, '24.0.0', false]]) {
+    const s = setup({ behavior });
+    try {
+      let result;
+      if (behavior.story) assert.throws(() => go(s, nodeVersion), /stage story failed with exit 3/);
+      else result = go(s, nodeVersion);
+      if (warned) {
+        assert.match(log(s).split('\n')[0], /^Warning: running on Node 20/);
+        if (result) assert.match(result.lines[0], /^Warning/);
+        else assert.match(log(s), /FAILED stage story failed with exit 3/);
+      } else {
+        assert.doesNotMatch(log(s), /Warning/);
+      }
+    } finally {
+      cleanup(s);
+    }
+  }
 });
