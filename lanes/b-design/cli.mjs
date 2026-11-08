@@ -10,7 +10,8 @@ import { writeCompare } from './council/compare.mjs';
 import { RUBRIC_VERSION, council } from './council/council.mjs';
 import { learn } from './council/learn.mjs';
 import { check } from './lib/contracts.mjs';
-import { ask, BudgetError } from './lib/openrouter.mjs';
+import { addImagery } from './art/imagery.mjs';
+import { ask, askImage, BudgetError } from './lib/openrouter.mjs';
 import { scrub, story } from './story/story.mjs';
 
 const USAGE = `usage: node lanes/b-design/cli.mjs <story|art|council> --run <dir> --in <file> [--in <file> ...] --out <file> [--max-usd <n>] [--live] [--no-images]
@@ -112,6 +113,10 @@ async function main(argv) {
     if (stage === 'story') result = await story({ run: by.run, inventory: by.inventory, ask: askFn, live, models });
     if (stage === 'art') {
       result = await art({ run: by.run, inventory: by.inventory, storyboard: by.storyboard, ask: askFn, live, models });
+      if (live && !opts['no-images'] && !result.problems.length) {
+        await addImagery(result.doc, { runDir: opts.run, inventory: by.inventory, organisation: scrub(by.storyboard.organisation, by.inventory),
+          askImage: (a) => askImage({ ...a, budget }), model: models.image });
+      }
       // Previews go to vision judges, so the board text is scrubbed of person names like any model payload.
       await renderPreviews(opts.run, result.doc.directions, scrub(by.storyboard, by.inventory), { webFonts: !process.env.B_NO_WEB_FONTS });
     }
