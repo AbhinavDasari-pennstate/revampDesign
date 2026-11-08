@@ -64,8 +64,14 @@ export function runStub({ fixture, outDir, now = new Date() }) {
   return { runId, runDir, lines };
 }
 
+// Stage CLIs run on this same Node, and Lane C's build needs the .nvmrc version. A warning, so the stages that do not need it still run.
+export function nodeNote(version, wanted) {
+  const [have, want] = [parseInt(version, 10), parseInt(String(wanted).trim().replace(/^v/, ''), 10)];
+  return have < want ? `Warning: running on Node ${have}, the project needs Node ${want} (.nvmrc). Stages may fail.` : null;
+}
+
 // Real mode: run each lane CLI in order; a lane whose CLI is missing is filled from the fixture.
-export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNote, now = new Date() }) {
+export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNote, now = new Date(), nodeVersion = process.versions.node }) {
   if (pick !== undefined && !/^d[123]$/.test(pick)) throw fail(`--pick must be d1, d2 or d3, got ${pick}`, 2);
   if (!['A', 'B', 'C'].includes(tier)) throw fail(`--tier must be A, B or C, got ${tier}`, 2);
   let host;
@@ -84,7 +90,7 @@ export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNo
   const lines = [];
   // Every exit path leaves the log so far, failure line included.
   try {
-    return executeReal({ url, tier, runDir, runId, template, consent, siteSlug, lanesRoot, fixture, pick, now, lines });
+    return executeReal({ url, tier, runDir, runId, template, consent, siteSlug, lanesRoot, fixture, pick, now, nodeVersion, lines });
   } catch (e) {
     lines.push(`FAILED ${e.message}`);
     writeFileSync(join(runDir, 'orchestrator.log'), lines.join('\n') + '\n');
@@ -92,12 +98,21 @@ export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNo
   }
 }
 
-function executeReal({ url, tier, runDir, runId, template, consent, siteSlug, lanesRoot, fixture, pick, now, lines }) {
+function executeReal({ url, tier, runDir, runId, template, consent, siteSlug, lanesRoot, fixture, pick, now, nodeVersion, lines }) {
   const runDoc = { ...template, run_id: runId, consent, source_url: url, site_slug: siteSlug, tier, created_at: now.toISOString() };
   writeJson(join(runDir, FILES.run), runDoc);
   const runErrors = schemaErrors(runDoc);
   if (runErrors.length) throw fail(`${FILES.run} failed its schema:\n${runErrors.join('\n')}`, 2);
 
+  let wanted; // no .nvmrc means nothing to compare against, never a failed run
+  try {
+    wanted = readFileSync(new URL('../../.nvmrc', import.meta.url), 'utf8');
+  } catch {}
+  const note = nodeNote(nodeVersion, wanted);
+  if (note) {
+    console.error(note);
+    lines.push(note);
+  }
   let stubbed = 0;
   for (const [stage, key, lane, inputs] of STAGES) {
     const out = join(runDir, FILES[key]);
