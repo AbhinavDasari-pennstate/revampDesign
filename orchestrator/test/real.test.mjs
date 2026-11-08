@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crossErrors, FILES } from '../../contracts/validate.mjs';
-import { runReal } from '../lib/run.mjs';
+import { nodeNote, runReal } from '../lib/run.mjs';
 
 const cli = fileURLToPath(new URL('../cli.mjs', import.meta.url));
 const sample = fileURLToPath(new URL('../../contracts/fixtures/sample', import.meta.url));
@@ -369,4 +369,10 @@ test('a retry in the same minute gets a fresh run id and never overwrites the fi
   } finally {
     cleanup(s);
   }
+});
+
+test('an older Node than .nvmrc gets a warning, the same or newer gets none', () => {
+  assert.match(nodeNote('20.13.1', '24'), /Node 20.*Node 24/);
+  assert.equal(nodeNote('24.0.0', '24'), null);
+  assert.equal(nodeNote('25.1.0', '24'), null);
 });

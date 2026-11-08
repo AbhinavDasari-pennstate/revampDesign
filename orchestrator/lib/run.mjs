@@ -64,6 +64,12 @@ export function runStub({ fixture, outDir, now = new Date() }) {
   return { runId, runDir, lines };
 }
 
+// Stage CLIs run on this same Node, and Lane C's build needs the .nvmrc version. A warning, so the stages that do not need it still run.
+export function nodeNote(version, wanted) {
+  const [have, want] = [parseInt(version, 10), parseInt(wanted, 10)];
+  return have < want ? `Warning: running on Node ${have}, the project needs Node ${want} (.nvmrc). Stages may fail.` : null;
+}
+
 // Real mode: run each lane CLI in order; a lane whose CLI is missing is filled from the fixture.
 export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNote, now = new Date() }) {
   if (pick !== undefined && !/^d[123]$/.test(pick)) throw fail(`--pick must be d1, d2 or d3, got ${pick}`, 2);
@@ -98,6 +104,11 @@ function executeReal({ url, tier, runDir, runId, template, consent, siteSlug, la
   const runErrors = schemaErrors(runDoc);
   if (runErrors.length) throw fail(`${FILES.run} failed its schema:\n${runErrors.join('\n')}`, 2);
 
+  const note = nodeNote(process.versions.node, readFileSync(new URL('../../.nvmrc', import.meta.url), 'utf8'));
+  if (note) {
+    console.error(note);
+    lines.push(note);
+  }
   let stubbed = 0;
   for (const [stage, key, lane, inputs] of STAGES) {
     const out = join(runDir, FILES[key]);

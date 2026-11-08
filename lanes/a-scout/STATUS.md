@@ -1,2 +1,3 @@
 # Lane A status (one dated line per day: done task ids with SHAs, next, blockers)
 - 2026-11-01 T01 T02 T03 T04 done (contracts v1.0.0 frozen). Next: T07 orchestrator stub, T08 Scout.
+- 2026-11-08 Done on main: T01 to T04, T07 to T09, T16, T17, T26, A-FU1 to A-FU3 (PR #19); T32 kit and T35 README (results and teammate check pending). T24 draft PR #8 now installs Lanes B and C in CI. Lane C on main through T23 (PR #13); Lane B core is PR #21, under review. Next: T24 green, then T25. Blockers: Lane C lockfile (#20), names ruling for --live and the baseline, Node 24 on this machine, T25 site and consent.
