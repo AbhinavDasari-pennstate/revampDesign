@@ -5,15 +5,56 @@ import { dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { art } from './art/directions.mjs';
 import { renderPreviews } from './art/board.mjs';
+import { REPORT, capture, judgeCalibration, loadManifest, samplePairs, score, shots } from './calibration/run.mjs';
 import { writeCompare } from './council/compare.mjs';
-import { council } from './council/council.mjs';
+import { RUBRIC_VERSION, council } from './council/council.mjs';
 import { learn } from './council/learn.mjs';
 import { check } from './lib/contracts.mjs';
 import { ask, BudgetError } from './lib/openrouter.mjs';
 import { scrub, story } from './story/story.mjs';
 
 const USAGE = `usage: node lanes/b-design/cli.mjs <story|art|council> --run <dir> --in <file> [--in <file> ...] --out <file> [--max-usd <n>] [--live] [--no-images]
-       node lanes/b-design/cli.mjs learn --in <run>/45-selection.json [--in ...] [--out <file.jsonl>]`;
+       node lanes/b-design/cli.mjs learn --in <run>/45-selection.json [--in ...] [--out <file.jsonl>]
+       node lanes/b-design/cli.mjs calibrate [--capture] [--live] [--pairs 100] [--seed 1] [--max-usd 10]`;
+const CALIBRATE_OPTIONS = { capture: { type: 'boolean' }, live: { type: 'boolean' }, pairs: { type: 'string' }, seed: { type: 'string' }, 'max-usd': { type: 'string' }, out: { type: 'string' } };
+
+// T27: --capture takes the 50 screenshots (local only); --live has the council's judges vote on sampled pairs.
+async function calibrate(args) {
+  let opts;
+  try { ({ values: opts } = parseArgs({ args, options: CALIBRATE_OPTIONS })); } catch (e) { return fail(1, `${e.message}\n${USAGE}`); }
+  if (!opts.capture && !opts.live) return fail(1, `calibrate needs --capture, --live or both\n${USAGE}`);
+  const manifest = loadManifest();
+  if (opts.capture) {
+    const failed = await capture(manifest.sites);
+    console.log(`calibrate: captured ${manifest.sites.length - failed.length} of ${manifest.sites.length} sites into calibration/images/`);
+    for (const f of failed) console.log(`  ${f.id}: ${f.reason}`);
+  }
+  if (!opts.live) return 0;
+  try { process.loadEnvFile(join(import.meta.dirname, '.env')); } catch {}
+  const models = JSON.parse(readFileSync(join(import.meta.dirname, 'models.json'), 'utf8'));
+  const budget = { max: Number(opts['max-usd'] ?? 10), spent: 0 };
+  if (!(budget.max > 0)) return fail(4, 'calibrate: budget cap must be above 0 USD');
+  const seed = Number(opts.seed ?? 1);
+  const ready = manifest.sites.filter((s) => existsSync(shots(s).desktop) && existsSync(shots(s).mobile));
+  const pairs = samplePairs(ready, Number(opts.pairs ?? 100), seed);
+  if (!pairs.length) return fail(1, 'calibrate: no screenshots yet, run calibrate --capture first');
+  let votes;
+  try {
+    votes = await judgeCalibration({ ask: (a) => ask({ ...a, budget }), judges: models.judges, pairs, sites: ready });
+  } catch (e) {
+    if (e instanceof BudgetError) return fail(4, `calibrate: ${e.message}. No report written.`);
+    throw e;
+  }
+  const result = score(votes);
+  const report = {
+    set_version: manifest.set_version, measured_at: new Date().toISOString(), judges: models.judges, rubric_version: RUBRIC_VERSION,
+    seed, pairs_judged: pairs.length, sites_missing: manifest.sites.filter((s) => !ready.includes(s)).map((s) => s.id),
+    ...result, cost_usd: Math.round(budget.spent * 1e6) / 1e6, votes_detail: votes,
+  };
+  writeFileSync(opts.out ?? REPORT, `${JSON.stringify(report, null, 2)}\n`);
+  console.log(`calibrate: accuracy ${result.accuracy} over ${result.votes} votes (cost ${budget.spent.toFixed(4)} USD): ${result.passed ? 'passed' : 'below'} the 0.9 bar`);
+  return result.passed ? 0 : 3;
+}
 const NEEDS = { story: ['run', 'inventory'], art: ['run', 'inventory', 'storyboard'], council: ['directions'] };
 const OPTIONS = { run: { type: 'string' }, in: { type: 'string', multiple: true }, out: { type: 'string' }, 'max-usd': { type: 'string' }, live: { type: 'boolean' }, 'no-images': { type: 'boolean' } };
 
@@ -21,6 +62,7 @@ const fail = (code, msg) => { console.error(msg); return code; };
 
 async function main(argv) {
   const [stage, ...rest] = argv;
+  if (stage === 'calibrate') return calibrate(rest);
   if (!NEEDS[stage] && stage !== 'learn') return fail(1, `unknown stage "${stage ?? ''}"\n${USAGE}`);
   let opts;
   let extra;
