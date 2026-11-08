@@ -37,3 +37,15 @@ test('no em or en dash in any contract text file', () => {
   const dashes = [String.fromCharCode(0x2013), String.fromCharCode(0x2014)];
   for (const f of text) assert.ok(!dashes.some((d) => readFileSync(f, 'utf8').includes(d)), f);
 });
+
+test('the cross check rejects a path that leaves the run folder', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'contracts-'));
+  const run = join(dir, 'run');
+  cpSync(sample, run, { recursive: true });
+  writeFileSync(join(dir, 'outside.png'), 'x');
+  const handoff = JSON.parse(readFileSync(join(run, FILES.handoff), 'utf8'));
+  handoff.site.pages[0].screenshots.desktop = '../outside.png';
+  writeFileSync(join(run, FILES.handoff), JSON.stringify(handoff));
+  assert.ok(crossErrors(run).some((e) => e.includes('../outside.png is outside the run folder')));
+  rmSync(dir, { recursive: true });
+});

@@ -4,7 +4,7 @@
 // Exit 0 ok, 2 invalid. Used by the orchestrator and CI only; lanes validate with their own Ajv.
 import Ajv2020 from 'ajv/dist/2020.js';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const schemaDir = fileURLToPath(new URL('./schemas/', import.meta.url));
@@ -17,6 +17,12 @@ export const FILES = {
 };
 const PATH_KEYS = new Set(['desktop', 'mobile', 'local_path', 'logo_path', 'path', 'compare_path', 'repo_path', 'preview_local', 'report_path']);
 const read = (p) => JSON.parse(readFileSync(p, 'utf8'));
+
+// The path patterns allow "../"; a contract path must still name a file inside its run folder.
+export function outside(root, rel) {
+  const r = relative(resolve(root), resolve(root, rel));
+  return r === '..' || r.startsWith(`..${sep}`) || isAbsolute(r);
+}
 
 export function schemaErrors(data) {
   const validate = ajv.getSchema(`${data?.contract}.v${String(data?.version).split('.')[0]}`);
@@ -44,7 +50,10 @@ export function crossErrors(runDir) {
     if (!existsSync(p)) continue;
     docs[name] = read(p);
     errors.push(...schemaErrors(docs[name]).map((e) => `${file}: ${e}`));
-    for (const rel of paths(docs[name])) if (!existsSync(join(runDir, rel))) errors.push(`${file}: missing file ${rel}`);
+    for (const rel of paths(docs[name])) {
+      if (outside(runDir, rel)) errors.push(`${file}: ${rel} is outside the run folder`);
+      else if (!existsSync(join(runDir, rel))) errors.push(`${file}: missing file ${rel}`);
+    }
   }
   const ids = Object.values(docs).map((d) => d.run_id);
   if (new Set(ids).size > 1) errors.push(`run_id differs across files: ${[...new Set(ids)].join(', ')}`);

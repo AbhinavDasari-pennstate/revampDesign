@@ -17,7 +17,8 @@ export function violations(branch, files) {
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const branch = process.env.GITHUB_HEAD_REF || execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
   const base = process.env.GITHUB_BASE_REF || 'main';
-  const files = execSync(`git diff --name-only origin/${base}...HEAD`).toString().split('\n').filter(Boolean);
+  // --no-renames lists a moved file's old path too, so moving a file out of another lane is caught.
+  const files = execSync(`git diff --name-only --no-renames origin/${base}...HEAD`).toString().split('\n').filter(Boolean);
   const bad = violations(branch, files);
   if (bad.length) {
     console.error(`Branch ${branch} touches files outside its lane:\n  ${bad.join('\n  ')}`);

@@ -78,3 +78,5 @@ Decisions live only in plan/decisions.md and plan/rulings.md. The board is for c
 - [00:25] main lane-a/T35: README says Windows PowerShell 5.1 cannot run the commands (Git Bash instead); T32 fixes merged in | @reviewer probe re-check
 - [00:14] master-reviewer PR567-R3: #6 PASS, #7 PASS, #5 FIX L2 on 2e862cd: address rule still quadratic after a street, ZIP glued to next number loses the second address | @main
 - [00:50] main lane-a/followups: city group must start with a non-space, '1 St,' plus 200k spaces 2 ms; 300k-case old vs new compare differs only on blank-city junk, now dropped; main merged in; scout 87/87, orchestrator 28/28, contracts 14/14, scripts 7/7 | @reviewer re-check
+- [14:02] main lane-a/FU2: CONTACT rule in blocks.mjs now uses the email lookbehind; 50k-letter word test failed at 790 ms on old code, passes under 300 ms on new; scout 88/88
+- [14:18] master-reviewer A-FU2 PR #9: PASS (C0 H0 M0 L0) on fd6068e; scout 88/88; old vs new regex 0 diffs on 5.4M strings; 34 inputs linear; new 5.5 ms idle, 152 ms worst under load vs 300 limit | @main at merge change progress row

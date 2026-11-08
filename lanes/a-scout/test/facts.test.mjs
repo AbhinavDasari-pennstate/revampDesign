@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { schemaErrors } from '../../../contracts/validate.mjs';
 import { chromium } from 'playwright';
+import { extractBlocks } from '../scout/blocks.mjs';
 import { readBrand } from '../scout/brand.mjs';
 import { extractFacts } from '../scout/facts.mjs';
 import { serve } from './serve.mjs';
@@ -176,6 +177,21 @@ describe('extractFacts rules', () => {
   });
 });
 
+test('the contact block rule is linear on a long word and still finds an email', async () => {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.setContent(`<html><body><p>${'a'.repeat(50000)}</p><p>Write to office@school.example today</p></body></html>`);
+    const start = performance.now();
+    const blocks = await extractBlocks(page, 'p01');
+    const ms = performance.now() - start;
+    assert.deepEqual(blocks.map((b) => b.kind), ['paragraph', 'contact']);
+    assert.ok(ms < 300, `took ${Math.round(ms)} ms`);
+  } finally {
+    await browser.close();
+  }
+});
+
 test('a page with no body does not lose the brand read', async () => {
   const browser = await chromium.launch();
   try {
@@ -229,4 +245,25 @@ describe('brand primary colour search', () => {
     assert.equal(await primary('<header style="background:color(srgb 0 0.2 0.4)">h</header>'), '#003366');
     assert.match(await primary('<header style="background:oklab(0.4 0.05 -0.1)">h</header>'), /^#[0-9a-f]{6}$/);
   });
+});
+
+test('an address split by br inside a table cell with other blocks is still an address fact', async () => {
+  const s = await serve({ '/': { body: '<html><body><table><tr><td>2200 Orchard Road<br>Maple Grove, OH 45000<p>Office</p></td></tr></table></body></html>' } });
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.goto(`${s.origin}/`);
+    const facts = extractFacts([{ blocks: await extractBlocks(page, 'p01') }]);
+    assert.deepEqual(facts.filter((f) => f.kind === 'address').map((f) => f.value), ['2200 Orchard Road, Maple Grove, OH 45000']);
+  } finally {
+    await browser.close();
+    await s.close();
+  }
+});
+
+test('facts stop at f999, the most the fact id pattern allows', () => {
+  const blocks = Array.from({ length: 1001 }, (_, i) => ({ block_id: 'p01-b001', kind: 'paragraph', text: `mail u${i}@x.example` }));
+  const facts = extractFacts([{ blocks }]);
+  assert.equal(facts.length, 999);
+  assert.equal(facts.at(-1).fact_id, 'f999');
 });

@@ -1,0 +1,41 @@
+---
+// One page per entry in src/data/site.json (written by builder/pages.mjs); home is index.html.
+import site from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import Section from '../components/Section.astro';
+
+export function getStaticPaths() {
+  return site.pages.map((page) => ({ params: { slug: page.file === 'index' ? undefined : page.file }, props: { page } }));
+}
+
+const { page } = Astro.props;
+const startsWithHero = page.sections[0]?.intent === 'hero';
+---
+<Base title={page.slug === 'home' ? site.name : `${page.title} | ${site.name}`} lang={site.lang} maxWidth={site.max_width_px}>
+  <header slot="header" class="bg-accent text-on-accent">
+    <div class="wrap flex flex-wrap items-center justify-between gap-4 py-4">
+      <a href="./index.html" class="font-display text-lg font-bold">{site.name}</a>
+      <nav aria-label="Main">
+        <ul class="flex flex-wrap gap-6">
+          {site.nav.map((item) => (
+            <li><a href={item.href} aria-current={item.slug === page.slug ? 'page' : undefined}>{item.label}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  {!startsWithHero && (
+    <div class="bg-surface">
+      <h1 class="wrap font-display py-12" style="font-size: var(--t-3)">{page.title}</h1>
+    </div>
+  )}
+  {page.sections.map((s) => s.intent === 'hero'
+    ? <Hero id={s.id} headline={s.headline} subhead={s.subhead} pattern={s.pattern} blocks={s.blocks} images={s.images} />
+    : <Section id={s.id} intent={s.intent} pattern={s.pattern} headline={s.headline} subhead={s.subhead} blocks={s.blocks} images={s.images} forms={s.forms} />)}
+
+  <footer slot="footer" class="bg-surface mt-16">
+    <p class="wrap py-8 text-muted">{site.name}</p>
+  </footer>
+</Base>

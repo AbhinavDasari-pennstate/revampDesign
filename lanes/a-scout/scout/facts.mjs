@@ -19,9 +19,14 @@ const RULES = [
 export function extractFacts(pages) {
   const facts = [];
   const seen = new Set();
+  let skipped = 0;
   const add = (kind, value, block_id) => {
     if (seen.has(`${kind}|${value}`)) return;
     seen.add(`${kind}|${value}`);
+    if (facts.length === 999) {
+      skipped++;
+      return;
+    }
     facts.push({ fact_id: `f${String(facts.length + 1).padStart(3, '0')}`, kind, value, block_id });
   };
   for (const { blocks } of pages) {
@@ -38,5 +43,6 @@ export function extractFacts(pages) {
       }
     }
   }
+  if (skipped) console.warn(`${skipped} facts past f999 are not recorded (fact ids stop at f999)`);
   return facts;
 }
