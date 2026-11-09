@@ -61,6 +61,16 @@ test('one changed phone digit fails, naming the fact id and the page', () => {
   assert.match(facts.failures[0], /contact/);
 });
 
+// Issue #16: the old number still appears on the home page and in the contact form note; neither may hide this.
+test('a phone changed by many digits inside its own block fails, even when the old number survives elsewhere', () => {
+  for (const changedTo of ['(555) 010-0999', '(555) 999-8888']) {
+    const dist = editedSite('contact.html', (h) => h.replace('Phone: (555) 010-0142', `Phone: ${changedTo}`));
+    const facts = factDiff({ dist, pages, inventory: docs.inventory, storyboard: docs.storyboard });
+    assert.deepEqual(facts.changed, [{ fact_id: 'f001', before: '(555) 010-0142', after: changedTo }]);
+    assert.match(facts.failures[0], /f001.*contact/);
+  }
+});
+
 test('a fact removed from the site is listed as missing', () => {
   const dist = editedSite('contact.html', (h) => h.replaceAll('office@maplegrove-hs.example', ''));
   const facts = factDiff({ dist, pages, inventory: docs.inventory, storyboard: docs.storyboard });
