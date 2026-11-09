@@ -79,6 +79,24 @@ test('a fact whose block the storyboard dropped is not checked or missing', () =
   assert.deepEqual(kept.missing, ['f008'], 'without the drop, removing the block loses fact f008');
 });
 
+// Issue #14: a real Scout emits facts from the footer row ("Copyright 2009 ..."), which no section shows.
+test('a fact in a block the new site never shows is not checked, so the gate does not fail on it', () => {
+  const inventory = { ...docs.inventory, facts: [...docs.inventory.facts, { fact_id: 'f009', kind: 'date', value: '2009', block_id: 'p01-b091' }] };
+  const facts = factDiff({ dist: built, pages, inventory, storyboard: docs.storyboard });
+  assert.deepEqual({ checked: facts.checked, missing: facts.missing, failures: facts.failures }, { checked: 8, missing: [], failures: [] });
+});
+
+test('facts on a page the storyboard leaves out are not checked', () => {
+  const storyboard = {
+    ...docs.storyboard,
+    pages: docs.storyboard.pages.filter((p) => p.slug !== 'contact'),
+    dropped: [...docs.storyboard.dropped, { ref: 'https://maplegrove-hs.example/contact.html', reason: 'Merged into Home' }],
+  };
+  const facts = factDiff({ dist: built, pages: pages.filter((p) => p.slug !== 'contact'), inventory: docs.inventory, storyboard });
+  assert.deepEqual(facts.missing, []);
+  assert.equal(facts.checked, 4, 'f001, f002, f003 and f007 sit on the contact page');
+});
+
 test('a huge scraped block does not stall the fact diff', () => {
   const junk = `<p>${'a'.repeat(200000)}@b ${'a.'.repeat(100000)}@ ${'1 '.repeat(100000)}x</p>`;
   const dist = editedSite('contact.html', (h) => h.replace('</main>', `${junk}</main>`));

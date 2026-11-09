@@ -2,6 +2,7 @@
 // reason; anything carried in a changed form that the owner should know about is flagged.
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { factsNotShown } from '../builder/content.mjs';
 
 export const FORM_FALLBACK_REASON =
   'This online form sent messages to the old web server, which the new site does not have. Visitors are asked to call or email instead. Set up a form service if you want the form back.';
@@ -30,6 +31,9 @@ export function fidelity({ inventory, storyboard, runDir }) {
   }
   const outside = new Set(inventory.pages.flatMap((p) => p.links.filter((l) => !l.internal).map((l) => l.href)));
   for (const href of outside) drop(href, 'This link to another website was on the old site and is not on the new one.');
+  for (const f of factsNotShown(inventory, storyboard)) {
+    drop(f.fact_id, `The old site's ${f.kind.replace('_', ' ')} "${f.value}" was in a part of the old page that the new site does not show, so it is not on the new site.`);
+  }
 
   return {
     pages_carried: carried.length,

@@ -5,6 +5,7 @@
 // off are reported as changed; anything else not found is missing. Both fail the gate.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { factsNotShown } from '../builder/content.mjs';
 import { noDashes } from '../builder/text.mjs';
 import { elementText, pageText } from './html.mjs';
 
@@ -59,13 +60,14 @@ function find(fact, text, inBlock) {
 }
 
 export function factDiff({ dist, pages, inventory, storyboard }) {
-  const dropped = new Set(storyboard.dropped.map((d) => d.ref));
+  const notShown = new Set(factsNotShown(inventory, storyboard).map((f) => f.fact_id));
   const html = pages.map((p) => ({ slug: p.slug, html: readFileSync(join(dist, p.file), 'utf8') }));
   const site = html.map((p) => ({ slug: p.slug, text: pageText(p.html) }));
   const result = { checked: 0, changed: [], missing: [], failures: [] };
 
   for (const fact of inventory.facts) {
-    if (dropped.has(fact.block_id)) continue;
+    // Its block is not on the new site (footer row, dropped or unused page): listed in fidelity.dropped instead.
+    if (notShown.has(fact.fact_id)) continue;
     result.checked++;
     const homes = html.flatMap((p) => {
       const text = elementText(p.html, fact.block_id);

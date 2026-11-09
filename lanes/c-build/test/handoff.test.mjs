@@ -3,7 +3,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fidelity } from '../handoff/fidelity.mjs';
@@ -22,6 +22,10 @@ before(() => {
   run = mkdtempSync(join(tmpdir(), 'c-build-handoff-'));
   for (const f of Object.values(FILES)) cpSync(join(SAMPLE, f), join(run, f));
   cpSync(join(SAMPLE, 'a-scout'), join(run, 'a-scout'), { recursive: true });
+  // Issue #14: a real Scout also emits the footer's copyright year, which no section shows.
+  const inventory = read(join(run, FILES.inventory));
+  inventory.facts.push({ fact_id: 'f009', kind: 'date', value: '2009', block_id: 'p01-b091' });
+  writeFileSync(join(run, FILES.inventory), JSON.stringify(inventory));
   const args = [join(import.meta.dirname, '..', 'cli.mjs'), 'build', '--run', run, ...Object.values(FILES).flatMap((f) => ['--in', join(run, f)]), '--out', join(run, '50-handoff.json')];
   result = spawnSync(process.execPath, args, { encoding: 'utf8' });
   handoff = existsSync(join(run, '50-handoff.json')) ? read(join(run, '50-handoff.json')) : null;
@@ -78,7 +82,8 @@ test('the site is a git repo with one commit, a README, and nothing left uncommi
 test('fidelity counts match the inventory', () => {
   assert.equal(handoff.fidelity.pages_total, 4, '3 pages crawled plus 1 that failed');
   assert.equal(handoff.fidelity.pages_carried, 3);
-  assert.deepEqual(handoff.fidelity.dropped.map((d) => d.ref), ['https://maplegrove-hs.example/calendar.html']);
+  assert.deepEqual(handoff.fidelity.dropped.map((d) => d.ref), ['https://maplegrove-hs.example/calendar.html', 'f009']);
+  assert.match(handoff.fidelity.dropped[1].reason, /date "2009"/, 'the footer fact is reported, not hidden');
   assert.deepEqual(handoff.fidelity.flagged.map((f) => f.ref), ['p03-f01']);
 });
 

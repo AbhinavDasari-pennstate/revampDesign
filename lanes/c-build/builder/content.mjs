@@ -18,9 +18,31 @@ export function indexInventory(inventory) {
 }
 
 // An edited section's headline is a rewrite of edited_from_block_id, so that block is not repeated below it.
+const shortened = (section, id) => section.copy_status === 'edited' && id === section.edited_from_block_id;
+
+// Block ids the new site shows word for word. Anything else from the old site (footers, banners,
+// pages no new page uses) is not on it, and the fact diff and fidelity report treat it that way.
+export function shownBlockIds(storyboard) {
+  return new Set(storyboard.pages.flatMap((p) => p.sections.flatMap((s) => s.body_block_ids.filter((id) => !shortened(s, id)))));
+}
+
+// Blocks an edited section rewrote into its headline, with that section.
+export function shortenedBlocks(storyboard) {
+  return storyboard.pages.flatMap((p) => p.sections.filter((s) => s.copy_status === 'edited' && s.edited_from_block_id && s.body_block_ids.includes(s.edited_from_block_id)).map((s) => ({ id: s.edited_from_block_id, section: s })));
+}
+
+// Facts the new site cannot show: their block is neither shown nor shortened into a headline,
+// or the storyboard dropped it. The fact diff skips them and the fidelity report lists them.
+export function factsNotShown(inventory, storyboard) {
+  const shown = shownBlockIds(storyboard);
+  const kept = new Set(shortenedBlocks(storyboard).map((b) => b.id));
+  const dropped = new Set(storyboard.dropped.map((d) => d.ref));
+  return inventory.facts.filter((f) => dropped.has(f.block_id) || !(shown.has(f.block_id) || kept.has(f.block_id)));
+}
+
 export function sectionBlocks(section, index) {
   return section.body_block_ids
-    .filter((id) => !(section.copy_status === 'edited' && id === section.edited_from_block_id))
+    .filter((id) => !shortened(section, id))
     .map((id) => {
       const b = index.blocks.get(id);
       if (!b) throw fail(`20-storyboard.json: ${section.section_id} names block ${id}, which 10-inventory.json does not have`, 2);
