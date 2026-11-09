@@ -84,3 +84,20 @@ test('a form that needs a backend renders the fallback with the phone and email,
   assert.match(fallback, /href="mailto:office@maplegrove-hs\.example"/);
   assert.doesNotMatch(out, /<form/);
 });
+
+// Issue #15: the dash rule must keep ranges as ranges. Built from char codes so this file has no dashes.
+test('the dash rule keeps ranges and grade spans, and only turns pauses into commas', () => {
+  const EN = String.fromCharCode(0x2013);
+  const cases = [
+    [`Grades K${EN}8`, 'Grades K-8'],
+    [`Pre-K${EN}5`, 'Pre-K-5'],
+    [`Open Mon${EN}Fri`, 'Open Mon to Fri'],
+    [`7:30 AM${EN}3:30 PM`, '7:30 AM to 3:30 PM'],
+    [`Grades 9${EN}12`, 'Grades 9-12'],
+    [`1990${EN}2000`, '1990-2000'],
+    [`Grades 9${EN}12 ${EM} about 640 students`, 'Grades 9-12, about 640 students'],
+    [`Since 1962${EM}and counting`, 'Since 1962, and counting'],
+    [`Principal ${EM} Dana Whitfield`, 'Principal, Dana Whitfield'],
+  ];
+  for (const [input, want] of cases) assert.equal(noDashes(input), want, JSON.stringify(input));
+});
