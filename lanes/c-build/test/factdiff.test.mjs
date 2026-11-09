@@ -15,6 +15,7 @@ const SAMPLE = join(import.meta.dirname, '..', '..', '..', 'contracts', 'fixture
 const FILES = { run: '00-run.json', inventory: '10-inventory.json', storyboard: '20-storyboard.json', directions: '30-directions.json', selection: '45-selection.json' };
 const read = (p) => JSON.parse(readFileSync(p, 'utf8'));
 const okFetch = async () => ({ ok: true, status: 200 });
+const publicLookup = async () => [{ address: '93.184.216.34' }];
 
 const dirs = [];
 let built;
@@ -46,7 +47,7 @@ test('the sample keeps every fact and every link', async () => {
   const facts = factDiff({ dist: built, pages, inventory: docs.inventory, storyboard: docs.storyboard });
   assert.deepEqual({ checked: facts.checked, changed: facts.changed, missing: facts.missing }, { checked: 8, changed: [], missing: [] });
   assert.deepEqual(facts.failures, []);
-  const links = await checkLinks({ dist: built, pages, fetch: okFetch });
+  const links = await checkLinks({ dist: built, pages, fetch: okFetch, lookup: publicLookup });
   assert.ok(links.checked > 0);
   assert.deepEqual(links.broken, []);
   assert.deepEqual(links.failures, []);
@@ -118,7 +119,7 @@ test('a huge scraped block does not stall the fact diff', () => {
 
 test('a broken internal link fails the gate', async () => {
   const dist = editedSite('index.html', (h) => h.replace('</main>', '<a href="./calendar.html">Calendar</a></main>'));
-  const links = await checkLinks({ dist, pages, fetch: okFetch });
+  const links = await checkLinks({ dist, pages, fetch: okFetch, lookup: publicLookup });
   assert.deepEqual(links.broken, [{ href: './calendar.html', from: 'home' }]);
   assert.equal(links.failures.length, 1);
   assert.match(links.failures[0], /calendar\.html/);
@@ -145,7 +146,7 @@ test('external links are checked for real but only reported', async () => {
   const external = `http://127.0.0.1:${server.address().port}`;
   try {
     const dist = editedSite('about.html', (h) => h.replace('</main>', `<a href="${external}/ok">Ok</a><a href="${external}/gone">Gone</a></main>`));
-    const links = await checkLinks({ dist, pages: pages.filter((p) => p.slug === 'about') });
+    const links = await checkLinks({ dist, pages: pages.filter((p) => p.slug === 'about'), allowPrivate: true });
     assert.deepEqual(links.broken, [{ href: `${external}/gone`, from: 'about' }]);
     assert.deepEqual(links.failures, [], 'an external link never fails the gate');
   } finally {

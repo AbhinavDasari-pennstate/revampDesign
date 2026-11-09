@@ -13,8 +13,19 @@ export function indexInventory(inventory) {
     for (const i of page.images) images.set(i.image_id, i);
     forms.set(page.page_id, page.forms);
   }
-  const fact = (kind) => inventory.facts.find((f) => f.kind === kind)?.value ?? null;
-  return { blocks, images, forms, phone: fact('phone'), email: fact('email') };
+  const pageOf = new Map(inventory.pages.flatMap((p) => p.blocks.map((b) => [b.block_id, p.page_id])));
+  return { blocks, images, forms, facts: inventory.facts, pageOf };
+}
+
+// The first fact of a kind on one of these old pages, else the first anywhere on the old site.
+function contactFact(index, kind, pageIds) {
+  const ofKind = index.facts.filter((f) => f.kind === kind);
+  return (ofKind.find((f) => pageIds.includes(index.pageOf.get(f.block_id))) ?? ofKind[0])?.value ?? null;
+}
+
+// A tel: link dials digits and a leading +, without an extension ("ext. 12" would be dialled too).
+export function telHref(phone) {
+  return `tel:${phone.replace(/\s*(?:ext\.?|extension|x)\s*\d+\s*$/i, '').replace(/[^\d+]/g, '')}`;
 }
 
 // An edited section's headline is a rewrite of edited_from_block_id, so that block is not repeated below it.
@@ -65,5 +76,8 @@ export function formFallbacks(page, index) {
   return page.source_page_ids
     .flatMap((id) => index.forms.get(id) ?? [])
     .filter((f) => f.needs_backend)
-    .map((f) => ({ id: f.form_id, phone: index.phone, email: index.email }));
+    .map((f) => {
+      const phone = contactFact(index, 'phone', page.source_page_ids);
+      return { id: f.form_id, phone, tel: phone && telHref(phone), email: contactFact(index, 'email', page.source_page_ids) };
+    });
 }

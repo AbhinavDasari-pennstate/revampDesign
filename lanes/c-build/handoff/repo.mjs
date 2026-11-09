@@ -4,7 +4,9 @@ import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const AUTHOR = ['-c', 'user.name=Redesign Agent', '-c', 'user.email=redesign-agent@users.noreply.github.com'];
+// This repository is generated, so the machine's own git setup must not decide whether it can be
+// committed: a fixed author, no commit signing, and (on the commit) no hooks.
+const CONFIG = ['-c', 'user.name=Redesign Agent', '-c', 'user.email=redesign-agent@users.noreply.github.com', '-c', 'commit.gpgsign=false'];
 
 function readme(name, pages) {
   return `# ${name} website
@@ -40,8 +42,8 @@ Then upload the new \`dist/\` folder.
 export function makeRepo({ siteDir, name, pages }) {
   writeFileSync(join(siteDir, 'README.md'), readme(name, pages));
   writeFileSync(join(siteDir, '.gitignore'), 'node_modules/\n.astro/\n');
-  const git = (...args) => execFileSync('git', ['-C', siteDir, ...AUTHOR, ...args], { stdio: 'pipe' });
+  const git = (...args) => execFileSync('git', ['-C', siteDir, ...CONFIG, ...args], { stdio: 'pipe' });
   git('init', '--quiet', '--initial-branch=main');
   git('add', '--all');
-  git('commit', '--quiet', '--message', `${name} website, built by the redesign agent`);
+  git('commit', '--quiet', '--no-verify', '--message', `${name} website, built by the redesign agent`);
 }

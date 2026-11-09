@@ -11,7 +11,7 @@ interface Props {
   subhead?: string | null;
   blocks?: { id: string; kind: string; text: string }[];
   images?: Image[];
-  forms?: { id: string; phone: string | null; email: string | null }[];
+  forms?: { id: string; phone: string | null; tel: string | null; email: string | null }[];
 }
 const { id, intent, pattern = null, headline, subhead = null, blocks = [], images = [], forms = [] } = Astro.props;
 ---
@@ -20,7 +20,7 @@ const { id, intent, pattern = null, headline, subhead = null, blocks = [], image
   {subhead && <p class="mt-2 text-muted" style="font-size: var(--t-1)">{subhead}</p>}
   <div class="mt-2 max-w-[70ch]">
     <Blocks blocks={blocks} />
-    {forms.map((f) => <FormFallback id={f.id} phone={f.phone} email={f.email} />)}
+    {forms.map((f) => <FormFallback id={f.id} phone={f.phone} tel={f.tel} email={f.email} />)}
   </div>
   {images.map((img) => (
     <img data-src={img.id} class="mt-6 rounded-token" src={img.src} alt={img.alt} width={img.width} height={img.height} loading="lazy" />

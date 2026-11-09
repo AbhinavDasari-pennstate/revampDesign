@@ -1,8 +1,8 @@
 ---
 // Stands in for a form that posted to the old site's server, which a static site cannot receive.
-interface Props { id: string; phone: string | null; email: string | null }
-const { id, phone, email } = Astro.props;
-const tel = phone && `tel:${phone.replace(/[^\d+]/g, '')}`;
+// The builder picks the form's own page's phone and email and works out the tel: link.
+interface Props { id: string; phone: string | null; tel: string | null; email: string | null }
+const { id, phone, tel, email } = Astro.props;
 ---
 <div data-src={id} data-fallback="form" class="mt-6 rounded-token bg-surface p-6">
   <p class="font-display font-bold">Send us a message</p>
