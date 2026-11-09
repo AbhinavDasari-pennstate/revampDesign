@@ -2,7 +2,7 @@
 // reason; anything carried in a changed form that the owner should know about is flagged.
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { factsNotShown } from '../builder/content.mjs';
+import { factsNotShown, shortenedBlocks } from '../builder/content.mjs';
 
 export const FORM_FALLBACK_REASON =
   'This online form sent messages to the old web server, which the new site does not have. Visitors are asked to call or email instead. Set up a form service if you want the form back.';
@@ -35,10 +35,18 @@ export function fidelity({ inventory, storyboard, runDir }) {
     drop(f.fact_id, `The old site's ${f.kind.replace('_', ' ')} "${f.value}" was in a part of the old page that the new site does not show, so it is not on the new site.`);
   }
 
+  // A block the storyteller rewrote into a headline is not shown in full, so the owner sees what was cut.
+  const blockText = new Map(inventory.pages.flatMap((p) => p.blocks.map((b) => [b.block_id, b.text])));
+  const shortened = shortenedBlocks(storyboard).map(({ id, section }) => {
+    const text = (blockText.get(id) ?? '').replace(/\s+/g, ' ').trim();
+    const start = text.length > 160 ? `${text.slice(0, 160).replace(/\s+\S*$/, '')}...` : text;
+    return { ref: id, reason: `This old text was shortened into the section headline "${section.copy.headline}", and the full text is not on the new site: "${start}"` };
+  });
+
   return {
     pages_carried: carried.length,
     pages_total: inventory.pages.length + inventory.failures.length,
     dropped,
-    flagged: [...fallback].map((ref) => ({ ref, reason: FORM_FALLBACK_REASON })),
+    flagged: [...[...fallback].map((ref) => ({ ref, reason: FORM_FALLBACK_REASON })), ...shortened],
   };
 }

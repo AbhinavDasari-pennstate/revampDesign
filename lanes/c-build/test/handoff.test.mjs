@@ -84,7 +84,10 @@ test('fidelity counts match the inventory', () => {
   assert.equal(handoff.fidelity.pages_carried, 3);
   assert.deepEqual(handoff.fidelity.dropped.map((d) => d.ref), ['https://maplegrove-hs.example/calendar.html', 'f009']);
   assert.match(handoff.fidelity.dropped[1].reason, /date "2009"/, 'the footer fact is reported, not hidden');
-  assert.deepEqual(handoff.fidelity.flagged.map((f) => f.ref), ['p03-f01']);
+  // Issue #17: the hero headline is the storyteller's rewrite of p01-b002, which is not shown in full.
+  assert.deepEqual(handoff.fidelity.flagged.map((f) => f.ref), ['p03-f01', 'p01-b002']);
+  assert.match(handoff.fidelity.flagged[1].reason, /shortened into the section headline "Ready for college, career and community"/);
+  assert.match(handoff.fidelity.flagged[1].reason, /Maple Grove High School serves about 640 students/, 'the owner sees the start of the text that was cut');
 });
 
 test('the report lists every dropped and flagged item in plain language', () => {
@@ -110,5 +113,5 @@ test('fidelity lists what the new site leaves out: unused pages, outside links, 
   const refs = f.dropped.map((d) => d.ref);
   for (const ref of ['https://maplegrove-hs.example/contact.html', 'https://district.example/', 'p02-f01', 'p01-i01']) assert.ok(refs.includes(ref), `${ref} dropped`);
   assert.ok(f.dropped.every((d) => d.reason.length > 0));
-  assert.deepEqual(f.flagged, [], 'the contact form is gone with its page, so nothing is flagged');
+  assert.deepEqual(f.flagged.map((x) => x.ref), ['p01-b002'], 'the contact form is gone with its page; only the shortened hero text is flagged');
 });
