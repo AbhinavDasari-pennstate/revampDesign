@@ -6,3 +6,5 @@ lanes/b-design/calibration/images/
 lanes/a-scout/scratch/
 !contracts/fixtures/sample/c-build/site/dist/
 web-data/
+web/ui/node_modules/
+web/ui/dist/

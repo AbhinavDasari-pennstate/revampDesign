@@ -83,10 +83,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version-file: .nvmrc }
       - run: |
-          if [ -d web/ui/test ]; then
-            cd web/ui && node --test
+          if [ -f web/ui/package.json ]; then
+            cd web/ui && npm ci && npm test && npm run build
           else
-            echo "web/ui has no tests yet"
+            echo "web/ui has no React app yet"
           fi
   web-viewer:
     runs-on: ubuntu-latest

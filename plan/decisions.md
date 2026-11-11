@@ -22,3 +22,4 @@
 [LOCKED] First version runs locally on Abhinav's laptop (localhost); deploying to a host is a later task with its own approval | "Local first (Recommended)" | 2026-11-11
 [LOCKED] Access: invite codes Abhinav hands out, required consent checkbox and owner name, one run per code per day, a total daily dollar cap | "Invite codes + caps (Recommended)" | 2026-11-11
 [LOCKED] Tester runs use the free mode by default; paid models (--live) only when Abhinav flips a per-run switch | "Off by default (Recommended)" | 2026-11-11
+[LOCKED] The tester app front end (web/ui/) is a React app built with Vite, not hand-written HTML pages; its dependencies live only in web/ui/, pinned with a committed lockfile; the server serves the build in web/ui/dist/ | "Change the frontend to react. We are not going to keep making it in html" | 2026-11-11

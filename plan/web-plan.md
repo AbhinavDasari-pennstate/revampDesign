@@ -12,13 +12,13 @@ Status: PROPOSED, waiting for Abhinav's approval. Decisions it builds on: plan/d
 3. The tester watches stage progress live (queued, scout, story, art, council, select, build).
 4. When it finishes, the tester views, in the browser: the redesigned site (sandboxed), the plain-language report (`c-build/report.md`, rendered as text, never as markup), the three-direction compare page (`b-design/compare.html`, sandboxed) and the page screenshots. They can download the built site.
 
-**Out of scope (v1).** Accounts, passwords, billing, email delivery of codes, editing the redesign, choosing tier or direction (tier B and the council pick are fixed), cancelling a run, more than one concurrent run, any change to a lane's pipeline code or to `orchestrator/`, deploying (T50, separately approved), any new dependency.
+**Out of scope (v1).** Accounts, passwords, billing, email delivery of codes, editing the redesign, choosing tier or direction (tier B and the council pick are fixed), cancelling a run, more than one concurrent run, any change to a lane's pipeline code or to `orchestrator/`, deploying (T50, separately approved), any new dependency outside `web/ui/` (the React front end and its build and test tools are the one exception, decided 2026-11-11).
 
 **Success metric.** An outside tester (not on the team) completes a free run on their own site from an invite code and opens the redesign without help. Measured in T49: Abhinav watches without speaking; pass means the redesign opens and the tester reaches the report with zero help requests.
 
 **Safety rules the code must enforce.**
 - Built output and compare pages came from a scraped site: they are served only by the viewer (separate origin, port 8788), each response with `Content-Security-Policy: sandbox allow-scripts` plus `connect-src 'none'`, `form-action 'none'`, `frame-ancestors` limited to the app origin, `X-Content-Type-Options: nosniff`, and shown in the app inside `<iframe sandbox="allow-scripts">` (never `allow-same-origin`, `allow-top-navigation` or `allow-forms`).
-- Scraped text (report, titles, error text) is only ever set with `textContent` or `createTextNode`. A test fails the build on `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write` or `DOMParser` anywhere in `web/ui/`.
+- Scraped text (report, titles, error text) is only ever rendered as React text children (which React escapes), never as markup. A test fails the build on `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write` or `DOMParser` anywhere in `web/ui/src/`.
 - The app sets no cookies and stores no secret in the browser, because two ports on 127.0.0.1 share cookies; port separation is enough locally only. Deploy (T50) needs the viewer on a different registrable domain.
 - The server binds 127.0.0.1 only, refuses non-public target hosts (loopback, private, link-local, CGNAT, unique-local IPv6) after a DNS lookup, and spawns the orchestrator with an argument array (`shell: false`), never a command string.
 - Invite codes are stored only as SHA-256 hashes in `web-data/invites.json` (gitignored); the plain code is printed once when created and never logged.
@@ -30,7 +30,7 @@ App server, origin `http://127.0.0.1:8787` (Abhinav):
 
 | Route | Request | Response |
 |---|---|---|
-| `GET /` and `/ui/*` | none | static files from `web/ui/` (read as files, never executed by the server) |
+| `GET /` and `/ui/*` | none | static files of the React build, `web/ui/dist/` (read as files, never executed by the server) |
 | `POST /api/jobs` | `start-request.v1`: `{invite_code, url, owner_name, consent: true}` | `202 job.v1` (status `queued`, `position`) or `4xx/503 error.v1` |
 | `GET /api/jobs/:job_id` | none | `200 job.v1` or `404 error.v1` |
 | `GET /api/jobs/:job_id/events` | `Last-Event-ID` optional | `text/event-stream` of `event.v1`, full history replayed on connect, `: ping` every 15 s, closes after `done` or `failed` |
@@ -58,13 +58,13 @@ Fixtures (T39, `contracts/web/fixtures/`): one valid request, one response per s
 |---|---|---|---|
 | `contracts/web/` | Abhinav | `lane-a/` | schemas, fixtures, README for the HTTP API |
 | `web/server/` | Abhinav | `lane-a/` | `server.mjs`, `queue.mjs`, `progress.mjs`, `invites.mjs`, `admin.mjs`, `urlcheck.mjs`, `test/`, `CLAUDE.md` |
-| `web/ui/` | Nirmal | `lane-b/` | `index.html`, `job.html`, `css/`, `js/`, `dev/mock-server.mjs`, `test/`, `CLAUDE.md` |
+| `web/ui/` | Nirmal | `lane-b/` | React + Vite app: `package.json`, `package-lock.json`, `vite.config.js`, `index.html`, `src/` (components, plus plain modules for logic), `dev/mock-server.mjs`, `test/`, `CLAUDE.md`; `dist/` is the build output (gitignored) |
 | `web/viewer/` | Aditya | `lane-c/` | `server.mjs`, `manifest.mjs`, `bundle.mjs`, `test/`, `test/fixtures/hostile-run/`, `CLAUDE.md` |
 | `web-data/` | runtime only | none | gitignored: `invites.json`, `jobs/<job_id>/` (job.json, console.log, live.flag, the orchestrator's run folder), `spend.json` |
 
 Changes in Abhinav's files (T39): `.github/CODEOWNERS` adds `/web/ui/ @Nirmal-28` and `/web/viewer/ @adithya916`; `.github/scripts/lane-guard.mjs` lets `lane-b/` touch `lanes/b-design/` or `web/ui/`, `lane-c/` touch `lanes/c-build/` or `web/viewer/`, and blocks `lane-a/` from both new folders; `.gitignore` adds `web-data/`; `.github/workflows/ci.yml` adds one job per new folder (`cd web/<x> && node --test`, plus `contracts` tests for `contracts/web/`).
 
-Who runs whose code: only Abhinav's server runs other code (the orchestrator, and the viewer as a child process), the same rule the orchestrator follows today. Nirmal and Aditya build and test only against `contracts/web/fixtures/` and `contracts/fixtures/sample/`, never against each other's folders or the live server. No `package.json` dependencies in `web/`; every file is Node 22+ stdlib or plain browser JS.
+Who runs whose code: only Abhinav's server runs other code (the orchestrator, and the viewer as a child process), the same rule the orchestrator follows today. Nirmal and Aditya build and test only against `contracts/web/fixtures/` and `contracts/fixtures/sample/`, never against each other's folders or the live server. No `package.json` dependencies in `web/server/` or `web/viewer/` (Node 22+ stdlib only). `web/ui/` is a React app built with Vite (decided 2026-11-11, "We are not going to keep making it in html"): its dependencies are pinned to exact versions with the lockfile committed, and the server serves only the built `web/ui/dist/`.
 
 Hours: Abhinav about 7 (he writes the contract and the server nobody else can, and works with Claude full time, the same reasoning as plan/lanes.md), Nirmal about 4.5, Aditya about 4.
 
@@ -92,12 +92,12 @@ approved installs: none
 
 ### T41: Start page and fixture mock server
 owner: Nirmal | lane: B | depends_on: [T39] | estimate: 90 min
-files: create `web/ui/index.html`, `web/ui/css/app.css`, `web/ui/js/api.mjs`, `web/ui/js/start.mjs`, `web/ui/js/validate.mjs`, `web/ui/dev/mock-server.mjs`, `web/ui/CLAUDE.md`, `web/ui/test/validate.test.mjs`, `web/ui/test/mock.test.mjs`, `web/ui/test/no-markup.test.mjs`
+files: create `web/ui/package.json` (scripts `dev`, `build`, `test`), `web/ui/package-lock.json`, `web/ui/vite.config.js` (dev proxy of `/api` to the mock server), `web/ui/index.html`, `web/ui/src/main.jsx`, `web/ui/src/App.jsx` (picks the view: start form, or the job view for `/?job=<job_id>`), `web/ui/src/StartForm.jsx`, `web/ui/src/app.css`, `web/ui/src/api.js`, `web/ui/src/validate.js`, `web/ui/dev/mock-server.mjs`, `web/ui/CLAUDE.md`, `web/ui/test/validate.test.js`, `web/ui/test/StartForm.test.jsx`, `web/ui/test/mock.test.js`, `web/ui/test/no-markup.test.js`. `.gitignore` already ignores `web/ui/dist/` and `web/ui/node_modules/`.
 interfaces: consumes `start-request.v1`, `job.v1`, `error.v1` from `contracts/web/fixtures/`
-failing test first: `validate.mjs` rejects an empty code, a URL without http or https, an empty owner name and an unticked box, with the same plain message the contract fixture uses for each `error.v1` code; `api.mjs` maps every error fixture to a message string; `mock-server.mjs` serves the UI on 8787 and answers `POST /api/jobs` with the fixture response (and the error fixtures through a `?fail=<code>` switch), plus serves `contracts/fixtures/sample/` under the viewer layout on 8788; `no-markup.test.mjs` fails on `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write` or `DOMParser` in any file under `web/ui/`.
-steps: one calm form with the PRD design bar (story-first, no shadcn default look, readable at 375 px, visible focus, labels on every field, error text tied with `aria-describedby`); the consent text says in plain words that the tester owns the site or has the owner's permission and that the site will be crawled. On success go to `job.html?id=<job_id>`. Uses relative `/api` paths so the same files work on the real server.
-done when: tests pass; master-designer reviews screenshots at 375 px and 1280 px against the mock server and its notes are fixed or listed in `web/ui/CLAUDE.md`.
-approved installs: none
+failing test first: `validate.mjs` rejects an empty code, a URL without http or https, an empty owner name and an unticked box, with the same plain message the contract fixture uses for each `error.v1` code; `api.mjs` maps every error fixture to a message string; `mock-server.mjs` serves the UI on 8787 and answers `POST /api/jobs` with the fixture response (and the error fixtures through a `?fail=<code>` switch), plus serves `contracts/fixtures/sample/` under the viewer layout on 8788; `StartForm.test.jsx` (Testing Library in jsdom) shows the field error for each bad input and calls the API once on a good one; `no-markup.test.js` fails on `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write` or `DOMParser` in any file under `web/ui/src/`.
+steps: one calm form with the PRD design bar (story-first, no shadcn default look, readable at 375 px, visible focus, labels on every field, error text tied with `aria-describedby`); the consent text says in plain words that the tester owns the site or has the owner's permission and that the site will be crawled. On success go to `/?job=<job_id>` (one page, no router library). Uses relative `/api` paths so the same build works on the real server. `npm run build` output must work under the app CSP: no inline scripts or styles, no `eval`.
+done when: `npm test` and `npm run build` pass; `node web/server/server.mjs` serves the built start page; master-designer reviews screenshots at 375 px and 1280 px against the mock server and its notes are fixed or listed in `web/ui/CLAUDE.md`.
+approved installs (web/ui/ only, exact versions pinned, lockfile committed): react, react-dom, vite, @vitejs/plugin-react, vitest, jsdom, @testing-library/react. Nothing else without asking.
 
 ### T42: Results viewer: isolated static server
 owner: Aditya | lane: C | depends_on: [T39] | estimate: 90 min
@@ -119,10 +119,10 @@ approved installs: none
 
 ### T44: Progress page
 owner: Nirmal | lane: B | depends_on: [T41] | estimate: 75 min
-files: create `web/ui/job.html`, `web/ui/js/progress.mjs`, `web/ui/js/job.mjs`, `web/ui/test/progress.test.mjs`; modify `web/ui/dev/mock-server.mjs`, `web/ui/css/app.css`
+files: create `web/ui/src/progress.js`, `web/ui/src/JobView.jsx`, `web/ui/src/Progress.jsx`, `web/ui/test/progress.test.js`, `web/ui/test/Progress.test.jsx`; modify `web/ui/src/App.jsx`, `web/ui/dev/mock-server.mjs`, `web/ui/src/app.css`
 interfaces: consumes `event.v1` and `job.v1`
-failing test first: `progress.mjs` (pure, no DOM) folded over each fixture stream gives the expected view state: queue position, the six stages with plain names ("Reading your site", "Writing the story", "Designing three directions", "Judging the directions", "Picking one", "Building and checking"), the final state, and the plain message for every failure code; the mock server replays each `.sse` fixture with a 1 s gap per event and supports `Last-Event-ID`.
-steps: `EventSource` with reconnect; falls back to polling `GET /api/jobs/:id` every 5 s if the stream errors; `aria-live="polite"` on the current stage; the page says runs take several minutes and the tab can stay open; on `done` it goes to the results view.
+failing test first: `progress.js` (pure, no DOM, no React) folded over each fixture stream gives the expected view state: queue position, the six stages with plain names ("Reading your site", "Writing the story", "Designing three directions", "Judging the directions", "Picking one", "Building and checking"), the final state, and the plain message for every failure code; the mock server replays each `.sse` fixture with a 1 s gap per event and supports `Last-Event-ID`.
+steps: `EventSource` in a `useEffect` that closes it on unmount, with reconnect; falls back to polling `GET /api/jobs/:id` every 5 s if the stream errors; `aria-live="polite"` on the current stage; the page says runs take several minutes and the tab can stay open; on `done` it goes to the results view.
 done when: tests pass; master-designer screenshot review at 375 px and 1280 px for queued, running, done and failed states.
 approved installs: none
 
@@ -137,12 +137,12 @@ approved installs: none
 
 ### T46: Results page with safe report rendering
 owner: Nirmal | lane: B | depends_on: [T44] | estimate: 90 min
-files: create `web/ui/js/results.mjs`, `web/ui/js/report.mjs`, `web/ui/test/report.test.mjs`, `web/ui/test/results.test.mjs`; modify `web/ui/job.html`, `web/ui/css/app.css`, `web/ui/dev/mock-server.mjs`
+files: create `web/ui/src/report.js`, `web/ui/src/Report.jsx`, `web/ui/src/Results.jsx`, `web/ui/test/report.test.js`, `web/ui/test/Results.test.jsx`; modify `web/ui/src/JobView.jsx`, `web/ui/src/app.css`, `web/ui/dev/mock-server.mjs`
 interfaces: consumes `manifest.v1` and `report.md` from the viewer origin
-failing test first: `report.mjs` turns markdown into a plain tree of `{tag, text}` nodes (headings, paragraphs, lists, bold only) and builds DOM with `createElement` and `textContent`; `<script>`, `<img onerror=...>`, `[x](javascript:...)` and raw HTML in the input come out as literal text; links are not made clickable; `results.mjs` builds the view from `contracts/web/fixtures/manifest.json`: a page picker, iframes with exactly `sandbox="allow-scripts"` and `referrerpolicy="no-referrer"`, screenshot `<img>` tags with alt text from the slug, the gates and fidelity line in plain words.
+failing test first: `report.js` turns markdown into a plain tree of `{tag, text}` nodes (headings, paragraphs, lists, bold only) and `Report.jsx` renders that tree as React elements with the text as children (no markdown library, no `dangerouslySetInnerHTML`); `<script>`, `<img onerror=...>`, `[x](javascript:...)` and raw HTML in the input come out as literal text; links are not made clickable; `Results.jsx` builds the view from `contracts/web/fixtures/manifest.json`: a page picker, iframes with exactly `sandbox="allow-scripts"` and `referrerpolicy="no-referrer"`, screenshot `<img>` tags with alt text from the slug, the gates and fidelity line in plain words.
 steps: four views: Redesign (iframe, page picker, open-in-new-tab link to the viewer URL), Report (text), Compare (iframe), Screenshots (desktop and mobile side by side, mobile stacked at 375 px). A note says the redesign is a preview from automated tools and lists what the report flags for manual work.
-done when: tests pass; master-designer screenshot review against the mock server; `no-markup.test.mjs` still passes.
-approved installs: none
+done when: tests pass; master-designer screenshot review against the mock server; `no-markup.test.js` still passes.
+approved installs: none beyond T41
 
 ### T47: Invite codes, daily limits, dollar cap and the live switch
 owner: Abhinav | lane: A | depends_on: [T40] | estimate: 90 min
@@ -183,12 +183,12 @@ approved installs: none until the host is approved
 
 ## 5. Claims we will make
 - C1 | planned | An invited tester can start a redesign of their own site from a browser with an invite code, the owner's name and a consent box | proof: web/server/test/e2e.test.mjs, T49 runbook
-- C2 | planned | The tester watches each stage live | proof: web/server/test/sse.test.mjs, web/ui/test/progress.test.mjs
+- C2 | planned | The tester watches each stage live | proof: web/server/test/sse.test.mjs, web/ui/test/progress.test.js
 - C3 | planned | Built output from a scraped site cannot script the app: separate origin, sandboxed iframe, sandbox CSP | proof: web/viewer/test/hostile.test.mjs
-- C4 | planned | Scraped text is never rendered as markup | proof: web/ui/test/no-markup.test.mjs, web/ui/test/report.test.mjs
+- C4 | planned | Scraped text is never rendered as markup | proof: web/ui/test/no-markup.test.js, web/ui/test/report.test.js
 - C5 | planned | Invite codes are never stored in plain text; one run per code per day | proof: web/server/test/invites.test.mjs
 - C6 | planned | Paid models run only when Abhinav flips the switch for that run, and never past the daily dollar cap | proof: web/server/test/caps.test.mjs
 - C7 | planned | A tester never sees the sample fixture passed off as their site | proof: web/server/test/progress.test.mjs (not_real)
 - C8 | planned | The server refuses private and local addresses as targets | proof: web/server/test/urlcheck.test.mjs
 - C9 | planned | An outside tester finished a free run and opened the redesign without help | proof: web/server/RUNBOOK.md T49 entry
-- C10 | planned | The app adds no dependency and changes no lane's pipeline code | proof: `git diff --name-only` for T39 to T49 lists only contracts/web/, web/, .github/, .gitignore
+- C10 | planned | The app adds no dependency outside web/ui/ (React and Vite there, pinned) and changes no lane's pipeline code | proof: `git diff --name-only` for T39 to T49 lists only contracts/web/, web/, .github/, .gitignore
