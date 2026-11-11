@@ -37,6 +37,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version-file: .nvmrc }
       - run: cd contracts && npm ci
+      # readiness.test.mjs runs every lane's real stage CLI against the sample, so it needs every lane's dependencies
+      - run: cd lanes/a-scout && npm ci && npx playwright install --with-deps chromium
+      - run: cd lanes/b-design && npm ci
+      - run: cd lanes/c-build && npm ci
       - run: cd orchestrator && node --test
   a-scout:
     runs-on: ubuntu-latest
