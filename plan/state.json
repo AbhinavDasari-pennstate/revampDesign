@@ -1,3 +1,21 @@
-{"mode": "product", "name": "website-redesign-agent (working name)", "stage": "build", "deadline": "first test on a real site by Wed Nov 4 / Thu Nov 5 2026; skeleton this weekend",
- "approvals": {"gate1": null, "gate2": null, "gate3": null, "storyboard": null, "submit": null},
- "branch": "build/website-redesign-agent", "design_direction": null, "success_metric": "", "runs": []}
+{
+ "mode": "product",
+ "name": "website-redesign-agent (working name)",
+ "stage": "build",
+ "deadline": "first test on a real site by Wed Nov 4 / Thu Nov 5 2026; skeleton this weekend",
+ "approvals": {
+  "gate1": {
+   "at": "Wed Nov 11 02:40 EST 2026",
+   "quote": "use the master agent workflow to create a plan for it, divide the tasks to all my teammates and start my work",
+   "scope": "plan/web-plan.md T39-T50"
+  },
+  "gate2": null,
+  "gate3": null,
+  "storyboard": null,
+  "submit": null
+ },
+ "branch": "build/website-redesign-agent",
+ "design_direction": null,
+ "success_metric": "",
+ "runs": []
+}

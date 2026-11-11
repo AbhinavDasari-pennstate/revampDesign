@@ -14,3 +14,4 @@
 | A-FU2 CONTACT rule speed | done | fd6068e, PR #9 | PASS first round (C0 H0 M0 L0) | one lookbehind in blocks.mjs plus a browser test that fails on the old rule |
 | A-FU3 audit fixes | done | 6484a17, b9b2f29, PR #19 | master-reviewer PASS after one fix round | Scout survives legacy markup, redirects, robots globs; c-build job dropped until #20 |
 | A-FU4 Node warning and records | done | cd44bbd and fix round, PR #27 | master-reviewer FIX (M2 L1), fixed: missing .nvmrc no longer fails a run, log wiring tested (mutation fails), records corrected | warning in real mode plus test; STATUS, board, progress caught up |
+| T39 web API contract v1 | done, not pushed | 60eb9d7..ced54fe on lane-a/T39-web-contract | PASS after 2 fix rounds | rule 7 ruled twice (rulings.md): cap enforced at start as budget, daily_cap_reached reserved; issues #34 (Nirmal) #35 (Aditya) wait on the tag |
