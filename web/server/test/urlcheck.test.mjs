@@ -75,7 +75,7 @@ test('checkHost refuses literal addresses without any lookup, including the brac
 });
 
 test('checkHost refuses a URL written in the tricky IPv4 forms once the URL parser has normalised it', async () => {
-  for (const raw of ['http://2130706433/', 'http://0x7f.1/', 'http://127.1/', 'http://0177.0.0.1/', 'http://0/', 'http://[::ffff:127.0.0.1]/', 'http://[0:0:0:0:0:0:0:1]/']) {
+  for (const raw of ['http://2130706433/', 'http://0x7f.1/', 'http://127.1/', 'http://0177.0.0.1/', 'http://0/', 'http://127.0.0.1./', 'http://１２７.０.０.１/', 'http://[::ffff:127.0.0.1]/', 'http://[0:0:0:0:0:0:0:1]/']) {
     const { url } = parseTarget(raw);
     assert.deepEqual(await checkHost(url.hostname, { lookup: noLookup }), { ok: false, code: 'host_not_public' }, raw);
   }
