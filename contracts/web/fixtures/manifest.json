@@ -1,0 +1,44 @@
+{
+  "job_id": "Xk3nP9qLm2VbT7sRw4YdHa",
+  "site": {
+    "home_url": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/run/c-build/site/dist/index.html",
+    "pages": [
+      {
+        "slug": "home",
+        "url": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/run/c-build/site/dist/index.html",
+        "screenshots": {
+          "desktop": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/run/c-build/screens/home-desktop.png",
+          "mobile": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/run/c-build/screens/home-mobile.png"
+        }
+      },
+      {
+        "slug": "about",
+        "url": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/run/c-build/site/dist/about.html",
+        "screenshots": {
+          "desktop": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/run/c-build/screens/about-desktop.png",
+          "mobile": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/run/c-build/screens/about-mobile.png"
+        }
+      },
+      {
+        "slug": "contact",
+        "url": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/run/c-build/site/dist/contact.html",
+        "screenshots": {
+          "desktop": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/run/c-build/screens/contact-desktop.png",
+          "mobile": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/run/c-build/screens/contact-mobile.png"
+        }
+      }
+    ]
+  },
+  "compare_url": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/run/b-design/compare.html",
+  "report_url": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/report.md",
+  "bundle_url": "http://127.0.0.1:8788/j/Xk3nP9qLm2VbT7sRw4YdHa/bundle.tar.gz",
+  "gates": {
+    "passed": true,
+    "axe_serious": 0,
+    "axe_critical": 0
+  },
+  "fidelity": {
+    "pages_carried": 3,
+    "pages_total": 4
+  }
+}

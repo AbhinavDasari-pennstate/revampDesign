@@ -1,0 +1,40 @@
+{
+  "job_id": "Xk3nP9qLm2VbT7sRw4YdHa",
+  "status": "failed",
+  "position": null,
+  "mode": "live",
+  "stages": [
+    {
+      "stage": "scout",
+      "state": "pending"
+    },
+    {
+      "stage": "story",
+      "state": "pending"
+    },
+    {
+      "stage": "art",
+      "state": "pending"
+    },
+    {
+      "stage": "council",
+      "state": "pending"
+    },
+    {
+      "stage": "select",
+      "state": "pending"
+    },
+    {
+      "stage": "build",
+      "state": "pending"
+    }
+  ],
+  "created_at": "2026-11-11T18:00:00.000Z",
+  "started_at": null,
+  "finished_at": "2026-11-11T18:05:00.000Z",
+  "error": {
+    "code": "budget",
+    "message": "This run would go over its spending limit, so it was stopped."
+  },
+  "manifest_url": null
+}

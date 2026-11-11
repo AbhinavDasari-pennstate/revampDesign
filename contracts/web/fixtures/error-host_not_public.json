@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "host_not_public",
+    "message": "We can only redesign sites that anyone on the internet can open. That address points to a private or local computer."
+  }
+}

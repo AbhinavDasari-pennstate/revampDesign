@@ -1,0 +1,350 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "job.v1",
+  "title": "A job: the body of POST /api/jobs (202) and GET /api/jobs/:job_id (200)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "job_id",
+    "status",
+    "position",
+    "mode",
+    "stages",
+    "created_at",
+    "started_at",
+    "finished_at",
+    "error",
+    "manifest_url"
+  ],
+  "properties": {
+    "job_id": {
+      "$ref": "#/$defs/jobId"
+    },
+    "status": {
+      "enum": [
+        "queued",
+        "running",
+        "done",
+        "failed"
+      ]
+    },
+    "position": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mode": {
+      "enum": [
+        "free",
+        "live"
+      ]
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 6,
+      "prefixItems": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stage",
+            "state"
+          ],
+          "properties": {
+            "stage": {
+              "const": "scout"
+            },
+            "state": {
+              "$ref": "#/$defs/stageState"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stage",
+            "state"
+          ],
+          "properties": {
+            "stage": {
+              "const": "story"
+            },
+            "state": {
+              "$ref": "#/$defs/stageState"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stage",
+            "state"
+          ],
+          "properties": {
+            "stage": {
+              "const": "art"
+            },
+            "state": {
+              "$ref": "#/$defs/stageState"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stage",
+            "state"
+          ],
+          "properties": {
+            "stage": {
+              "const": "council"
+            },
+            "state": {
+              "$ref": "#/$defs/stageState"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stage",
+            "state"
+          ],
+          "properties": {
+            "stage": {
+              "const": "select"
+            },
+            "state": {
+              "$ref": "#/$defs/stageState"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stage",
+            "state"
+          ],
+          "properties": {
+            "stage": {
+              "const": "build"
+            },
+            "state": {
+              "$ref": "#/$defs/stageState"
+            }
+          }
+        }
+      ],
+      "items": false
+    },
+    "created_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "finished_at": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "error.v1#/$defs/runFailure"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "manifest_url": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/manifestUrl"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "queued"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "position": {
+            "type": "integer"
+          },
+          "started_at": {
+            "type": "null"
+          },
+          "finished_at": {
+            "type": "null"
+          },
+          "error": {
+            "type": "null"
+          },
+          "manifest_url": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "running"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "position": {
+            "type": "null"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "null"
+          },
+          "error": {
+            "type": "null"
+          },
+          "manifest_url": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "done"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "position": {
+            "type": "null"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "error": {
+            "type": "null"
+          },
+          "manifest_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "position": {
+            "type": "null"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "error": {
+            "type": "object"
+          },
+          "manifest_url": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "jobId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    "stageName": {
+      "enum": [
+        "scout",
+        "story",
+        "art",
+        "council",
+        "select",
+        "build"
+      ]
+    },
+    "stageState": {
+      "enum": [
+        "pending",
+        "running",
+        "done",
+        "failed"
+      ]
+    },
+    "manifestUrl": {
+      "type": "string",
+      "pattern": "^https?://[^/\\s?#]+/j/[A-Za-z0-9_-]{22}/manifest\\.json$"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "consent_required",
+    "message": "Please tick the box to confirm that you own this site or have the owner's permission."
+  }
+}

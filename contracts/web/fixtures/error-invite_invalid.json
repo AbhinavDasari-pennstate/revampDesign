@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "invite_invalid",
+    "message": "That invite code was not recognised. Check it and try again."
+  }
+}

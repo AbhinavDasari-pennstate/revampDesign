@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "bad_url",
+    "message": "That does not look like a web address we can use. Enter the full address of your site, starting with http or https."
+  }
+}

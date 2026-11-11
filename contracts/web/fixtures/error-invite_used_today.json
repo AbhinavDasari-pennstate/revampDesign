@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "invite_used_today",
+    "message": "This invite code has already been used today. Please try again tomorrow."
+  }
+}

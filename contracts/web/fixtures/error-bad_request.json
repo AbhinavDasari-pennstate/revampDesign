@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "bad_request",
+    "message": "We could not read that request. Please reload the page and try again."
+  }
+}

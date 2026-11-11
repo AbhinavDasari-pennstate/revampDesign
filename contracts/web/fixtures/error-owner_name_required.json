@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "owner_name_required",
+    "message": "Please enter the name of the person who owns this site."
+  }
+}

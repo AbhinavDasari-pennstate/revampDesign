@@ -1,0 +1,14 @@
+id: 1
+event: queued
+data: {"position":3}
+
+id: 2
+event: queued
+data: {"position":2}
+
+: ping
+
+id: 3
+event: queued
+data: {"position":1}
+

@@ -18,3 +18,7 @@
 [LOCKED] Team: Abhinav (Lane A), Nirmal (Lane B), Aditya (Lane C). Repo: https://github.com/AbhinavDasari-pennstate/revampDesign | "the three teammates: me, Nirmal, and Aditya" | 2026-11-01
 [LOCKED] Installs approved: ajv 8.20.0 (contracts/), Playwright (lanes/a-scout/) | "Both (Recommended)" | 2026-11-01
 [LOCKED] Skip Gallant (no URL). Fixtures use a fictional legacy school site, Maple Grove High School (maplegrove-hs.example), served locally from contracts/fixtures/sample-site/ | "skip that. I dont have a Gallant URL" | 2026-11-01
+[LOCKED] Build a tester web app: an invited tester enters their site URL and consent, watches the run, then views the redesign, report and compare page in the browser; it wraps the existing orchestrator. Supersedes the PRD line that put a sign-up site out of scope (accounts and billing stay out) | "Tester web app (Recommended)" | 2026-11-11
+[LOCKED] First version runs locally on Abhinav's laptop (localhost); deploying to a host is a later task with its own approval | "Local first (Recommended)" | 2026-11-11
+[LOCKED] Access: invite codes Abhinav hands out, required consent checkbox and owner name, one run per code per day, a total daily dollar cap | "Invite codes + caps (Recommended)" | 2026-11-11
+[LOCKED] Tester runs use the free mode by default; paid models (--live) only when Abhinav flips a per-run switch | "Off by default (Recommended)" | 2026-11-11

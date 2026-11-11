@@ -5,3 +5,4 @@ node_modules/
 lanes/b-design/calibration/images/
 lanes/a-scout/scratch/
 !contracts/fixtures/sample/c-build/site/dist/
+web-data/

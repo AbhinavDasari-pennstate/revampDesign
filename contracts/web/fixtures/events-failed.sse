@@ -1,0 +1,60 @@
+id: 1
+event: queued
+data: {"position":1}
+
+id: 2
+event: started
+data: {"mode":"free"}
+
+id: 3
+event: stage
+data: {"stage":"scout","state":"running"}
+
+id: 4
+event: stage
+data: {"stage":"scout","state":"done"}
+
+id: 5
+event: stage
+data: {"stage":"story","state":"running"}
+
+id: 6
+event: stage
+data: {"stage":"story","state":"done"}
+
+id: 7
+event: stage
+data: {"stage":"art","state":"running"}
+
+id: 8
+event: stage
+data: {"stage":"art","state":"done"}
+
+id: 9
+event: stage
+data: {"stage":"council","state":"running"}
+
+id: 10
+event: stage
+data: {"stage":"council","state":"done"}
+
+id: 11
+event: stage
+data: {"stage":"select","state":"running"}
+
+id: 12
+event: stage
+data: {"stage":"select","state":"done"}
+
+id: 13
+event: stage
+data: {"stage":"build","state":"running"}
+
+id: 14
+event: stage
+data: {"stage":"build","state":"failed"}
+
+id: 15
+event: failed
+data: {"code":"quality_gate","message":"We could not finish a redesign that passes our quality checks, so we are not showing one."}
+

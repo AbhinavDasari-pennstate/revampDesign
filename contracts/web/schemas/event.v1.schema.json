@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "event.v1",
+  "title": "The data line of one server-sent event of GET /api/jobs/:job_id/events; the event: line names which shape",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/queued"
+    },
+    {
+      "$ref": "#/$defs/started"
+    },
+    {
+      "$ref": "#/$defs/stage"
+    },
+    {
+      "$ref": "#/$defs/done"
+    },
+    {
+      "$ref": "#/$defs/failed"
+    }
+  ],
+  "$defs": {
+    "queued": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "position"
+      ],
+      "properties": {
+        "position": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "started": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "free",
+            "live"
+          ]
+        }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "state"
+      ],
+      "properties": {
+        "stage": {
+          "$ref": "job.v1#/$defs/stageName"
+        },
+        "state": {
+          "enum": [
+            "running",
+            "done",
+            "failed"
+          ]
+        }
+      }
+    },
+    "done": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_url"
+      ],
+      "properties": {
+        "manifest_url": {
+          "$ref": "job.v1#/$defs/manifestUrl"
+        }
+      }
+    },
+    "failed": {
+      "$ref": "error.v1#/$defs/runFailure"
+    }
+  }
+}
