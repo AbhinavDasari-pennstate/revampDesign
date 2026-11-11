@@ -53,14 +53,16 @@ function readBody(req) {
   });
 }
 
-// options: dataDir, orchestrator, uiDir (all absolute paths, defaults under the repo), invites { check(code), recordUse(label) }, lookup (DNS, for tests),
-// allowLocal, timeoutMs, maxLine, viewerOrigin, log ({ log, error }), now.
+// options: dataDir, orchestrator, uiDir, runTemplate (all absolute paths, defaults under the repo), invites { check(code), recordUse(label) }, lookup (DNS, for tests),
+// allowLocal, timeoutMs, maxLine, viewerOrigin, dailyUsdCap (dollars of live spend per Los Angeles day, default 0), log ({ log, error, warn }), now.
+// runTemplate is the 00-run.json the orchestrator starts every run from (its default fixture): a live job may cost its limits.lane_budget_usd b plus c.
 export function createApp({
   dataDir = join(repoRoot, 'web-data'), orchestrator = join(repoRoot, 'orchestrator', 'cli.mjs'), uiDir = join(here, '..', 'ui'), invites, lookup, allowLocal = false,
-  timeoutMs = 45 * 60_000, maxLine = 5, viewerOrigin = 'http://127.0.0.1:8788', log = console, now = () => new Date(),
+  timeoutMs = 45 * 60_000, maxLine = 5, viewerOrigin = 'http://127.0.0.1:8788', dailyUsdCap = 0, runTemplate = join(repoRoot, 'contracts', 'fixtures', 'sample', '00-run.json'),
+  log = console, now = () => new Date(),
 } = {}) {
   if (invites && (typeof invites.check !== 'function' || typeof invites.recordUse !== 'function')) throw new TypeError('invites needs check(code) and recordUse(label)');
-  const queue = new JobQueue({ dataDir, orchestrator, timeoutMs, maxLine, viewerOrigin, log, now });
+  const queue = new JobQueue({ dataDir, orchestrator, timeoutMs, maxLine, viewerOrigin, dailyUsdCap, runTemplate, log, now });
   const appCsp = [
     "default-src 'self'", `frame-src 'self' ${viewerOrigin}`, `img-src 'self' ${viewerOrigin}`, `connect-src 'self' ${viewerOrigin}`,
     "object-src 'none'", "base-uri 'none'", "frame-ancestors 'none'",

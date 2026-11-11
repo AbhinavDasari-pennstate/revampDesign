@@ -291,7 +291,7 @@ test('the admin tool only edits files under the data dir (a relative --data-dir 
   const rel = spawnSync(process.execPath, [ADMIN, '--data-dir', 'rel-data', 'invite', 'add', 'pilot-9'], { encoding: 'utf8', cwd: r.cwd });
   assert.equal(rel.status, 0, rel.stderr);
   assert.deepEqual(readdirSync(r.cwd), ['rel-data'], 'a relative --data-dir is resolved against the working folder');
-  const allowed = ['node:crypto', 'node:fs', 'node:path', 'node:util', 'node:url'];
+  const allowed = ['node:crypto', 'node:fs', 'node:path', 'node:url'];
   for (const file of ['admin.mjs', 'invites.mjs', 'ledger.mjs']) {
     const text = readFileSync(join(serverDir, file), 'utf8');
     const imports = [...text.matchAll(/from '([^']+)'/g)].map((m) => m[1]);

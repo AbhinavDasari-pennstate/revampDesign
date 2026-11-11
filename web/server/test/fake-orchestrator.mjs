@@ -5,11 +5,14 @@
 //   ?exit=<code>  exit with this code (default 0); contract files are written only for exit 0
 //   ?child=1      also start a grandchild (it ends by itself after 2 minutes) and write its pid to <out-dir>/fake-grandchild.pid (proves the whole tree is killed)
 //   ?noise=1      print one marker line to stdout and one to stderr (proves console output stays in console.log)
+//   ?vcost=<x>    cost_usd written into 40-verdict.json (lane B's spend), and ?hcost=<x> into 50-handoff.json (lane C's); a value that is not a number is written as text, and str:<x> writes a numeric string such as "3"
+//   ?files=1      write the contract files also when the exit code is not 0 (a run that spent money and then crashed)
+//   ?gate=1       after the sleep, wait until the file <out-dir>/go exists (the test releases the job, so a line of jobs can be set up without racing)
 // Files it leaves next to the run folder, for the tests: fake-timing.json {start, end} in ms, fake-grandchild.pid.
 // The run folder is <out-dir>/<run_id>/ with the contract files copied from contracts/fixtures/sample/ (no stage folders), like the real stub mode.
 import { parseArgs } from 'node:util';
 import { spawn } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -50,11 +53,19 @@ if (query.get('child') === '1') {
 }
 
 await new Promise((resolve) => setTimeout(resolve, sleepMs));
+if (query.get('gate') === '1') while (!existsSync(join(outDir, 'go'))) await new Promise((resolve) => setTimeout(resolve, 20));
 
-if (exitCode === 0) {
+const cost = (param) => {
+  const text = query.get(param);
+  if (text === null) return {};
+  if (text.startsWith('str:')) return { cost_usd: text.slice(4) }; // a number written as text: "3"
+  return { cost_usd: text.trim() !== '' && Number.isFinite(Number(text)) ? Number(text) : text };
+};
+if (exitCode === 0 || query.get('files') === '1') {
   for (const name of FILES.slice(1)) {
     const doc = JSON.parse(readFileSync(join(sample, name), 'utf8'));
-    writeFileSync(join(runDir, name), JSON.stringify({ ...doc, run_id: runId }, null, 2));
+    const spent = name === '40-verdict.json' ? cost('vcost') : name === '50-handoff.json' ? cost('hcost') : {};
+    writeFileSync(join(runDir, name), JSON.stringify({ ...doc, run_id: runId, ...spent }, null, 2));
   }
 }
 writeFileSync(join(outDir, 'fake-timing.json'), JSON.stringify({ start, end: Date.now() }));
