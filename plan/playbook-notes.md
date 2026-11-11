@@ -1,1 +1,2 @@
 - T09 review: label fallback from parent text mislabels when the parent is the form; 5 s screenshot timeout per hidden carousel image. Revisit before T25 if real sites show it.
+- 2026-11-11: removing a worktree whose node_modules was a junction to the main checkout emptied the main checkout's contracts/node_modules (git worktree remove follows Windows junctions). Rule: builders never junction node_modules into a worktree; run npm ci there, or delete the junction with rmdir before removing the worktree.
