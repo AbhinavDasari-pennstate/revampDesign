@@ -77,9 +77,10 @@ export function createApp({
     sendJson(res, status, { error: { code, message } });
   };
 
-  // Rules 5 and 6: is the code known, and has it not started a run today. No store wired in means no code is ever valid.
+  // Rules 5 and 6: is the code known, and has it not started a run today. No store wired in means no code is ever valid, and only a non empty
+  // string is ever looked up: a number, object, array or missing code is invite_invalid here, whatever the store would make of it.
   const inviteGate = (code) => {
-    const found = invites ? invites.check(code) : null;
+    const found = invites && typeof code === 'string' && code !== '' ? invites.check(code) : null;
     if (!found) return { code: 'invite_invalid' };
     if (found.usedToday) return { code: 'invite_used_today' };
     return { label: found.label };
@@ -117,8 +118,15 @@ export function createApp({
 
     const when = now();
     const consentNote = `Owner ${ownerName} confirmed consent in the tester app at ${when.toISOString()}`;
-    invites.recordUse(gate.label);
+    // The job first: if it cannot be saved (a disk error) the request fails and the tester's code is not used up. Nothing awaits between add
+    // and recordUse, so a parallel request still sees the code as used. If only the use cannot be saved, the job is already in the line and
+    // must go ahead: the failure is logged and the next start of the store decides what it knows.
     const job = queue.add({ url: target.url.href, consentNote, inviteLabel: gate.label, createdAt: when });
+    try {
+      invites.recordUse(gate.label);
+    } catch (e) {
+      log.error?.(`invite ${gate.label}: could not record the use of the code (${e?.code ?? e?.message ?? e})`);
+    }
     sendJson(res, 202, queue.view(job));
   }
 
