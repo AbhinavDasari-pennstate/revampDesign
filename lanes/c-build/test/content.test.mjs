@@ -98,6 +98,18 @@ test('the dash rule keeps ranges and grade spans, and only turns pauses into com
     [`Grades 9${EN}12 ${EM} about 640 students`, 'Grades 9-12, about 640 students'],
     [`Since 1962${EM}and counting`, 'Since 1962, and counting'],
     [`Principal ${EM} Dana Whitfield`, 'Principal, Dana Whitfield'],
+    // Spaced and a.m./p.m. ranges, the way school sites write office hours (review of PR #29).
+    [`8 a.m.${EN}4 p.m.`, '8 a.m. to 4 p.m.'],
+    [`8:00 AM ${EN} 4:00 PM`, '8:00 AM to 4:00 PM'],
+    [`Mon ${EN} Fri`, 'Mon to Fri'],
+    [`Monday ${EN} Thursday, 7:30 am ${EN} 3 pm`, 'Monday to Thursday, 7:30 am to 3 pm'],
+    [`September ${EN} June`, 'September to June'],
+    [`Mon${EM}Fri`, 'Mon to Fri'],
+    [`8 a.m. ${EN} noon`, '8 a.m. to noon'],
+    [`Room 5 ${EN} Monday only`, 'Room 5, Monday only'],
+    // Still pauses: a dash that does not sit between two range ends.
+    [`Open Monday ${EM} closed on holidays`, 'Open Monday, closed on holidays'],
+    [`We march ${EN} proudly`, 'We march, proudly'],
   ];
   for (const [input, want] of cases) assert.equal(noDashes(input), want, JSON.stringify(input));
 });

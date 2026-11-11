@@ -9,10 +9,15 @@ const ANY = `[${EN}${EM}]`;
 const GRADE_SPAN = new RegExp(`\\b(Pre-?K|K)\\s*${ANY}\\s*(?=\\d)`, 'gi');
 const NUMBER_RANGE = new RegExp(`(\\d)\\s*${ANY}\\s*(?=\\d)`, 'g');
 const WORD_RANGE = new RegExp(`(\\w)${EN}(?=\\w)`, 'g');
+// A dash, spaced or not, between two range ends (a time, a.m. or p.m., a weekday, a month) is a range: "8 a.m. to 4 p.m.".
+const DAY = 'Mon(?:day)?|Tue(?:s(?:day)?)?|Wed(?:nesday)?|Thu(?:r(?:s(?:day)?)?)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?';
+const MONTH = 'Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?';
+const NAME = `\\b(?:${DAY}|${MONTH})\\b\\.?`;
+const SPAN_RANGE = new RegExp(`(${NAME}|\\b[ap]\\.?m\\b\\.?)\\s*${ANY}\\s*(?=\\d|${NAME}|\\b(?:noon|midnight)\\b)`, 'gi');
 const PAUSE = new RegExp(`\\s*${ANY}\\s*`, 'g');
 
 export function noDashes(text) {
-  return text.replace(GRADE_SPAN, '$1-').replace(NUMBER_RANGE, '$1-').replace(WORD_RANGE, '$1 to ').replace(PAUSE, ', ');
+  return text.replace(GRADE_SPAN, '$1-').replace(NUMBER_RANGE, '$1-').replace(SPAN_RANGE, '$1 to ').replace(WORD_RANGE, '$1 to ').replace(PAUSE, ', ');
 }
 
 // noDashes on every string inside a JSON-like value.
