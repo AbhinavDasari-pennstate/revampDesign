@@ -61,13 +61,15 @@ jobs:
       - run: cd lanes/c-build && npm ci && npx playwright install --with-deps chromium
       - run: cd lanes/c-build && node --test
   # The three web folders (plan/web-plan.md) each get a job now, because Lanes B and C cannot edit this file. A job passes
-  # while its folder has no test directory yet and runs `node --test` once web/<folder>/test exists. web/ has no dependencies.
+  # while its folder has no test directory yet and runs `node --test` once web/<folder>/test exists. web/ has no dependencies;
+  # web-server installs the ajv of contracts/ only, so its tests check every response against the contract schemas.
   web-server:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version-file: .nvmrc }
+      - run: cd contracts && npm ci
       - run: |
           if [ -d web/server/test ]; then
             cd web/server && node --test

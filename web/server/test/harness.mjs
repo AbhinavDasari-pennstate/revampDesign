@@ -15,9 +15,10 @@ export const contracts = resolve(here, '../../../contracts');
 export const VIEWER = 'http://127.0.0.1:8788';
 export const fixture = (name) => JSON.parse(readFileSync(join(contracts, 'web/fixtures', name), 'utf8'));
 
-// The contract is checked twice. checkByHand always runs, because CI installs nothing for web/ (.github/scripts/test/ci.test.mjs).
-// When contracts/node_modules exists (npm ci in contracts/), every body is also validated against the real schemas with ajv.
+// The contract is checked twice. checkByHand always runs, because web/ has no dependencies of its own and a machine may not have installed contracts/.
+// When contracts/node_modules exists (npm ci in contracts/, which the web-server CI job does), every body is also validated against the real schemas with ajv.
 let ajv = null;
+export const hasAjv = () => ajv !== null;
 try {
   const { default: Ajv2020 } = await import(pathToFileURL(join(contracts, 'node_modules/ajv/dist/2020.js')).href);
   ajv = new Ajv2020({ allErrors: true, strict: true });

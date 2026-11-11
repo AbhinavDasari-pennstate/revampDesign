@@ -6,12 +6,16 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { nodeNote } from '../server.mjs';
-import { FAKE, contracts, VIEWER, fixture, checkByHand, assertValid, assertJob, assertError, sleep, alive, oneUse, call, post, getJob, raw, site, request, jobDir, waitFor, startApp, finished, tempDir, cleanup, argvOf } from './harness.mjs';
+import { FAKE, contracts, VIEWER, fixture, checkByHand, assertValid, assertJob, assertError, sleep, alive, oneUse, call, post, getJob, raw, site, request, jobDir, waitFor, startApp, finished, tempDir, cleanup, argvOf, hasAjv } from './harness.mjs';
 
 afterEach(cleanup);
 
-
 // ---- the by-hand check itself ----
+
+// The CI job runs npm ci in contracts/ first. Without this test a lost install step would quietly turn the schema check into the hand check only.
+test('in CI the ajv schema check really runs (CI sets CI=true)', { skip: !process.env.CI && 'only enforced when CI is set' }, () => {
+  assert.ok(hasAjv(), 'contracts/node_modules/ajv is missing: the web-server job must run npm ci in contracts/ before the tests');
+});
 
 test('the by-hand contract check accepts every contract fixture and rejects wrong bodies, so CI without ajv still guards the shapes', () => {
   for (const name of readdirSync(join(contracts, 'web/fixtures')).filter((n) => /^job-.*\.json$/.test(n))) checkByHand('job.v1', fixture(name));
