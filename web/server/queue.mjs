@@ -16,7 +16,6 @@ import { RUN_FAILURES } from './messages.mjs';
 
 export { isJobId }; // server.mjs imports it from here
 export const STAGES = ['scout', 'story', 'art', 'council', 'select', 'build'];
-const COST_FILES = ['40-verdict.json', '50-handoff.json']; // cost_usd of lane B and of lane C, inside the run folder
 const pendingStages = () => STAGES.map((stage) => ({ stage, state: 'pending' }));
 
 // null when the run succeeded, else the run failure code for job.v1.error. T43 replaces this: exit 3 at scout is site_blocked,
@@ -182,8 +181,8 @@ export class JobQueue extends EventEmitter {
     (this.log.warn ?? this.log.error)?.call(this.log, message);
   }
 
-  // What a live run may still spend: the lane B and lane C budgets of the run template (lane A has no paid model).
-  #liveBudget() {
+  // The lane B and lane C budgets of the run template (lane A has no paid model). A live run may spend both.
+  #laneBudgets() {
     let doc;
     try {
       doc = JSON.parse(readFileSync(this.runTemplate, 'utf8'));
@@ -192,7 +191,7 @@ export class JobQueue extends EventEmitter {
     }
     const { b, c } = doc?.limits?.lane_budget_usd ?? {};
     if (![b, c].every((n) => typeof n === 'number' && Number.isFinite(n) && n >= 0)) throw new Error(`run template ${this.runTemplate} has no lane_budget_usd b and c`);
-    return b + c;
+    return { b, c };
   }
 
   // null when a live job may start, else why not. Spend at or above the cap refuses at once; otherwise today's spend plus this run's budget may
@@ -207,7 +206,8 @@ export class JobQueue extends EventEmitter {
       return `cannot tell how much was spent today: ${e.message}`;
     }
     try {
-      budget = this.#liveBudget();
+      const { b, c } = this.#laneBudgets();
+      budget = b + c;
     } catch (e) {
       return `cannot tell what the run may cost: ${e.message}`;
     }
@@ -216,34 +216,79 @@ export class JobQueue extends EventEmitter {
     return null;
   }
 
-  // Add the cost a run reported to today's total in spend.json and return it, or null when it reported none. The lanes write cost_usd into
-  // 40-verdict.json (lane B) and 50-handoff.json (lane C) in the run folder; a run that failed or was stopped is counted from whatever it wrote.
-  // A cost that is not a number of at least 0 is ignored with a warning. A free run that reports a cost is a surprise: warned about, still counted.
+  // The cost_usd of one contract file of a run (40-verdict.json, 50-handoff.json), or undefined when the file or the field is not there.
+  // A cost that is not a number of at least 0 counts for nothing, with a warning.
+  #costOfFile(job, run, name) {
+    let usd;
+    try {
+      usd = JSON.parse(readFileSync(join(this.jobDir(job.job_id), run, name), 'utf8'))?.cost_usd;
+    } catch (e) {
+      if (e.code !== 'ENOENT') this.#warn(`job ${job.job_id}: ${run}/${name} could not be read for its cost_usd (${e.code ?? 'bad JSON'})`);
+      return undefined;
+    }
+    if (usd === undefined) return undefined;
+    if (typeof usd !== 'number' || !Number.isFinite(usd) || usd < 0) {
+      this.#warn(`job ${job.job_id}: ${run}/${name} has a cost_usd that is not a number of at least 0, ignored`);
+      return undefined;
+    }
+    return usd;
+  }
+
+  // What lane B spent in one run folder. Lane B appends one line {stage, cost_usd, at} to b-design/cost.jsonl as each stage ends (story, art, council
+  // and its imagery, also when the stage fails), but writes cost_usd into 40-verdict.json for the council alone. So the sum of the lines is the spend, and
+  // the verdict is used only when that file does not exist. This number guards the dollar cap, so it fails closed: a line that is not JSON, a cost_usd
+  // that is missing, text or negative, or a file that cannot be read counts the run's whole lane B budget (or what the good lines add up to, if that is more).
+  #costOfLaneB(job, run) {
+    const file = join(this.jobDir(job.job_id), run, 'b-design', 'cost.jsonl');
+    let text;
+    try {
+      text = readFileSync(file, 'utf8');
+    } catch (e) {
+      if (e.code === 'ENOENT') return this.#costOfFile(job, run, '40-verdict.json');
+      return this.#wholeBudgetOfLaneB(job, file, `could not be read (${e.code ?? e.message})`, 0);
+    }
+    let good = 0;
+    let broken = false;
+    for (const line of text.split('\n')) {
+      if (line.trim() === '') continue;
+      let usd;
+      try {
+        usd = JSON.parse(line)?.cost_usd;
+      } catch {}
+      if (typeof usd === 'number' && Number.isFinite(usd) && usd >= 0) good += usd;
+      else broken = true;
+    }
+    return broken ? this.#wholeBudgetOfLaneB(job, file, 'has a line without a cost_usd that is a number of at least 0', good) : good;
+  }
+
+  #wholeBudgetOfLaneB(job, file, why, good) {
+    let b;
+    try {
+      ({ b } = this.#laneBudgets());
+    } catch (e) {
+      this.log.error?.(`job ${job.job_id}: ${file} ${why}, and the lane B budget is not known either (${e.message}): counting only ${good}`);
+      return good;
+    }
+    this.#warn(`job ${job.job_id}: ${file} ${why}: counting the whole lane B budget, ${Math.max(b, good)}`);
+    return Math.max(b, good);
+  }
+
+  // Add the cost a run reported to today's total in spend.json and return it, or null when it reported none. Lane B's spend is in b-design/cost.jsonl
+  // (see #costOfLaneB) and lane C's cost_usd is in 50-handoff.json, both inside the run folder; a run that failed or was stopped is counted from whatever it wrote.
+  // A free run that reports a cost is a surprise: warned about, still counted.
   #recordCost(job) {
-    const dir = this.jobDir(job.job_id);
     let runs = [];
     try {
-      runs = readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
+      runs = readdirSync(this.jobDir(job.job_id), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
     } catch {}
     let total = null;
     for (const run of runs) {
-      for (const name of COST_FILES) {
-        let usd;
-        try {
-          usd = JSON.parse(readFileSync(join(dir, run, name), 'utf8'))?.cost_usd;
-        } catch (e) {
-          if (e.code !== 'ENOENT') this.#warn(`job ${job.job_id}: ${run}/${name} could not be read for its cost_usd (${e.code ?? 'bad JSON'})`);
-          continue;
-        }
-        if (usd === undefined) continue;
-        if (typeof usd !== 'number' || !Number.isFinite(usd) || usd < 0) {
-          this.#warn(`job ${job.job_id}: ${run}/${name} has a cost_usd that is not a number of at least 0, ignored`);
-          continue;
-        }
-        total = (total ?? 0) + usd;
+      for (const usd of [this.#costOfLaneB(job, run), this.#costOfFile(job, run, '50-handoff.json')]) {
+        if (usd !== undefined) total = (total ?? 0) + usd;
       }
     }
     if (total === null || total === 0) return total;
+    total = Math.round(total * 1e6) / 1e6; // 1.2 + 2.7 + 0.1 is not left as 4.000000000000001
     if (job.mode !== 'live') this.#warn(`job ${job.job_id}: a free run reported cost_usd ${total}; counted anyway`);
     try {
       addSpend(this.dataDir, laDay(this.now()), total);

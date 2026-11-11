@@ -6,6 +6,7 @@
 //   ?child=1      also start a grandchild (it ends by itself after 2 minutes) and write its pid to <out-dir>/fake-grandchild.pid (proves the whole tree is killed)
 //   ?noise=1      print one marker line to stdout and one to stderr (proves console output stays in console.log)
 //   ?vcost=<x>    cost_usd written into 40-verdict.json (lane B's spend), and ?hcost=<x> into 50-handoff.json (lane C's); a value that is not a number is written as text, and str:<x> writes a numeric string such as "3"
+//   ?costlog=<s>  write <run>/b-design/cost.jsonl like lane B does: story:1.2,art:2.7,council:0.1 (see writeCostLog for the broken variants)
 //   ?files=1      write the contract files also when the exit code is not 0 (a run that spent money and then crashed)
 //   ?gate=1       after the sleep, wait until the file <out-dir>/go exists (the test releases the job, so a line of jobs can be set up without racing)
 // Files it leaves next to the run folder, for the tests: fake-timing.json {start, end} in ms, fake-grandchild.pid.
@@ -61,6 +62,23 @@ const cost = (param) => {
   if (text.startsWith('str:')) return { cost_usd: text.slice(4) }; // a number written as text: "3"
   return { cost_usd: text.trim() !== '' && Number.isFinite(Number(text)) ? Number(text) : text };
 };
+// Lane B's b-design/cost.jsonl: one line {stage, cost_usd, at} per stage. ?costlog=story:1.2,art:2.7 writes those lines ("" writes an empty file);
+// stage:missing leaves cost_usd out, stage:abc or stage:"3" writes it as text, junk writes a line that is not JSON, dir makes cost.jsonl a folder.
+function writeCostLog(spec) {
+  const folder = join(runDir, 'b-design');
+  mkdirSync(folder, { recursive: true });
+  const file = join(folder, 'cost.jsonl');
+  if (spec === 'dir') return mkdirSync(file);
+  const lines = spec === '' ? [] : spec.split(',').map((item) => {
+    if (item === 'junk') return '{not json';
+    const [stage, value] = item.split(':');
+    const quoted = /^"(.*)"$/.exec(value); // stage:"3" writes the text "3", not the number
+    const spent = value === 'missing' ? {} : quoted ? { cost_usd: quoted[1] } : { cost_usd: value.trim() !== '' && Number.isFinite(Number(value)) ? Number(value) : value };
+    return JSON.stringify({ stage, ...spent, at: '2026-11-11T20:00:00.000Z' });
+  });
+  writeFileSync(file, lines.map((l) => `${l}\n`).join(''));
+}
+if ((exitCode === 0 || query.get('files') === '1') && query.get('costlog') !== null) writeCostLog(query.get('costlog'));
 if (exitCode === 0 || query.get('files') === '1') {
   for (const name of FILES.slice(1)) {
     const doc = JSON.parse(readFileSync(join(sample, name), 'utf8'));

@@ -83,12 +83,13 @@ function run(argv) {
     } catch {
       throw new Error(`no job ${sub} in ${join(dataDir, 'jobs')}`);
     }
+    // The server reads the flag once, when a job leaves the line, so neither on nor off can change a job that has started or finished: a started job
+    // keeps its mode, and the flag file stays as the record of how it ran.
+    if (job.status !== 'queued') throw new Error(`job ${sub} is ${job.status}, not queued: the live switch is read when a job starts, so it cannot change this one (a job that has started keeps its mode)`);
     if (rest[0] === 'off') {
       rmSync(join(folder, LIVE_FLAG), { force: true });
       return console.log(`Live switch is off for job ${sub}.`);
     }
-    // The server reads the flag when a job leaves the line, so a job that has started or finished cannot be changed.
-    if (job.status !== 'queued') throw new Error(`job ${sub} is ${job.status}, not queued: the live switch is read when a job starts, so it cannot change this one`);
     writeFileSync(join(folder, LIVE_FLAG), `live switch set ${new Date().toISOString()}\n`);
     return console.log(`Live switch is on for job ${sub}. It runs with --live when it reaches the head of the line, unless today's live spend plus its budget would pass the server's --daily-usd-cap (default 0: it then fails with budget).`);
   }

@@ -235,6 +235,53 @@ test('the cost of a run that failed is counted too, and a cost that is not a num
   assert.deepEqual(spendOf(dataDir), { [DAY]: 3 });
 });
 
+// Lane B writes cost_usd into 40-verdict.json for the council only; its story, art and imagery spend is only in <run>/b-design/cost.jsonl (one line per stage).
+// So the server counts the sum of that file, and 40-verdict.json only when the file does not exist (plans/rulings.md, 2026-11-11 T47 spend counting).
+test('Lane B spend is the sum of every line of b-design/cost.jsonl, with 40-verdict.json used only when that file is missing, plus 50-handoff.json', async () => {
+  const { base, dataDir } = await startApp({ dailyUsdCap: 100, maxLine: 8, now });
+  const { ids, release } = await lineUp(base, dataDir, [
+    { live: true, params: { costlog: 'story:1.2,art:2.7,council:0.1', vcost: 0.1 } }, // the council's 0.1 is in both files: counted once
+    { live: true, params: { costlog: 'story:0.1,art:0.2', vcost: 0.5 } }, // 0.1 + 0.2 is not left as 0.30000000000000004
+    { live: true, params: { costlog: 'story:1,art:2', vcost: 0.5, hcost: 0.25 } },
+    { live: true, params: { vcost: 0.75 } }, // no cost.jsonl: the verdict is all there is
+    { live: true, params: { costlog: '', vcost: 9 } }, // a file with no line says Lane B spent nothing; it does not send us to the verdict
+  ]);
+  release();
+  for (const id of ids) assert.equal((await finished(base, id)).status, 'done');
+  assert.deepEqual(spendOf(dataDir), { [DAY]: 4 + 0.3 + 3.25 + 0.75 }, 'story 1.2 + art 2.7 + council 0.1; then 0.3; then 1 + 2 + 0.25; then 0.75; then 0');
+  const saved = (id) => JSON.parse(readFileSync(join(jobDir(dataDir, id), 'job.json'), 'utf8')).cost_usd;
+  assert.deepEqual(ids.map(saved), [4, 0.3, 3.25, 0.75, 0], 'each job record keeps what it cost');
+});
+
+test('a broken line in cost.jsonl, a cost_usd that is missing, text or negative, or a cost.jsonl that cannot be read counts the whole lane B budget (at least the good lines), with a warning', async () => {
+  const warns = [];
+  const log = { log() {}, error() {}, warn: (m) => warns.push(String(m)) };
+  const dir = tempDir();
+  const { base, dataDir } = await startApp({ now, log, runTemplate: templateWith(dir, { a: 1, b: 2.5, c: 2 }) });
+  let n = 0;
+  const run = async (params) => finished(base, (await post(base, request({ url: site(params, `r${n++}.example`) }))).json.job_id);
+  let total = 0;
+  const expectSpend = async (params, adds, why) => {
+    warns.length = 0;
+    await run(params);
+    total += adds;
+    assert.deepEqual(spendOf(dataDir), { [DAY]: total }, why);
+    assert.ok(warns.some((m) => /cost\.jsonl/.test(m)), `${why}: warned (${warns.join(' | ')})`);
+  };
+  await expectSpend({ costlog: 'story:1,junk' }, 2.5, 'a line that is not JSON');
+  await expectSpend({ costlog: 'story:1,art:missing' }, 2.5, 'a line without cost_usd');
+  await expectSpend({ costlog: 'story:abc' }, 2.5, 'a cost_usd that is text');
+  await expectSpend({ costlog: 'story:1,art:"3"' }, 2.5, 'a number written as text ("3") is not a cost_usd either');
+  await expectSpend({ costlog: 'story:-1,art:0.5' }, 2.5, 'a negative cost_usd');
+  await expectSpend({ costlog: 'dir' }, 2.5, 'a cost.jsonl that cannot be read (it is a folder)');
+  await expectSpend({ costlog: 'story:1.5,art:2,junk' }, 3.5, 'the good lines add up to more than the budget: count them');
+  warns.length = 0;
+  await run({ costlog: 'story:1,art:1' }); // all good
+  total += 2;
+  assert.deepEqual(spendOf(dataDir), { [DAY]: total });
+  assert.ok(!warns.some((m) => /cost\.jsonl/.test(m)), 'a clean file is not warned about');
+});
+
 test('a run that was still going when the server stopped has its cost counted when the server starts again, and only once', async () => {
   const dataDir = tempDir();
   const id = 'runningJobRunningJob02';
@@ -243,14 +290,16 @@ test('a run that was still going when the server stopped has its cost counted wh
   const T = '2026-11-11T10:00:00.000Z';
   const stages = ['running', 'pending', 'pending', 'pending', 'pending', 'pending'].map((state, i) => ({ stage: ['scout', 'story', 'art', 'council', 'select', 'build'][i], state }));
   writeFileSync(join(dataDir, 'jobs', id, 'job.json'), JSON.stringify({ ...fixture('job-queued.json'), job_id: id, status: 'running', mode: 'live', position: null, started_at: T, stages, invite_label: 'x', url: 'https://school.example/', consent_note: 'n' }));
-  writeFileSync(join(runDir, '40-verdict.json'), JSON.stringify({ cost_usd: 1.25 }));
+  mkdirSync(join(runDir, 'b-design'));
+  writeFileSync(join(runDir, 'b-design', 'cost.jsonl'), `${JSON.stringify({ stage: 'story', cost_usd: 1 })}\n${JSON.stringify({ stage: 'art', cost_usd: 0.5 })}\n`); // lane B's spend so far
+  writeFileSync(join(runDir, '40-verdict.json'), JSON.stringify({ cost_usd: 9 })); // not looked at: cost.jsonl is there
   writeFileSync(join(runDir, '50-handoff.json'), JSON.stringify({ cost_usd: 0.25 }));
   const first = await startApp({ dataDir, now });
   assert.equal((await getJob(first.base, id)).json.error.code, 'server_restarted');
-  assert.deepEqual(spendOf(dataDir), { [DAY]: 1.5 });
+  assert.deepEqual(spendOf(dataDir), { [DAY]: 1.75 });
   await first.app.close();
   await startApp({ dataDir, now });
-  assert.deepEqual(spendOf(dataDir), { [DAY]: 1.5 }, 'the job is already failed: not counted again');
+  assert.deepEqual(spendOf(dataDir), { [DAY]: 1.75 }, 'the job is already failed: not counted again');
 });
 
 // ---- admin.mjs live and spend ----
@@ -288,6 +337,28 @@ test('admin live <job_id> on|off sets and clears the flag of a job that is still
   assert.equal(late.code, 1, 'the job has run: the switch cannot change it any more');
   assert.match(late.err, /done/);
   assert.equal(existsSync(flagOf(dataDir, b)), false);
+  const offLate = admin(dataDir, 'live', a, 'off');
+  assert.equal(offLate.code, 1, 'a job that has run keeps its mode: off cannot change it either');
+  assert.match(offLate.err, /done/);
+  assert.ok(existsSync(flagOf(dataDir, a)), 'the flag stays as the record of how it ran');
+});
+
+test('admin live on and off are both refused for a job that is running, and say that a started job keeps its mode', async () => {
+  const { base, dataDir } = await startApp({ dailyUsdCap: 100, now });
+  const id = (await post(base, request({ url: site({ gate: 1 }, 'run.example') }))).json.job_id;
+  await waitFor(async () => (await getJob(base, id)).json.status === 'running', 'the job to start');
+  const on = admin(dataDir, 'live', id, 'on');
+  assert.equal(on.code, 1);
+  assert.match(on.err, /running/);
+  assert.equal(existsSync(flagOf(dataDir, id)), false, 'no flag is made for a job that runs');
+  writeFileSync(flagOf(dataDir, id), 'live\n'); // a flag that is there anyway, as the record of how a live job started
+  const off = admin(dataDir, 'live', id, 'off');
+  assert.equal(off.code, 1);
+  assert.match(off.err, /running/);
+  assert.match(off.err, /keeps its mode/);
+  assert.ok(existsSync(flagOf(dataDir, id)), 'off did not touch it');
+  writeFileSync(join(jobDir(dataDir, id), 'go'), '');
+  await finished(base, id);
 });
 
 test('admin live works for a job id that starts with a dash or an underscore (base64url ids do), and --data-dir=<dir> is accepted', () => {
