@@ -1,14 +1,16 @@
 // The tester app server (plan/web-plan.md T40). Node stdlib only; listens on 127.0.0.1 only.
-//   node web/server/server.mjs [--port 8787] [--data-dir web-data] [--orchestrator orchestrator/cli.mjs] [--timeout-min 45] [--allow-local]
+//   node web/server/server.mjs [--port 8787] [--data-dir web-data] [--orchestrator orchestrator/cli.mjs] [--timeout-min 45] [--daily-usd-cap 0] [--allow-local]
 // Routes: POST /api/jobs, GET /api/jobs/:job_id (contracts/web/README.md); everything else under /api/ is 404 not_found; every other GET and HEAD is a
 // static file of web/ui/ (at the root and under /ui/), read as a file and never executed. The viewer (results, sandboxed) is a separate server.
-// The invite store is injected (createApp option `invites`, built by T47). With none, every start request is refused as invite_invalid.
+// The invite store (invites.mjs, <data dir>/invites.json) is injected as createApp option `invites`: with none, every start request is refused as invite_invalid.
+// The dollar cap for live jobs (--daily-usd-cap, default 0) and the live switch are in queue.mjs; the admin tool is admin.mjs.
 import { createServer } from 'node:http';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, extname, isAbsolute, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { createInviteStore } from './invites.mjs';
 import { API_ERRORS } from './messages.mjs';
 import { JobQueue, isJobId } from './queue.mjs';
 import { checkHost, parseTarget } from './urlcheck.mjs';
@@ -229,17 +231,25 @@ export function createApp({
 // ---- command line ----
 
 async function main() {
-  const { values } = parseArgs({
-    options: { port: { type: 'string' }, 'data-dir': { type: 'string' }, orchestrator: { type: 'string' }, 'timeout-min': { type: 'string' }, 'allow-local': { type: 'boolean' } },
-  });
   const usage = (text) => {
-    console.error(`${text}\nusage: node web/server/server.mjs [--port 8787] [--data-dir web-data] [--orchestrator orchestrator/cli.mjs] [--timeout-min 45] [--allow-local]`);
+    console.error(`${text}\nusage: node web/server/server.mjs [--port 8787] [--data-dir web-data] [--orchestrator orchestrator/cli.mjs] [--timeout-min 45] [--daily-usd-cap 0] [--allow-local]`);
     process.exit(2);
   };
+  let values;
+  try {
+    ({ values } = parseArgs({
+      options: { port: { type: 'string' }, 'data-dir': { type: 'string' }, orchestrator: { type: 'string' }, 'timeout-min': { type: 'string' }, 'daily-usd-cap': { type: 'string' }, 'allow-local': { type: 'boolean' } },
+    }));
+  } catch (e) {
+    usage(e.message);
+  }
   const port = values.port === undefined ? 8787 : Number(values.port);
   if (!Number.isInteger(port) || port < 0 || port > 65535) usage(`--port must be a whole number from 0 to 65535, got ${values.port}`);
   const timeoutMin = values['timeout-min'] === undefined ? 45 : Number(values['timeout-min']);
   if (!Number.isFinite(timeoutMin) || timeoutMin <= 0) usage(`--timeout-min must be a number above 0, got ${values['timeout-min']}`);
+  const capText = values['daily-usd-cap'];
+  const dailyUsdCap = capText === undefined ? 0 : Number(capText);
+  if (capText !== undefined && (capText.trim() === '' || !Number.isFinite(dailyUsdCap) || dailyUsdCap < 0)) usage(`--daily-usd-cap must be a number of dollars, 0 or more, got "${capText}"`);
   const abs = (p) => (isAbsolute(p) ? p : resolve(process.cwd(), p));
   const orchestrator = values.orchestrator ? abs(values.orchestrator) : join(repoRoot, 'orchestrator', 'cli.mjs');
   if (!existsSync(orchestrator)) usage(`the orchestrator script does not exist: ${orchestrator}`);
@@ -252,11 +262,14 @@ async function main() {
   if (note) console.error(note);
 
   const uiDir = join(here, '..', 'ui');
-  const app = createApp({ dataDir: values['data-dir'] ? abs(values['data-dir']) : join(repoRoot, 'web-data'), orchestrator, uiDir, allowLocal: values['allow-local'], timeoutMs: Math.round(timeoutMin * 60_000) });
+  const dataDir = values['data-dir'] ? abs(values['data-dir']) : join(repoRoot, 'web-data');
+  const invites = createInviteStore({ dataDir });
+  const app = createApp({ dataDir, orchestrator, uiDir, invites, dailyUsdCap, allowLocal: values['allow-local'], timeoutMs: Math.round(timeoutMin * 60_000) });
   await app.listen(port);
   console.log(`Tester app server listening on http://127.0.0.1:${app.port}`);
   if (!existsSync(join(uiDir, 'index.html'))) console.log('web/ui/ has no index.html yet: serving the placeholder page.');
-  console.log('No invite store is wired in yet (task T47): every start request is refused as invite_invalid.');
+  console.log(`Invite codes: ${join(dataDir, 'invites.json')} (make one with: node web/server/admin.mjs invite add <label>)`);
+  console.log(`Daily dollar cap for live runs: $${dailyUsdCap.toFixed(2)}${dailyUsdCap === 0 ? ' (every live job fails at start with budget; raise it with --daily-usd-cap <dollars>)' : ''}`);
   if (values['allow-local']) console.error('WARNING: --allow-local is on. Private and local addresses are accepted as targets. Use it only on your own machine.');
   const stop = () => app.close().finally(() => process.exit(0));
   process.once('SIGINT', stop);

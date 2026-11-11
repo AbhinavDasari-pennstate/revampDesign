@@ -3,13 +3,13 @@
 import { test, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto, { createHash } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { syncBuiltinESMExports } from 'node:module';
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ALPHABET, createInviteStore, newCode } from '../invites.mjs';
-import { assertError, assertJob, cleanup, finished, getJob, oneUse, post, request, startApp, tempDir } from './harness.mjs';
+import { FAKE, argvOf, assertError, assertJob, cleanup, finished, getJob, jobDir, oneUse, post, request, startApp, tempDir, waitFor } from './harness.mjs';
 
 afterEach(cleanup);
 
@@ -325,4 +325,60 @@ test('with the real store: a code works once per Los Angeles day, again the next
   assertError(await post(base, request({ invite_code: code })), 'invite_invalid', 403);
   assertError(await post(base, request({ invite_code: 'NOTACODE2345' })), 'invite_invalid', 403);
   await finished(base, first.json.job_id);
+});
+
+// ---- the server program (server.mjs as a process): the real invite store and the cap are wired in ----
+
+const SERVER = join(serverDir, 'server.mjs');
+async function withServerProgram(dataDir, extraArgs, fn) {
+  const child = spawn(process.execPath, [SERVER, '--port', '0', '--data-dir', dataDir, '--orchestrator', FAKE, '--allow-local', ...extraArgs], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+  let out = '';
+  child.stdout.on('data', (d) => (out += d));
+  child.stderr.on('data', () => {});
+  try {
+    const port = await waitFor(() => /listening on http:\/\/127\.0\.0\.1:(\d+)/.exec(out)?.[1], 'the server program to listen');
+    return await fn(`http://127.0.0.1:${port}`, () => out);
+  } finally {
+    const gone = new Promise((resolve) => child.once('exit', resolve));
+    child.kill();
+    if (child.exitCode === null) await gone;
+  }
+}
+
+test('the server program: invite add, then a real POST works once per day; admin live makes a queued job live only under a dollar cap, and the default cap of 0 refuses it', async () => {
+  for (const [cap, args] of [[0, []], [100, ['--daily-usd-cap', '100']]]) {
+    const dataDir = tempDir();
+    await withServerProgram(dataDir, args, async (base, output) => {
+      await waitFor(() => /Daily dollar cap/.test(output()), 'the startup lines'); // they can arrive after the line with the port
+      assert.match(output(), new RegExp(`Daily dollar cap for live runs: \\$${cap}\\.00`));
+      assert.match(output(), /invites\.json/);
+      const code = codeOf(admin(dataDir, 'invite', 'add', 'pilot-1').out);
+      const other = codeOf(admin(dataDir, 'invite', 'add', 'pilot-2').out);
+      const first = await post(base, request({ invite_code: code, url: 'http://127.0.0.1:9/?gate=1' }));
+      assert.equal(first.status, 202, JSON.stringify(first.json));
+      assertError(await post(base, request({ invite_code: code, url: 'http://127.0.0.1:9/?n=1' })), 'invite_used_today', 429);
+      assertError(await post(base, request({ invite_code: 'NOTACODE2345', url: 'http://127.0.0.1:9/?n=1' })), 'invite_invalid', 403);
+      const second = await post(base, request({ invite_code: other, url: 'http://127.0.0.1:9/?n=2' }));
+      assert.equal(second.status, 202);
+      assert.equal(admin(dataDir, 'live', second.json.job_id, 'on').code, 0);
+      writeFileSync(join(jobDir(dataDir, first.json.job_id), 'go'), '');
+      assert.equal((await finished(base, first.json.job_id)).mode, 'free');
+      const ran = await finished(base, second.json.job_id);
+      assert.equal(ran.mode, 'live');
+      if (cap === 0) {
+        assert.deepEqual([ran.status, ran.error.code, ran.started_at], ['failed', 'budget', null]);
+      } else {
+        assert.equal(ran.status, 'done');
+        assert.ok(argvOf(dataDir, second.json.job_id).includes('--live'));
+      }
+    });
+  }
+});
+
+test('--daily-usd-cap must be a number of dollars, 0 or more: anything else is a usage error (exit 2) before the server starts', () => {
+  for (const args of [['--daily-usd-cap', 'abc'], ['--daily-usd-cap', ''], ['--daily-usd-cap', ' '], ['--daily-usd-cap', 'NaN'], ['--daily-usd-cap', 'Infinity'], ['--daily-usd-cap', '1,5'], ['--daily-usd-cap=-1'], ['--daily-usd-cap', '-1'], ['--daily-usd-cap']]) {
+    const r = spawnSync(process.execPath, [SERVER, '--port', '0', '--data-dir', tempDir(), ...args], { encoding: 'utf8', timeout: 30000 });
+    assert.equal(r.status, 2, `${JSON.stringify(args)}: ${r.stderr}`);
+    assert.match(r.stderr, /--daily-usd-cap/);
+  }
 });
