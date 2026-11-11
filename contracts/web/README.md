@@ -33,13 +33,13 @@ The viewer allows CORS for the app origin only, on the manifest and the report. 
 | 4 | `consent` is missing or is anything other than the boolean `true` | `consent_required` | 400 |
 | 5 | `invite_code` is missing, empty, unknown or revoked | `invite_invalid` | 403 |
 | 6 | The invite code already started an accepted run today (America/Los_Angeles day) | `invite_used_today` | 429 |
-| 7 | The live switch is on and today's paid (live) spend is at or above the daily dollar cap; a free run never reaches this rule | `daily_cap_reached` | 503 |
+| 7 | Reserved for a later server-wide live default. v1 never checks it and never sends it: the dollar cap is enforced when a live job reaches the head of the line, as a `budget` failure (see below) | `daily_cap_reached` | 503 |
 | 8 | After a DNS lookup the host is loopback, private, link-local, CGNAT or unique-local IPv6 | `host_not_public` | 400 |
 | 9 | The waiting line has no room | `queue_full` | 503 |
 
 Rules 1 to 4 need no secret and no network. The DNS lookup (rule 8) comes after the invite checks, so a caller without a valid code cannot use the server to resolve names. The server writes at most the first 100 Unicode code points (the same unit as `[...s].length`, so an emoji counts once) of `owner_name` into the consent note.
 
-Rule 7 and the dollar cap: the daily dollar cap limits paid (live) spend only. A free run is never refused with `daily_cap_reached`. A POST is refused with `daily_cap_reached` only when the live switch is on and today's spend is at or above the cap. A cap of 0, the default, means a live run is never allowed. A live job that passes this check at POST time but is refused when it reaches the head of the line fails with `budget` instead (see the mapping below).
+Rule 7 and the dollar cap: the daily dollar cap limits paid (live) spend only, and in v1 the live switch is per job and is set after the POST, so no POST can be refused for the dollar cap. A free run is never refused for the cap. The cap is enforced only when a live job reaches the head of the line: if today's spend is at or above the daily dollar cap, or this job's own budget would take it over, the job fails with `budget` and never starts (`fixtures/job-failed-budget-at-start.json`). The default cap is 0, so every live job fails at start with `budget` until a cap is set. `daily_cap_reached` stays a valid code in `error.v1` and keeps its fixture, reserved for a later server-wide live default, and v1 never sends it.
 
 The schema is looser than the server on credential URLs: `start-request.v1` accepts `https://user:pass@host/`, and rule 2 is the guard that answers `bad_url`. A page that validates against the schema has therefore not been fully checked.
 
@@ -100,18 +100,18 @@ Messages are written for a school office or small organisation owner. They are p
 | `consent_required` | 400 | `error.v1` | Please tick the box to confirm that you own this site or have the owner's permission. |
 | `invite_invalid` | 403 | `error.v1` | That invite code was not recognised. Check it and try again. |
 | `invite_used_today` | 429 | `error.v1` | This invite code has already been used today. Please try again tomorrow. |
-| `daily_cap_reached` | 503 | `error.v1` | We have reached our limit for today. Please try again tomorrow. |
+| `daily_cap_reached` | 503 | `error.v1`, reserved: v1 never sends it | We have reached our limit for today. Please try again tomorrow. |
 | `queue_full` | 503 | `error.v1` | Several redesigns are waiting right now. Please try again in a little while. |
 | `not_found` | 404 | `error.v1` | We could not find that. Check the link and try again. |
 | `site_blocked` | none | `job.v1` `error`, `failed` event | We could not open any page of your site. It may block automated visitors, or it may be offline. |
 | `quality_gate` | none | `job.v1` `error`, `failed` event | We could not finish a redesign that passes our quality checks, so we are not showing one. |
-| `budget` | none | `job.v1` `error`, `failed` event | This run reached its spending limit before it finished, so it was stopped. |
+| `budget` | none | `job.v1` `error`, `failed` event | This run would go over its spending limit, so it was stopped. |
 | `not_real` | none | `job.v1` `error`, `failed` event | This run could not build a real redesign of your site, so there is nothing to show. |
 | `timeout` | none | `job.v1` `error`, `failed` event | This run took too long and was stopped. Please try again later. |
 | `crash` | none | `job.v1` `error`, `failed` event | Something went wrong on our side while building your redesign. Please try again later. |
 | `server_restarted` | none | `job.v1` `error`, `failed` event | The server restarted while your run was in progress, so it was stopped. Please start it again. |
 
-How the server maps what it saw to a run failure code (T43): exit 3 at scout is `site_blocked`, exit 3 later is `quality_gate`, exit 4 is `budget` (`budget` also covers a live job that is refused at start: all six stages `pending`, `started_at` null, `mode` `live`, see `fixtures/job-failed-budget-at-start.json`), an exit 0 whose output shows a stub fallback is `not_real`, a killed run is `timeout`, any other non-zero exit is `crash`, and a job left `queued` or `running` when the server starts again is `server_restarted`.
+How the server maps what it saw to a run failure code (T43): exit 3 at scout is `site_blocked`, exit 3 later is `quality_gate`, exit 4 is `budget` (`budget` also covers a live job that is refused at start because of the dollar cap: all six stages `pending`, `started_at` null, `mode` `live`, see `fixtures/job-failed-budget-at-start.json`), an exit 0 whose output shows a stub fallback is `not_real`, a killed run is `timeout`, any other non-zero exit is `crash`, and a job left `queued` or `running` when the server starts again is `server_restarted`.
 
 ## Fixtures
 All data is fictional: the site is Maple Grove High School from `contracts/fixtures/sample/`, the invite code is made up, and every fixture uses the job id `Xk3nP9qLm2VbT7sRw4YdHa`. Times are fixed, so a re-recording from the real server compares after ids and times are normalised. `.gitattributes` stores the `.sse` files with LF line ends on every machine, and consumers and re-recordings compare parsed events, never raw text.

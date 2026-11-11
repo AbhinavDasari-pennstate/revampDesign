@@ -34,7 +34,7 @@
   "finished_at": "2026-11-11T18:05:00.000Z",
   "error": {
     "code": "budget",
-    "message": "This run reached its spending limit before it finished, so it was stopped."
+    "message": "This run would go over its spending limit, so it was stopped."
   },
   "manifest_url": null
 }

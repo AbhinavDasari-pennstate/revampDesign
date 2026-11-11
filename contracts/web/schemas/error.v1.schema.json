@@ -223,7 +223,7 @@
               "const": "budget"
             },
             "message": {
-              "const": "This run reached its spending limit before it finished, so it was stopped."
+              "const": "This run would go over its spending limit, so it was stopped."
             }
           }
         },

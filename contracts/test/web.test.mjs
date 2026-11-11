@@ -407,6 +407,9 @@ test('a live job refused at start is a failed budget job with nothing run: stage
   assert.equal(job.mode, 'live');
   assert.equal(job.error.code, 'budget');
   assert.equal(job.error.message, fixture('job-failed-budget.json').error.message, 'the same fixed text as every budget failure');
+  // One sentence for both a run stopped part way and a job refused before it started, so it must not say "before it finished".
+  assert.equal(job.error.message, 'This run would go over its spending limit, so it was stopped.');
+  assert.ok(!/finish/.test(job.error.message));
   assert.equal(job.started_at, null);
   assert.ok(job.finished_at);
   assert.ok(job.stages.every((s) => s.state === 'pending'));
@@ -414,15 +417,40 @@ test('a live job refused at start is a failed budget job with nothing run: stage
   assert.equal(job.position, null);
 });
 
-test('the README says what the daily dollar cap limits: live spend only, never a free run', () => {
+test('the README says how the daily dollar cap works in v1: per job live switch, enforced at the head of the line with budget, daily_cap_reached never sent', () => {
   const readme = read(join(web, 'README.md'));
-  assert.ok(readme.includes('limits paid (live) spend only'));
-  assert.ok(readme.includes('A free run is never refused with `daily_cap_reached`.'));
-  assert.ok(readme.includes("only when the live switch is on and today's spend is at or above the cap"));
-  assert.ok(readme.includes('A cap of 0, the default, means a live run is never allowed.'));
+  assert.ok(readme.includes('the live switch is per job and is set after the POST, so no POST can be refused for the dollar cap'));
+  assert.ok(readme.includes('A free run is never refused for the cap.'));
+  assert.ok(readme.includes('The cap is enforced only when a live job reaches the head of the line'));
+  assert.ok(readme.includes("today's spend is at or above the daily dollar cap"));
+  assert.ok(readme.includes('the job fails with `budget` and never starts'));
+  assert.ok(readme.includes('The default cap is 0, so every live job fails at start with `budget`'));
+  assert.ok(readme.includes('`daily_cap_reached` stays a valid code in `error.v1`'));
+  assert.ok(readme.includes('reserved for a later server-wide live default, and v1 never sends it'));
+  // The old rule: a POST refused with daily_cap_reached when the live switch is on. It must be gone.
+  assert.ok(!readme.includes('A POST is refused with `daily_cap_reached`'));
+  assert.ok(!readme.includes('A cap of 0, the default, means a live run is never allowed.'));
   const rule7 = readme.split(/\r?\n/).find((l) => /^\| 7 \| /.test(l));
-  assert.match(rule7, /live/, 'the rule 7 table row names the live switch');
+  assert.match(rule7, /Reserved/, 'the rule 7 table row says the check is reserved');
+  assert.match(rule7, /never sends it/);
   assert.match(rule7, /`daily_cap_reached` \| 503 \|$/);
+  assert.ok(!/live switch is on/.test(rule7), 'the row no longer promises a POST refusal');
+});
+
+test('daily_cap_reached keeps its code, text and fixture but no job, event or stream in v1 carries it', () => {
+  assert.equal(fixture('error-daily_cap_reached.json').error.code, 'daily_cap_reached');
+  for (const name of fixtureNames().filter((f) => /^job-|^events-/.test(f))) assert.ok(!read(join(web, 'fixtures', name)).includes('daily_cap_reached'), name);
+  const row = read(join(web, 'README.md')).split(/\r?\n/).find((l) => l.startsWith('| `daily_cap_reached` | 503 |'));
+  assert.match(row, /reserved: v1 never sends it/, 'the error table marks the code as reserved');
+});
+
+test('the budget message fits both a stopped run and a job refused before it started', () => {
+  const text = 'This run would go over its spending limit, so it was stopped.';
+  assert.equal(fixture('job-failed-budget.json').error.message, text);
+  assert.ok(read(join(web, 'README.md')).includes(`| ${text} |`));
+  const stopped = fixture('job-failed-budget.json');
+  stopped.error.message = 'This run reached its spending limit before it finished, so it was stopped.';
+  invalid('job.v1', stopped, 'the old budget wording');
 });
 
 test('the README says how long a name may be in Unicode code points, and what budget also covers', () => {
