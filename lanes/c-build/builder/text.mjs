@@ -13,8 +13,12 @@ const WORD_RANGE = new RegExp(`(\\w)${EN}(?=\\w)`, 'g');
 const DAY = 'Mon(?:day)?|Tue(?:s(?:day)?)?|Wed(?:nesday)?|Thu(?:r(?:s(?:day)?)?)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?';
 const MONTH = 'Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?';
 const NAME = `\\b(?:${DAY}|${MONTH})\\b\\.?`;
-const SPAN_RANGE = new RegExp(`(${NAME}|\\b[ap]\\.?m\\b\\.?)\\s*${ANY}\\s*(?=\\d|${NAME}|\\b(?:noon|midnight)\\b)`, 'gi');
-const PAUSE = new RegExp(`\\s*${ANY}\\s*`, 'g');
+// am or pm may be stuck to its digit (8:00am); a weekday or month pairs only with another weekday or month,
+// so "Friday, 7 p.m." stays a pause.
+const AMPM = '(?:\\b|(?<=\\d))[ap]\\.?m\\b\\.?';
+const SPAN_RANGE = new RegExp(`(${NAME}(?=\\s*${ANY}\\s*${NAME})|${AMPM})\\s*${ANY}\\s*(?=\\d|${NAME}|\\b(?:noon|midnight)\\b)`, 'gi');
+// Starts only after a non-space, so a long run of spaces is scanned once, not once per space.
+const PAUSE = new RegExp(`(?<!\\s)\\s*${ANY}\\s*`, 'g');
 
 export function noDashes(text) {
   return text.replace(GRADE_SPAN, '$1-').replace(NUMBER_RANGE, '$1-').replace(SPAN_RANGE, '$1 to ').replace(WORD_RANGE, '$1 to ').replace(PAUSE, ', ');

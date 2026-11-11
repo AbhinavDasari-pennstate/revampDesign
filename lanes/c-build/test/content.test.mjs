@@ -107,9 +107,22 @@ test('the dash rule keeps ranges and grade spans, and only turns pauses into com
     [`Mon${EM}Fri`, 'Mon to Fri'],
     [`8 a.m. ${EN} noon`, '8 a.m. to noon'],
     [`Room 5 ${EN} Monday only`, 'Room 5, Monday only'],
+    // Second review of PR #29: am/pm stuck to the digit, and a day or month before a time.
+    [`Office hours 8:00am ${EN} 3:00pm`, 'Office hours 8:00am to 3:00pm'],
+    [`8am${EM}3pm`, '8am to 3pm'],
+    [`Join us Friday ${EM} 7 p.m. at the gym`, 'Join us Friday, 7 p.m. at the gym'],
+    [`in March ${EM} 12 spots left`, 'in March, 12 spots left'],
     // Still pauses: a dash that does not sit between two range ends.
     [`Open Monday ${EM} closed on holidays`, 'Open Monday, closed on holidays'],
     [`We march ${EN} proudly`, 'We march, proudly'],
   ];
   for (const [input, want] of cases) assert.equal(noDashes(input), want, JSON.stringify(input));
+});
+
+// A dash after a very long run of spaces must not take quadratic time (second review of PR #29).
+test('the dash rule stays fast on long runs of spaces', () => {
+  const text = `x${' '.repeat(50000)}x ${String.fromCharCode(0x2013)} y`;
+  const start = performance.now();
+  noDashes(text);
+  assert.ok(performance.now() - start < 200, `took ${Math.round(performance.now() - start)} ms`);
 });
