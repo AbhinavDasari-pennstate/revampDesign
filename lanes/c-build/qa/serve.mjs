@@ -21,7 +21,13 @@ const TYPES = {
 export function serve(dir) {
   const root = resolve(dir);
   const server = createServer(async (req, res) => {
-    let file = resolve(join(root, decodeURIComponent(new URL(req.url, 'http://x').pathname)));
+    let file;
+    try {
+      file = resolve(join(root, decodeURIComponent(new URL(req.url, 'http://x').pathname)));
+    } catch {
+      // A malformed escape such as %E0%A4%A: answer it instead of crashing the handler.
+      return res.writeHead(400).end();
+    }
     if (file !== root && !file.startsWith(root + sep)) return res.writeHead(403).end();
     if (file === root || req.url.endsWith('/')) file = join(file, 'index.html');
     try {

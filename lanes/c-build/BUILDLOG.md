@@ -9,10 +9,10 @@ Every Lane C task and every change made in `lanes/c-build/`. Task specs live in 
 | T06 | Astro base template with token slots | none | merged to main | lane-c/T06-template | #10 | fea9afc |
 | T12 | CLI skeleton and input validation (exit codes 2 and 4) | T06 | merged to main | lane-c/T12-cli | #11 | b0ef668 |
 | T13 | Pages from the storyboard, direction tokens, nav order | T12 | merged to main | lane-c/T13-pages | #12 | da00af7 |
-| T15 | Verbatim content with `data-src`, images, form fallback | T13 | done, merge with T23 | lane-c/T15-content | | e495e87 |
-| T21 | QA gates: axe-core and Lighthouse | T15 | done, merge with T23 | lane-c/T21-a11y | | 942da44 |
-| T22 | QA gates: link check and fact diff | T21 | done, merge with T23 | lane-c/T22-links-facts | | b7c8562 |
-| T23 | Handoff: screenshots, report, local repo, 50-handoff.json | T22 | done, integration ready on branch | lane-c/T23-handoff | | b317675 |
+| T15 | Verbatim content with `data-src`, images, form fallback | T13 | merged to main | lane-c/T15-content | #13 | e495e87 |
+| T21 | QA gates: axe-core and Lighthouse | T15 | merged to main | lane-c/T21-a11y | #13 | 942da44 |
+| T22 | QA gates: link check and fact diff | T21 | merged to main | lane-c/T22-links-facts | #13 | b7c8562 |
+| T23 | Handoff: screenshots, report, local repo, 50-handoff.json | T22 | merged to main, integration ready | lane-c/T23-handoff | #13 | b317675 |
 | T29 | Builder quality pass on real samples (`contracts/samples/`) | T23 | not started | | | |
 | T30 | Preview publish (approval gated: no deploy or account without an explicit OK) | T23 | not started | | | |
 | T34 | Fix top red-team defects, one test each | T29 | not started | | | |
@@ -65,9 +65,23 @@ Not installed: linkinator (approved for T22). The built site's links are few and
 - Site repo (T23, `handoff/repo.mjs`): `git init` on `main`, a README (see it, put it online, the page list, how to change and rebuild), a `.gitignore` for `node_modules/` and `.astro/`, and one commit by "Redesign Agent" set with `git -c`, so it never depends on the machine's git identity. `dist/` is committed so a non-technical owner can upload it as is. The README says `npm install`, not `npm ci`, because the site has no lockfile.
 - Integration ready means: on the sample, `build` exits 0 and writes a handoff that passes our own handoff.v1 check, every path in it exists, and every page slug is a storyboard page. These are the checks `contracts/validate.mjs --cross` makes for a handoff. Lane C does not run that script (lane `CLAUDE.md`); the orchestrator runs it on integration.
 
+### Revised after Abhinav's review (issues #14 to #18, #20)
+These replace the matching lines above where they disagree.
+- What the site shows (#14, `builder/content.mjs`): one rule, used by the builder, the fact diff and the fidelity report. A block is shown if a storyboard section lists it as a body block, except the block an edited section rewrote into its headline (shortened). Facts whose block is neither shown nor shortened, or explicitly dropped, are not checked by the fact diff; each is listed in `fidelity.dropped` (ref = fact id) with its kind and value. This covers footer rows such as "Copyright 2009", banners, and every block on a page the storyboard drops or never uses. Pending a ruling from Abhinav or Vidyut, this is the safe default the issue proposed: nothing is hidden from the owner.
+- Fact diff (#16): a fact whose block is shown is judged only there. Phones and emails count only inside the block itself (the contact section also holds the form note, which repeats the original number); other facts may also match the section heading (a legal notice's name). Any other phone or email in the block is reported as `changed`, whatever its size. The site wide search is kept only for shortened blocks. The earlier line saying a copy elsewhere "cannot hide a changed digit" was true only for one or two digits; it is true for any change now.
+- Dash rule (#15, `builder/text.mjs`): ranges stay ranges. Grade spans and number ranges get a hyphen (K-8, Pre-K-5, 9-12); an en dash between two words with no spaces becomes " to " (Mon to Fri, 7:30 AM to 3:30 PM); an em dash, or any dash with spaces around it, is a pause and becomes a comma. Known limit: a spaced en dash used as a range ("Monday [dash] Friday" with spaces) still becomes a comma.
+- Shortened text (#17): each block an edited section rewrote into its headline is in `fidelity.flagged` with the headline and the first 160 characters of the old text.
+- Form fallback (#18): uses the phone and email facts from the form's own old page, the first on the site only if that page has none; `tel:` drops a trailing extension ("ext. 12", "x12").
+- Site repo (#18): committed with `commit.gpgsign=false` and `--no-verify`, so a machine that signs commits or has global hooks cannot break the build. This applies only to the generated site repo.
+- Link check (#18): redirects are followed by hand (at most 5); before each hop the host's addresses are looked up and loopback, private (10, 172.16 to 31, 192.168), link local, carrier grade NAT, unspecified and IPv6 local addresses are refused, so the link counts as broken (reported only). `allowPrivate` exists only for the test that serves "external" links from 127.0.0.1.
+- QA server (#18): a malformed URL escape gets 400 instead of an exception.
+- Report (#18): "Every required check passed".
+- Lockfile (#20): regenerated on Node 24.11 and npm 11.6.1; it now records `@emnapi/core` and `@emnapi/runtime` 1.11.3, optional dependencies of Tailwind's wasm build that the Linux runner needs. Checked with `npm ci` and the full suite on Windows; Docker Desktop's engine would not start here, so the Linux `npm ci` is proven by CI once the `c-build` job is back.
+
 ## Open items
 
-- Ask Abhinav: add a `c-build` CI job (npm ci, `npx playwright install --with-deps chromium`, `node --test` in `lanes/c-build`); replace `@ADITYA_GH` with `@adithya916` in CODEOWNERS; run the orchestrator on Node 24, because Astro 7 needs Node 22 or later and the orchestrator runs our CLI with its own Node.
+- ~~Ask Abhinav: CI job, CODEOWNERS, Node 24~~ CODEOWNERS done (`@adithya916`). The `c-build` CI job was added in PR #19 and dropped again because `npm ci` failed (#20); with the new lockfile it can come back. Node 24: Lane A's FU4 now warns when Node is older than `.nvmrc`.
+- Ruling wanted on #14 (Abhinav or Vidyut): exempt facts in blocks the site does not show (done here, listed in the report), or require Lane B to drop them block by block.
 - ~~T13 or T23: built pages link CSS at `/_astro/...`~~ Closed in T13 with `assetsPrefix: '.'`.
 - ~~T21: sections fade in over 600 ms~~ Closed in T21: axe and Lighthouse run with reduced motion. T23 screenshots must do the same.
 - CI: the `c-build` job asked of Abhinav must run `npx playwright install --with-deps chromium` before `node --test`; the suite takes about 3 minutes (three Lighthouse runs build and audit the site).
@@ -76,7 +90,7 @@ Not installed: linkinator (approved for T22). The built site's links are few and
 - T29: the sample CTA section shows "Questions? Call the main office" as its headline and again at the start of its block. Same cause and same possible fix.
 - T29 or T37: the built CSS file is named `_..<hash>.css` (from the `[...slug]` route name). Harmless, but rename the route if an owner finds it confusing.
 - T37: the report names dropped forms and images by id (`p03-f01`); an owner would rather read "the contact form on the Contact page".
-- Merging: T06 can merge now. T12 to T23 should merge together, in order, with merge commits, once Aditya opens the PRs; then Lane C is integration ready on main and the orchestrator stops stubbing the build stage.
+- ~~Merging T06 to T23~~ Done: PRs #10 to #13; Lane C is on main.
 
 ## Change log
 
@@ -94,3 +108,15 @@ Not installed: linkinator (approved for T22). The built site's links are few and
 - 2026-11-05 T22: pushed lane-c/T22-links-facts (b7c8562, on top of T21) to origin at Aditya's request. Any PR for it stays a draft until T23.
 - 2026-11-05 T23 (lane-c/T23-handoff, cut from lane-c/T22-links-facts): added `handoff/fidelity.mjs`, `handoff/screens.mjs`, `handoff/report.mjs`, `handoff/repo.mjs`, `test/handoff.test.mjs`; `cli.mjs` writes the full handoff on a pass (exit 0) and on a gate failure (exit 3); `builder/pages.mjs` returns page titles; `test/qa-gates.test.mjs` now also checks the fail handoff. Tests written first and failed (no `handoff/fidelity.mjs`). Covers: on the sample, build exits 0 with a valid `status: "pass"` handoff; every path in it exists and is relative; every page slug is a storyboard page; each page has PNG screenshots at both widths; the site is a git repo with one commit, a README and `dist/`, nothing uncommitted; fidelity 3 of 4 pages, calendar dropped, contact form flagged; the report names every dropped and flagged item with its reason and says "Ready to publish" in its first lines; fidelity also lists unused pages, outside links, lost images and plain forms; a failed gate writes a valid `status: "fail"` handoff and a "Not ready to publish" report. Integration check: ran the build stage, with the orchestrator's exact arguments, on a full copy of the sample run: exit 0; report ready to publish; axe 0, Lighthouse accessibility 100 on all pages, 16 links, 8 facts; 6 screenshots checked by eye. Fixed on the way: the site README said `npm ci`, which needs a lockfile the site does not have; now `npm install`. `node --test`: 46/46 pass, about 3 min. **Lane C integration ready** on lane-c/T23-handoff.
 - 2026-11-05 main now has T06, T12 and T13 (PRs #10, #11, #12, merge commits) and Lane A's FU2 fix. Merged origin/main into lane-c/T23-handoff (merge commit e8f29bf, no conflicts); lane guard now sees 29 Lane C files. Note: with T12 and T13 on main, the orchestrator runs our CLI, which at T13 builds the site and then exits 1, so real runs on main stop at the build stage until T15 to T23 are merged too.
+- 2026-11-05 T23: pushed lane-c/T23-handoff (b317675, merge e8f29bf, log 846b38c) to origin at Aditya's request. One PR from this branch into main brings T15, T21, T22 and T23 together; merge it with a merge commit.
+- 2026-11-06 PR #13 opened from lane-c/T23-handoff into main (title "Lane C: T15, T21, T22, T23 (integration ready)", 6 commits, 29 Lane C files). Created by Aditya in the browser after Claude filled in the title and description; the "Generated with Claude Code" line was removed by Aditya. CI checks were still running when this entry was written.
+- 2026-11-06 PR #13 merged into main by Aditya as merge commit b685a0b, after all four CI checks passed (lane-guard, contracts, orchestrator, a-scout). Claude's own click on Merge was blocked by the app's safety check, so Aditya merged it. On main, `cd lanes/c-build && npm ci && node --test`: 46/46 pass. **Lane C is integration ready on main**: the orchestrator now runs the real build stage. Branches lane-c/T06 to T23 can be deleted on GitHub.
+- 2026-11-09 Correction (#18): the change log entry for the PR #13 merge above said real runs on main stop at the build stage; that was true only between PRs #12 and #13. Since b685a0b the build stage runs for real. The build list rows now say "merged to main".
+- 2026-11-09 Review fixes on lane-c/fix-issues (from main baf2446), one commit per issue, each with a failing test first:
+  - #20 31a026c: package-lock.json regenerated; npm ci and 46/46 on Windows.
+  - #14 b4b714d: facts in blocks the site does not show are skipped and listed in fidelity.dropped; tests with a Scout style footer fact ("2009") and a dropped page; the end to end handoff test now carries the footer fact and still exits 0.
+  - #15 cf9052d: dash rule keeps ranges (K-8, Mon to Fri, 7:30 AM to 3:30 PM).
+  - #16 f580292: shown facts judged only in their own block; (555) 010-0999 and (555) 999-8888 are now caught.
+  - #17 0e3717c: shortened blocks flagged with headline and opening text.
+  - #18 0cb242d: QA server 400, own page phone and tel without extension, repo commit without signing or hooks, report wording, private address block on links; test/hardening.test.mjs.
+  - `node --test`: 55/55 pass, about 3 min 40 s. Not verified: npm ci on Linux (Docker engine did not start).

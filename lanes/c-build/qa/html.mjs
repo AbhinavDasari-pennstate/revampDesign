@@ -22,6 +22,15 @@ export function elementText(html, id) {
   return m ? strip(m[2]) : null;
 }
 
+// Text of the <section> that holds the element tagged data-src="<id>", heading included; null if none.
+export function sectionText(html, id) {
+  const at = html.indexOf(` data-src="${id}"`);
+  if (at < 0) return null;
+  const start = html.lastIndexOf('<section', at);
+  const end = html.indexOf('</section>', at);
+  return start < 0 || end < 0 ? null : strip(html.slice(start, end));
+}
+
 // href and src values of links, images, scripts and frames. Preconnect hints are not links.
 export function linkTargets(html) {
   const out = [];
