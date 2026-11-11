@@ -9,6 +9,7 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ALPHABET, createInviteStore, newCode } from '../invites.mjs';
+import { laDay } from '../ledger.mjs';
 import { FAKE, argvOf, assertError, assertJob, cleanup, finished, getJob, jobDir, oneUse, post, request, startApp, tempDir, waitFor } from './harness.mjs';
 
 afterEach(cleanup);
@@ -194,6 +195,15 @@ test('one use per America/Los_Angeles day: the day turns at local midnight, in w
   assert.equal(store.check(code).usedToday, false, 'reset gives the code its run back');
   assert.throws(() => store.reset('nobody'), /no invite labelled nobody/);
   assert.throws(() => store.recordUse('nobody'), /no invite labelled nobody/);
+});
+
+test('laDay is the Los Angeles calendar day as YYYY-MM-DD, with the right month and day around both clock changes', () => {
+  const days = [
+    ['2026-07-04T20:00:00Z', '2026-07-04'], ['2026-12-25T07:59:59Z', '2026-12-24'], ['2027-01-01T08:00:00Z', '2027-01-01'], ['2026-01-02T10:00:00Z', '2026-01-02'],
+    ['2026-03-08T07:59:59Z', '2026-03-07'], ['2026-03-08T08:00:00Z', '2026-03-08'], ['2026-03-09T06:59:59Z', '2026-03-08'], ['2026-03-09T07:00:00Z', '2026-03-09'], // 23 hours: spring forward
+    ['2026-11-01T06:59:59Z', '2026-10-31'], ['2026-11-01T07:00:00Z', '2026-11-01'], ['2026-11-02T07:59:59Z', '2026-11-01'], ['2026-11-02T08:00:00Z', '2026-11-02'], // 25 hours: fall back
+  ];
+  for (const [iso, day] of days) assert.equal(laDay(new Date(iso)), day, iso);
 });
 
 test('every call reads invites.json again, so a code added or revoked by the admin tool applies to a running server', () => {

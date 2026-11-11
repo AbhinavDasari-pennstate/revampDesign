@@ -8,11 +8,14 @@ export const isJobId = (s) => typeof s === 'string' && /^[A-Za-z0-9_-]{22}$/.tes
 export const LIVE_FLAG = 'live.flag';
 
 export const TIME_ZONE = 'America/Los_Angeles';
-const dayFormat = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' });
+const dayFormat = new Intl.DateTimeFormat('en-US', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' });
 
-// The calendar day of a moment in Los Angeles, as YYYY-MM-DD (en-CA writes it that way). The daily invite limit and the daily dollar cap both turn at
-// local midnight, in summer (PDT) and winter (PST) alike.
-export const laDay = (date) => dayFormat.format(date);
+// The calendar day of a moment in Los Angeles, as YYYY-MM-DD. The daily invite limit and the daily dollar cap both turn at local midnight,
+// in summer (PDT) and winter (PST) alike. Built from the parts, so no locale's idea of the date order matters.
+export function laDay(date) {
+  const p = Object.fromEntries(dayFormat.formatToParts(date).map((part) => [part.type, part.value]));
+  return `${p.year}-${p.month}-${p.day}`;
+}
 
 // The parsed file, or undefined when it does not exist. Anything else wrong (unreadable, not JSON) throws: the caller must not treat it as empty.
 export function readJsonFile(file) {
