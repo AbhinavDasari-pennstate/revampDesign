@@ -27,17 +27,21 @@ The viewer allows CORS for the app origin only, on the manifest and the report. 
 
 | # | Rule | Code | HTTP |
 |---|---|---|---|
-| 1 | The body is not a JSON object, has a field the schema does not list, is larger than 4 KiB, or `owner_name` is longer than 200 characters | `bad_request` | 400 |
-| 2 | `url` is missing, is not an http or https address, is longer than 2048 characters, carries a user name or password, or cannot be parsed | `bad_url` | 400 |
+| 1 | The body is not a JSON object, has a field the schema does not list, is larger than 4 KiB, or `owner_name` is longer than 200 Unicode code points (`[...s].length`) | `bad_request` | 400 |
+| 2 | `url` is missing, is not an http or https address, is longer than 2048 characters, carries a user name or password (the schema is looser than the server here, so this rule is the guard), or cannot be parsed | `bad_url` | 400 |
 | 3 | `owner_name` is missing, is not a string, or is empty after trimming spaces | `owner_name_required` | 400 |
 | 4 | `consent` is missing or is anything other than the boolean `true` | `consent_required` | 400 |
 | 5 | `invite_code` is missing, empty, unknown or revoked | `invite_invalid` | 403 |
 | 6 | The invite code already started an accepted run today (America/Los_Angeles day) | `invite_used_today` | 429 |
-| 7 | Today's dollar cap is used up | `daily_cap_reached` | 503 |
+| 7 | The live switch is on and today's paid (live) spend is at or above the daily dollar cap; a free run never reaches this rule | `daily_cap_reached` | 503 |
 | 8 | After a DNS lookup the host is loopback, private, link-local, CGNAT or unique-local IPv6 | `host_not_public` | 400 |
 | 9 | The waiting line has no room | `queue_full` | 503 |
 
-Rules 1 to 4 need no secret and no network. The DNS lookup (rule 8) comes after the invite checks, so a caller without a valid code cannot use the server to resolve names. The server writes at most the first 100 characters of `owner_name` into the consent note.
+Rules 1 to 4 need no secret and no network. The DNS lookup (rule 8) comes after the invite checks, so a caller without a valid code cannot use the server to resolve names. The server writes at most the first 100 Unicode code points (the same unit as `[...s].length`, so an emoji counts once) of `owner_name` into the consent note.
+
+Rule 7 and the dollar cap: the daily dollar cap limits paid (live) spend only. A free run is never refused with `daily_cap_reached`. A POST is refused with `daily_cap_reached` only when the live switch is on and today's spend is at or above the cap. A cap of 0, the default, means a live run is never allowed. A live job that passes this check at POST time but is refused when it reaches the head of the line fails with `budget` instead (see the mapping below).
+
+The schema is looser than the server on credential URLs: `start-request.v1` accepts `https://user:pass@host/`, and rule 2 is the guard that answers `bad_url`. A page that validates against the schema has therefore not been fully checked.
 
 ## `job.v1`
 - `job_id`: 22 characters of base64url, 128 random bits. Never the invite code.
@@ -107,16 +111,17 @@ Messages are written for a school office or small organisation owner. They are p
 | `crash` | none | `job.v1` `error`, `failed` event | Something went wrong on our side while building your redesign. Please try again later. |
 | `server_restarted` | none | `job.v1` `error`, `failed` event | The server restarted while your run was in progress, so it was stopped. Please start it again. |
 
-How the server maps what it saw to a run failure code (T43): exit 3 at scout is `site_blocked`, exit 3 later is `quality_gate`, exit 4 is `budget`, an exit 0 whose output shows a stub fallback is `not_real`, a killed run is `timeout`, any other non-zero exit is `crash`, and a job left `queued` or `running` when the server starts again is `server_restarted`.
+How the server maps what it saw to a run failure code (T43): exit 3 at scout is `site_blocked`, exit 3 later is `quality_gate`, exit 4 is `budget` (`budget` also covers a live job that is refused at start: all six stages `pending`, `started_at` null, `mode` `live`, see `fixtures/job-failed-budget-at-start.json`), an exit 0 whose output shows a stub fallback is `not_real`, a killed run is `timeout`, any other non-zero exit is `crash`, and a job left `queued` or `running` when the server starts again is `server_restarted`.
 
 ## Fixtures
-All data is fictional: the site is Maple Grove High School from `contracts/fixtures/sample/`, the invite code is made up, and every fixture uses the job id `Xk3nP9qLm2VbT7sRw4YdHa`. Times are fixed, so a re-recording from the real server compares after ids and times are normalised.
+All data is fictional: the site is Maple Grove High School from `contracts/fixtures/sample/`, the invite code is made up, and every fixture uses the job id `Xk3nP9qLm2VbT7sRw4YdHa`. Times are fixed, so a re-recording from the real server compares after ids and times are normalised. `.gitattributes` stores the `.sse` files with LF line ends on every machine, and consumers and re-recordings compare parsed events, never raw text.
 
 | File | Holds |
 |---|---|
 | `fixtures/start-request.json` | the one valid request |
 | `fixtures/job-queued.json`, `job-running.json`, `job-done.json` | one `job.v1` response each |
 | `fixtures/job-failed-<code>.json` | a failed `job.v1` for each of the seven run failure codes, stages as the failure would leave them |
+| `fixtures/job-failed-budget-at-start.json` | a second `budget` failure: a live job refused before it started, stages all `pending`, `started_at` null |
 | `fixtures/error-<code>.json` | an `error.v1` body for each of the ten API codes |
 | `fixtures/manifest.json` | `manifest.v1` for the sample run in `contracts/fixtures/sample/`, bundle link set |
 | `fixtures/manifest-no-bundle.json` | the same manifest with `bundle_url` null |

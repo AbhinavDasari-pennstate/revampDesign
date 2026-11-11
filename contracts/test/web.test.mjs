@@ -22,6 +22,8 @@ const STAGES = ['scout', 'story', 'art', 'council', 'select', 'build'];
 const EVENTS = ['queued', 'started', 'stage', 'done', 'failed'];
 const VIEWER = 'http://127.0.0.1:8788';
 const JOB_ID = 'Xk3nP9qLm2VbT7sRw4YdHa';
+// The one code with two fixtures: `budget` also covers a live job that is refused before it starts.
+const BUDGET_AT_START = 'job-failed-budget-at-start.json';
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 for (const f of readdirSync(join(web, 'schemas'))) ajv.addSchema(readJson(join(web, 'schemas', f)));
@@ -114,7 +116,8 @@ test('every error code of section 2 has exactly one fixture with a fixed plain-l
   assert.equal(seen.size, API_CODES.length + RUN_CODES.length);
   assert.equal(new Set(seen.values()).size, seen.size, 'two codes share one message');
   const files = fixtureNames().filter((f) => /^(error|job-failed)-/.test(f));
-  assert.equal(files.length, seen.size, 'a code has more than one fixture, or a fixture has no code');
+  assert.equal(files.length, seen.size + 1, 'a code has more than one fixture, or a fixture has no code (only the budget-at-start variant is extra)');
+  assert.ok(files.includes(BUDGET_AT_START));
   for (const [code, message] of seen) {
     assert.match(message, /^[A-Z][^<>{}\\`]*[.?]$/, `${code}: message must be one plain sentence or two, ending in a full stop`);
     assert.ok(message.length <= 160, `${code}: message too long`);
@@ -153,6 +156,12 @@ test('start-request.v1: the one valid request passes and each broken field is re
   invalid('start-request.v1', tweak({ owner_name: '' }), 'an empty owner name');
   invalid('start-request.v1', tweak({ owner_name: '   ' }), 'a blank owner name');
   invalid('start-request.v1', tweak({ owner_name: 'x'.repeat(201) }), 'an owner name over 200 characters');
+  // The limit counts Unicode code points ([...s].length), not UTF-16 units: an emoji is one.
+  const emoji = String.fromCodePoint(0x1f600);
+  valid('start-request.v1', tweak({ owner_name: emoji.repeat(200) }));
+  invalid('start-request.v1', tweak({ owner_name: emoji.repeat(201) }), '201 code points');
+  // The schema is looser than the server here: README rule 2 is the guard that refuses credentials in a url.
+  valid('start-request.v1', tweak({ url: 'https://user:pass@example.com/' }));
   invalid('start-request.v1', tweak({ url: 'ftp://example.com/' }), 'an ftp url');
   invalid('start-request.v1', tweak({ url: 'example.com' }), 'a url without a scheme');
   invalid('start-request.v1', tweak({ url: 'https://example.com/ a' }), 'a url with a space');
@@ -233,11 +242,11 @@ test('job.v1: manifest_url points at the viewer manifest of the same kind of job
   invalid('job.v1', { ...clone(done), manifest_url: `${VIEWER}/j/short/manifest.json` }, 'a short job id in the url');
 });
 
-test('job fixtures agree with each other: one job id, mode free, sensible times', () => {
+test('job fixtures agree with each other: one job id, mode free (live only for the refused live job), sensible times', () => {
   for (const name of fixtureNames().filter((f) => /^job-/.test(f))) {
     const job = fixture(name);
     assert.equal(job.job_id, JOB_ID, name);
-    assert.equal(job.mode, 'free', name);
+    assert.equal(job.mode, name === BUDGET_AT_START ? 'live' : 'free', name);
     if (job.started_at) assert.ok(job.started_at >= job.created_at, `${name}: started before created`);
     if (job.finished_at) assert.ok(job.finished_at >= (job.started_at ?? job.created_at), `${name}: finished before it started`);
     if (job.status === 'done') assert.ok(job.stages.every((s) => s.state === 'done'), `${name}: a done job has a stage that is not done`);
@@ -390,6 +399,45 @@ test('every URL in every fixture uses the viewer origin on 127.0.0.1:8788, never
       assert.ok(u.startsWith(`${VIEWER}/j/`), `${name}: ${u}`);
     }
   }
+});
+
+test('a live job refused at start is a failed budget job with nothing run: stages pending, no start time, mode live', () => {
+  const job = fixture(BUDGET_AT_START);
+  assert.equal(job.status, 'failed');
+  assert.equal(job.mode, 'live');
+  assert.equal(job.error.code, 'budget');
+  assert.equal(job.error.message, fixture('job-failed-budget.json').error.message, 'the same fixed text as every budget failure');
+  assert.equal(job.started_at, null);
+  assert.ok(job.finished_at);
+  assert.ok(job.stages.every((s) => s.state === 'pending'));
+  assert.equal(job.manifest_url, null);
+  assert.equal(job.position, null);
+});
+
+test('the README says what the daily dollar cap limits: live spend only, never a free run', () => {
+  const readme = read(join(web, 'README.md'));
+  assert.ok(readme.includes('limits paid (live) spend only'));
+  assert.ok(readme.includes('A free run is never refused with `daily_cap_reached`.'));
+  assert.ok(readme.includes("only when the live switch is on and today's spend is at or above the cap"));
+  assert.ok(readme.includes('A cap of 0, the default, means a live run is never allowed.'));
+  const rule7 = readme.split(/\r?\n/).find((l) => /^\| 7 \| /.test(l));
+  assert.match(rule7, /live/, 'the rule 7 table row names the live switch');
+  assert.match(rule7, /`daily_cap_reached` \| 503 \|$/);
+});
+
+test('the README says how long a name may be in Unicode code points, and what budget also covers', () => {
+  const readme = read(join(web, 'README.md'));
+  assert.ok(readme.includes('longer than 200 Unicode code points (`[...s].length`)'));
+  assert.ok(readme.includes('first 100 Unicode code points'));
+  assert.ok(readme.includes('`budget` also covers a live job that is refused at start'));
+  assert.ok(readme.includes(BUDGET_AT_START));
+  assert.ok(readme.includes('looser than the server'), 'the schema accepts credentials in a url; rule 2 refuses them');
+});
+
+test('fixtures are stored with LF line ends and the README tells consumers to compare parsed events', () => {
+  const attributes = read(join(fileURLToPath(new URL('../../', import.meta.url)), '.gitattributes')).split(/\r?\n/);
+  assert.ok(attributes.includes('contracts/web/fixtures/*.sse text eol=lf'));
+  assert.ok(read(join(web, 'README.md')).includes('compare parsed events, never raw text'));
 });
 
 test('the README documents every route, every code and every fixture', () => {

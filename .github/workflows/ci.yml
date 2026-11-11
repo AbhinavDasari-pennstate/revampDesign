@@ -60,6 +60,43 @@ jobs:
       - run: cd contracts && npm ci
       - run: cd lanes/c-build && npm ci && npx playwright install --with-deps chromium
       - run: cd lanes/c-build && node --test
-  # web/server, web/ui and web/viewer have no tests yet (plan/web-plan.md T40 to T42). The task that adds the first test
-  # to a web folder adds that folder's job here: cd web/<folder> && node --test. contracts/web/ is already covered by the
-  # contracts job above (contracts/test/web.test.mjs).
+  # The three web folders (plan/web-plan.md) each get a job now, because Lanes B and C cannot edit this file. A job passes
+  # while its folder has no test directory yet and runs `node --test` once web/<folder>/test exists. web/ has no dependencies.
+  web-server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      - run: |
+          if [ -d web/server/test ]; then
+            cd web/server && node --test
+          else
+            echo "web/server has no tests yet"
+          fi
+  web-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      - run: |
+          if [ -d web/ui/test ]; then
+            cd web/ui && node --test
+          else
+            echo "web/ui has no tests yet"
+          fi
+  web-viewer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      # T45 runs a browser check with Playwright from lanes/c-build. When that test lands, add before the next step:
+      # cd lanes/c-build && npm ci && npx playwright install --with-deps chromium
+      - run: |
+          if [ -d web/viewer/test ]; then
+            cd web/viewer && node --test
+          else
+            echo "web/viewer has no tests yet"
+          fi
