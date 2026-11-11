@@ -45,13 +45,22 @@ for (const folder of ['server', 'ui', 'viewer']) {
   });
 }
 
-test('the web jobs install nothing: web/ has no dependencies and Playwright for web-viewer waits for its tests', () => {
-  for (const folder of ['server', 'ui', 'viewer']) {
+test('web-ui and web-viewer install nothing: web/ has no dependencies and Playwright for web-viewer waits for its tests', () => {
+  for (const folder of ['ui', 'viewer']) {
     const job = code(all[`web-${folder}`]);
     assert.ok(!/npm (ci|install)|playwright install/.test(job), `web-${folder} installs something`);
   }
   const viewer = all['web-viewer'];
   assert.ok(/#.*Playwright/.test(viewer) && /#.*lanes\/c-build/.test(viewer), 'web-viewer carries a comment about Playwright from lanes/c-build');
+});
+
+// web/server has no dependencies either, but its tests check every response against the contract schemas with the ajv of contracts/
+// (approved there, ajv 8.20.0). Without that install the schema check is skipped and only the hand written check runs.
+test('web-server installs only contracts/ (npm ci) before its tests, so they run the ajv schema check', () => {
+  const steps = code(all['web-server']).split('\n').filter((l) => /npm (ci|install)|playwright install/.test(l)).map((l) => l.trim());
+  assert.deepEqual(steps, ['- run: cd contracts && npm ci']);
+  const job = code(all['web-server']);
+  assert.ok(job.indexOf('cd contracts && npm ci') < job.indexOf('cd web/server && node --test'), 'the install comes before the tests');
 });
 
 test('the old "no tests yet" comment is gone and the file has no em or en dash', () => {

@@ -2,17 +2,20 @@
 // A job is a plain record persisted as <data dir>/jobs/<job_id>/job.json; view() turns it into the job.v1 the API sends.
 // One orchestrator process runs at a time. Its stdout and stderr go to console.log in the job folder and nowhere else.
 // Events (the shapes of event.v1) are emitted as queue.emit('event', job_id, name, data) for the progress stream (T43) to store and replay.
-// Seams for later tasks: classifyExit() (T43 refines the failure codes), startJob() is the one place the argv is built (T47 adds --live there).
+// The live switch (T47): a job runs with --live only if <job dir>/live.flag exists at the moment it leaves the line (admin.mjs live <job_id> on makes it).
+// A live job is refused there, failed as `budget` and never started, when today's spend or its own lane budgets would take the day over the dollar cap
+// (default 0: no live job ever starts). After every run the cost it reported is added to <data dir>/spend.json (ledger.mjs).
+// Seam for a later task: classifyExit() (T43 refines the failure codes). #start is the one place the argv is built.
 import { EventEmitter } from 'node:events';
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { closeSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { LIVE_FLAG, addSpend, isJobId, laDay, spentOn } from './ledger.mjs';
 import { RUN_FAILURES } from './messages.mjs';
 
+export { isJobId }; // server.mjs imports it from here
 export const STAGES = ['scout', 'story', 'art', 'council', 'select', 'build'];
-const JOB_ID = /^[A-Za-z0-9_-]{22}$/;
-export const isJobId = (s) => typeof s === 'string' && JOB_ID.test(s);
 const pendingStages = () => STAGES.map((stage) => ({ stage, state: 'pending' }));
 
 // null when the run succeeded, else the run failure code for job.v1.error. T43 replaces this: exit 3 at scout is site_blocked,
@@ -47,9 +50,11 @@ export class JobQueue extends EventEmitter {
   #closing = null;
 
   // dataDir: absolute. orchestrator: absolute path of the cli script. maxLine: places in line, the run in progress included.
-  constructor({ dataDir, orchestrator, timeoutMs, maxLine = 5, viewerOrigin, log = console, now = () => new Date() }) {
+  // dailyUsdCap: dollars of live spend allowed per Los Angeles day. runTemplate: the 00-run.json the orchestrator starts every run from (its limits.lane_budget_usd).
+  constructor({ dataDir, orchestrator, timeoutMs, maxLine = 5, viewerOrigin, dailyUsdCap = 0, runTemplate, log = console, now = () => new Date() }) {
     super();
-    Object.assign(this, { dataDir, orchestrator, timeoutMs, maxLine, viewerOrigin, log, now });
+    if (typeof dailyUsdCap !== 'number' || !Number.isFinite(dailyUsdCap) || dailyUsdCap < 0) throw new TypeError(`dailyUsdCap must be a number of dollars, 0 or more, got ${dailyUsdCap}`); // a NaN cap would let every comparison pass
+    Object.assign(this, { dataDir, orchestrator, timeoutMs, maxLine, viewerOrigin, dailyUsdCap, runTemplate, log, now });
     this.jobsDir = join(dataDir, 'jobs');
     mkdirSync(this.jobsDir, { recursive: true });
     this.#recover();
@@ -76,7 +81,9 @@ export class JobQueue extends EventEmitter {
       }
       this.#jobs.set(id, job);
       if (job.status === 'queued' || job.status === 'running') {
+        const spent = job.status === 'running' ? this.#recordCost(job) : null; // a run that was killed with the server may already have spent money
         this.#fail(job, 'server_restarted');
+        if (spent !== null) job.cost_usd = spent;
         this.#persist(job);
       }
     }
@@ -162,25 +169,162 @@ export class JobQueue extends EventEmitter {
   }
 
   #pump() {
-    if (this.#closing || this.#running || this.#waiting.length === 0) return;
-    const job = this.#waiting.shift();
-    this.#announced.delete(job.job_id);
-    this.#start(job);
+    while (!this.#closing && !this.#running && this.#waiting.length > 0) {
+      const job = this.#waiting.shift();
+      this.#announced.delete(job.job_id);
+      this.#start(job); // a job refused at the head of the line leaves #running empty, so the next one is tried at once
+    }
     this.#announce();
   }
 
+  #warn(message) {
+    (this.log.warn ?? this.log.error)?.call(this.log, message);
+  }
+
+  // The lane B and lane C budgets of the run template (lane A has no paid model). A live run may spend both.
+  #laneBudgets() {
+    let doc;
+    try {
+      doc = JSON.parse(readFileSync(this.runTemplate, 'utf8'));
+    } catch (e) {
+      throw new Error(`run template ${this.runTemplate} could not be read (${e.code ?? 'bad JSON'})`);
+    }
+    const { b, c } = doc?.limits?.lane_budget_usd ?? {};
+    if (![b, c].every((n) => typeof n === 'number' && Number.isFinite(n) && n >= 0)) throw new Error(`run template ${this.runTemplate} has no lane_budget_usd b and c`);
+    return { b, c };
+  }
+
+  // null when a live job may start, else why not. Spend at or above the cap refuses at once; otherwise today's spend plus this run's budget may
+  // reach the cap but not pass it. If the spend or the budget cannot be read the answer is no: the cap must never be guessed.
+  #capRefusal() {
+    const cap = this.dailyUsdCap;
+    let spent;
+    let budget;
+    try {
+      spent = spentOn(this.dataDir, laDay(this.now()));
+    } catch (e) {
+      return `cannot tell how much was spent today: ${e.message}`;
+    }
+    try {
+      const { b, c } = this.#laneBudgets();
+      budget = b + c;
+    } catch (e) {
+      return `cannot tell what the run may cost: ${e.message}`;
+    }
+    if (spent >= cap) return `spent today $${spent.toFixed(2)} is at or above the daily cap $${cap.toFixed(2)}`;
+    if (spent + budget > cap) return `spent today $${spent.toFixed(2)} plus the run's budget $${budget.toFixed(2)} is over the daily cap $${cap.toFixed(2)}`;
+    return null;
+  }
+
+  // The cost_usd of one contract file of a run (40-verdict.json, 50-handoff.json), or undefined when the file or the field is not there.
+  // A cost that is not a number of at least 0 counts for nothing, with a warning.
+  #costOfFile(job, run, name) {
+    let usd;
+    try {
+      usd = JSON.parse(readFileSync(join(this.jobDir(job.job_id), run, name), 'utf8'))?.cost_usd;
+    } catch (e) {
+      if (e.code !== 'ENOENT') this.#warn(`job ${job.job_id}: ${run}/${name} could not be read for its cost_usd (${e.code ?? 'bad JSON'})`);
+      return undefined;
+    }
+    if (usd === undefined) return undefined;
+    if (typeof usd !== 'number' || !Number.isFinite(usd) || usd < 0) {
+      this.#warn(`job ${job.job_id}: ${run}/${name} has a cost_usd that is not a number of at least 0, ignored`);
+      return undefined;
+    }
+    return usd;
+  }
+
+  // What lane B spent in one run folder. Lane B appends one line {stage, cost_usd, at} to b-design/cost.jsonl as each stage ends (story, art, council
+  // and its imagery, also when the stage fails), but writes cost_usd into 40-verdict.json for the council alone. So the sum of the lines is the spend, and
+  // the verdict is used only when that file does not exist. This number guards the dollar cap, so it fails closed: a line that is not JSON, a cost_usd
+  // that is missing, text or negative, or a file that cannot be read counts the run's whole lane B budget (or what the good lines add up to, if that is more).
+  #costOfLaneB(job, run) {
+    const file = join(this.jobDir(job.job_id), run, 'b-design', 'cost.jsonl');
+    let text;
+    try {
+      text = readFileSync(file, 'utf8');
+    } catch (e) {
+      if (e.code === 'ENOENT') return this.#costOfFile(job, run, '40-verdict.json');
+      return this.#wholeBudgetOfLaneB(job, file, `could not be read (${e.code ?? e.message})`, 0);
+    }
+    let good = 0;
+    let broken = false;
+    for (const line of text.split('\n')) {
+      if (line.trim() === '') continue;
+      let usd;
+      try {
+        usd = JSON.parse(line)?.cost_usd;
+      } catch {}
+      if (typeof usd === 'number' && Number.isFinite(usd) && usd >= 0) good += usd;
+      else broken = true;
+    }
+    return broken ? this.#wholeBudgetOfLaneB(job, file, 'has a line without a cost_usd that is a number of at least 0', good) : good;
+  }
+
+  #wholeBudgetOfLaneB(job, file, why, good) {
+    let b;
+    try {
+      ({ b } = this.#laneBudgets());
+    } catch (e) {
+      this.log.error?.(`job ${job.job_id}: ${file} ${why}, and the lane B budget is not known either (${e.message}): counting only ${good}`);
+      return good;
+    }
+    this.#warn(`job ${job.job_id}: ${file} ${why}: counting the whole lane B budget, ${Math.max(b, good)}`);
+    return Math.max(b, good);
+  }
+
+  // Add the cost a run reported to today's total in spend.json and return it, or null when it reported none. Lane B's spend is in b-design/cost.jsonl
+  // (see #costOfLaneB) and lane C's cost_usd is in 50-handoff.json, both inside the run folder; a run that failed or was stopped is counted from whatever it wrote.
+  // A free run that reports a cost is a surprise: warned about, still counted.
+  #recordCost(job) {
+    let runs = [];
+    try {
+      runs = readdirSync(this.jobDir(job.job_id), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
+    } catch {}
+    let total = null;
+    for (const run of runs) {
+      for (const usd of [this.#costOfLaneB(job, run), this.#costOfFile(job, run, '50-handoff.json')]) {
+        if (usd !== undefined) total = (total ?? 0) + usd;
+      }
+    }
+    if (total === null || total === 0) return total;
+    total = Math.round(total * 1e6) / 1e6; // 1.2 + 2.7 + 0.1 is not left as 4.000000000000001
+    if (job.mode !== 'live') this.#warn(`job ${job.job_id}: a free run reported cost_usd ${total}; counted anyway`);
+    try {
+      addSpend(this.dataDir, laDay(this.now()), total);
+    } catch (e) {
+      this.log.error?.(`job ${job.job_id}: could not add its cost_usd ${total} to spend.json (${e.message})`);
+    }
+    return total;
+  }
+
+  // A job that cannot start fails before it ran: started_at stays null and every stage stays pending (contracts/web/fixtures/job-failed-budget-at-start.json).
+  #refuse(job, code, why) {
+    this.log.error?.(`job ${job.job_id} refused at start (${code}): ${why}`);
+    this.#fail(job, code);
+    this.#persist(job);
+    this.#emit(job, 'failed', { code: job.error.code, message: job.error.message });
+  }
+
   #start(job) {
+    const dir = this.jobDir(job.job_id);
+    // The live switch is read now, as the job leaves the line, never when it was accepted and never again once it runs.
+    const live = existsSync(join(dir, LIVE_FLAG));
+    if (live) {
+      job.mode = 'live';
+      const why = this.#capRefusal();
+      if (why) return this.#refuse(job, 'budget', why);
+    }
     this.#running = job;
     job.status = 'running';
     job.started_at = this.now().toISOString();
     this.#persist(job);
     this.#emit(job, 'started', { mode: job.mode });
-    this.log.log?.(`job ${job.job_id} started`);
+    this.log.log?.(`job ${job.job_id} started${live ? ' (live)' : ''}`);
 
-    const dir = this.jobDir(job.job_id);
     // The one place the command line is built: an argument array and no shell, so nothing the tester typed can become a command.
-    // Never --live in v1 of this task: the live switch is T47.
-    const args = [this.orchestrator, 'run', '--url', job.url, '--tier', 'B', '--consent-note', job.consent_note, '--out-dir', dir];
+    // --live is added only for a job that passed the cap check above; no other path adds it.
+    const args = [this.orchestrator, 'run', '--url', job.url, '--tier', 'B', '--consent-note', job.consent_note, '--out-dir', dir, ...(live ? ['--live'] : [])];
     let out;
     let child;
     try {
@@ -236,6 +380,8 @@ export class JobQueue extends EventEmitter {
       job.stages = STAGES.map((stage) => ({ stage, state: 'done' }));
       job.manifest_url = `${this.viewerOrigin}/j/${job.job_id}/manifest.json`;
     }
+    const spent = this.#recordCost(job); // before the next job is looked at, so its cap check sees this run's cost
+    if (spent !== null) job.cost_usd = spent;
     this.#persist(job);
     this.log.log?.(`job ${job.job_id} ${job.status}${failure ? ` (${failure})` : ''}`);
     this.#running = null;

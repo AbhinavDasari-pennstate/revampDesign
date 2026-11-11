@@ -5,11 +5,15 @@
 //   ?exit=<code>  exit with this code (default 0); contract files are written only for exit 0
 //   ?child=1      also start a grandchild (it ends by itself after 2 minutes) and write its pid to <out-dir>/fake-grandchild.pid (proves the whole tree is killed)
 //   ?noise=1      print one marker line to stdout and one to stderr (proves console output stays in console.log)
+//   ?vcost=<x>    cost_usd written into 40-verdict.json (lane B's spend), and ?hcost=<x> into 50-handoff.json (lane C's); a value that is not a number is written as text, and str:<x> writes a numeric string such as "3"
+//   ?costlog=<s>  write <run>/b-design/cost.jsonl like lane B does: story:1.2,art:2.7,council:0.1 (see writeCostLog for the broken variants)
+//   ?files=1      write the contract files also when the exit code is not 0 (a run that spent money and then crashed)
+//   ?gate=1       after the sleep, wait until the file <out-dir>/go exists (the test releases the job, so a line of jobs can be set up without racing)
 // Files it leaves next to the run folder, for the tests: fake-timing.json {start, end} in ms, fake-grandchild.pid.
 // The run folder is <out-dir>/<run_id>/ with the contract files copied from contracts/fixtures/sample/ (no stage folders), like the real stub mode.
 import { parseArgs } from 'node:util';
 import { spawn } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -50,11 +54,36 @@ if (query.get('child') === '1') {
 }
 
 await new Promise((resolve) => setTimeout(resolve, sleepMs));
+if (query.get('gate') === '1') while (!existsSync(join(outDir, 'go'))) await new Promise((resolve) => setTimeout(resolve, 20));
 
-if (exitCode === 0) {
+const cost = (param) => {
+  const text = query.get(param);
+  if (text === null) return {};
+  if (text.startsWith('str:')) return { cost_usd: text.slice(4) }; // a number written as text: "3"
+  return { cost_usd: text.trim() !== '' && Number.isFinite(Number(text)) ? Number(text) : text };
+};
+// Lane B's b-design/cost.jsonl: one line {stage, cost_usd, at} per stage. ?costlog=story:1.2,art:2.7 writes those lines ("" writes an empty file);
+// stage:missing leaves cost_usd out, stage:abc or stage:"3" writes it as text, junk writes a line that is not JSON, dir makes cost.jsonl a folder.
+function writeCostLog(spec) {
+  const folder = join(runDir, 'b-design');
+  mkdirSync(folder, { recursive: true });
+  const file = join(folder, 'cost.jsonl');
+  if (spec === 'dir') return mkdirSync(file);
+  const lines = spec === '' ? [] : spec.split(',').map((item) => {
+    if (item === 'junk') return '{not json';
+    const [stage, value] = item.split(':');
+    const quoted = /^"(.*)"$/.exec(value); // stage:"3" writes the text "3", not the number
+    const spent = value === 'missing' ? {} : quoted ? { cost_usd: quoted[1] } : { cost_usd: value.trim() !== '' && Number.isFinite(Number(value)) ? Number(value) : value };
+    return JSON.stringify({ stage, ...spent, at: '2026-11-11T20:00:00.000Z' });
+  });
+  writeFileSync(file, lines.map((l) => `${l}\n`).join(''));
+}
+if ((exitCode === 0 || query.get('files') === '1') && query.get('costlog') !== null) writeCostLog(query.get('costlog'));
+if (exitCode === 0 || query.get('files') === '1') {
   for (const name of FILES.slice(1)) {
     const doc = JSON.parse(readFileSync(join(sample, name), 'utf8'));
-    writeFileSync(join(runDir, name), JSON.stringify({ ...doc, run_id: runId }, null, 2));
+    const spent = name === '40-verdict.json' ? cost('vcost') : name === '50-handoff.json' ? cost('hcost') : {};
+    writeFileSync(join(runDir, name), JSON.stringify({ ...doc, run_id: runId, ...spent }, null, 2));
   }
 }
 writeFileSync(join(outDir, 'fake-timing.json'), JSON.stringify({ start, end: Date.now() }));
