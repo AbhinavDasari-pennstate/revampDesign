@@ -106,6 +106,28 @@ test('each lane stage gets exactly the args plan.md Interfaces lists', () => {
   }
 });
 
+test('--live adds --live to the Lane B stages only; without it no stage gets it; stub mode rejects it', () => {
+  const s = setup();
+  try {
+    assert.equal(s.run('--live').status, 0);
+    const live = s.argvs().map((argv) => [argv[0], argv.includes('--live')]);
+    assert.deepEqual(live, [['scout', false], ['story', true], ['art', true], ['council', true], ['build', false]]);
+    assert.equal(s.argvs().find((argv) => argv[0] === 'story').at(-1), '--live');
+  } finally {
+    cleanup(s);
+  }
+  const plain = setup();
+  try {
+    assert.equal(plain.run().status, 0);
+    assert.ok(plain.argvs().every((argv) => !argv.includes('--live')));
+  } finally {
+    cleanup(plain);
+  }
+  const stub = spawnSync(process.execPath, [cli, 'run', '--stub', '--live', '--out-dir', mkdtempSync(join(tmpdir(), 'orch-stub-'))], { encoding: 'utf8' });
+  assert.equal(stub.status, 2);
+  assert.match(stub.stderr, /--live is for real runs/);
+});
+
 test('real run consent defaults to not recorded; --consent-note records it; empty note does not', () => {
   const none = 'No owner consent recorded for this run.';
   const cases = [[[], false, none], [['--consent-note', 'Principal emailed OK'], true, 'Principal emailed OK'], [['--consent-note', ''], false, none], [['--consent-note', '   '], false, none]];

@@ -71,7 +71,7 @@ export function nodeNote(version, wanted) {
 }
 
 // Real mode: run each lane CLI in order; a lane whose CLI is missing is filled from the fixture.
-export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNote, now = new Date(), nodeVersion = process.versions.node }) {
+export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNote, live = false, now = new Date(), nodeVersion = process.versions.node }) {
   if (pick !== undefined && !/^d[123]$/.test(pick)) throw fail(`--pick must be d1, d2 or d3, got ${pick}`, 2);
   if (!['A', 'B', 'C'].includes(tier)) throw fail(`--tier must be A, B or C, got ${tier}`, 2);
   let host;
@@ -90,7 +90,7 @@ export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNo
   const lines = [];
   // Every exit path leaves the log so far, failure line included.
   try {
-    return executeReal({ url, tier, runDir, runId, template, consent, siteSlug, lanesRoot, fixture, pick, now, nodeVersion, lines });
+    return executeReal({ url, tier, runDir, runId, template, consent, siteSlug, lanesRoot, fixture, pick, live, now, nodeVersion, lines });
   } catch (e) {
     lines.push(`FAILED ${e.message}`);
     writeFileSync(join(runDir, 'orchestrator.log'), lines.join('\n') + '\n');
@@ -98,7 +98,7 @@ export function runReal({ url, tier, outDir, lanesRoot, fixture, pick, consentNo
   }
 }
 
-function executeReal({ url, tier, runDir, runId, template, consent, siteSlug, lanesRoot, fixture, pick, now, nodeVersion, lines }) {
+function executeReal({ url, tier, runDir, runId, template, consent, siteSlug, lanesRoot, fixture, pick, live, now, nodeVersion, lines }) {
   const runDoc = { ...template, run_id: runId, consent, source_url: url, site_slug: siteSlug, tier, created_at: now.toISOString() };
   writeJson(join(runDir, FILES.run), runDoc);
   const runErrors = schemaErrors(runDoc);
@@ -124,6 +124,8 @@ function executeReal({ url, tier, runDir, runId, template, consent, siteSlug, la
     } else if (existsSync(cli)) {
       const ins = inputs.map((k) => join(runDir, FILES[k]));
       const args = [cli, stage, '--run', runDir, ...ins.flatMap((f) => ['--in', f]), '--out', out];
+      // --live turns on Lane B's paid models (story, art, council); Scout and build never take it.
+      if (live && lane === 'b-design') args.push('--live');
       const { status } = spawnSync(process.execPath, args, { stdio: 'inherit' });
       if (status !== 0) {
         const code = status ?? 1;

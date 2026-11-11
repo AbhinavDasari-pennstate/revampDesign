@@ -1,12 +1,14 @@
 // Fact diff: every fact Scout found on the old site (phone, email, address, date, time, person,
-// legal notice, price) must still be on the new one, unless the storyboard dropped its block.
-// A fact is judged first inside the element rendered from its own block (data-src), so a copy
-// that survives elsewhere cannot hide a change. Phones and emails that are one or two characters
-// off are reported as changed; anything else not found is missing. Both fail the gate.
+// legal notice, price) must still be on the new one. Facts whose block the new site does not show
+// are skipped here and listed in the fidelity report instead (issue #14). A fact whose block is
+// shown is judged only inside that block (and, for names, its section heading), so a copy that
+// survives elsewhere cannot hide a change of any size (issue #16). A different phone or email in
+// the block is reported as changed; anything else not found is missing. Both fail the gate.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { factsNotShown } from '../builder/content.mjs';
 import { noDashes } from '../builder/text.mjs';
-import { elementText, pageText } from './html.mjs';
+import { elementText, pageText, sectionText } from './html.mjs';
 
 // Bounded repeats keep both linear on long scraped text (an unbounded email local part took 50 s on 200k chars).
 const PHONE = /\+?\(?\d[\d\s().-]{5,25}\d/g;
@@ -31,21 +33,22 @@ function editDistance(a, b) {
   return prev[b.length];
 }
 
-// { ok: true } when the fact is in text, { after } for a near miss, null when absent.
-// Inside its own block a fact may be reworded ("Principal: Dana Whitfield"), so all its words count.
+// { ok: true } when the fact is in text, { after } for what replaced it, null when absent.
+// Inside its own block a fact may be reworded ("Principal: Dana Whitfield"), so all its words count,
+// and any other phone or email there is what replaced it, however many characters differ.
 function find(fact, text, inBlock) {
   if (fact.kind === 'phone') {
     const want = digits(fact.value);
-    const found = text.match(PHONE) ?? [];
+    const found = (text.match(PHONE) ?? []).map((c) => c.trim());
     if (found.some((c) => { const d = digits(c); return d.length >= 7 && (d.includes(want) || want.includes(d)); })) return { ok: true };
-    const near = found.find((c) => charsOff(digits(c), want) <= 2);
-    return near ? { after: near.trim() } : null;
+    const near = found.find((c) => charsOff(digits(c), want) <= 2) ?? (inBlock ? found[0] : undefined);
+    return near ? { after: near } : null;
   }
   if (fact.kind === 'email') {
     const want = fact.value.toLowerCase();
     const found = (text.match(EMAIL) ?? []).map((e) => e.toLowerCase());
     if (found.includes(want)) return { ok: true };
-    const near = found.find((e) => editDistance(e, want) <= 2);
+    const near = found.find((e) => editDistance(e, want) <= 2) ?? (inBlock ? found[0] : undefined);
     return near ? { after: near } : null;
   }
   const want = words(fact.value);
@@ -59,24 +62,30 @@ function find(fact, text, inBlock) {
 }
 
 export function factDiff({ dist, pages, inventory, storyboard }) {
-  const dropped = new Set(storyboard.dropped.map((d) => d.ref));
+  const notShown = new Set(factsNotShown(inventory, storyboard).map((f) => f.fact_id));
   const html = pages.map((p) => ({ slug: p.slug, html: readFileSync(join(dist, p.file), 'utf8') }));
   const site = html.map((p) => ({ slug: p.slug, text: pageText(p.html) }));
   const result = { checked: 0, changed: [], missing: [], failures: [] };
 
   for (const fact of inventory.facts) {
-    if (dropped.has(fact.block_id)) continue;
+    // Its block is not on the new site (footer row, dropped or unused page): listed in fidelity.dropped instead.
+    if (notShown.has(fact.fact_id)) continue;
     result.checked++;
     const homes = html.flatMap((p) => {
-      const text = elementText(p.html, fact.block_id);
-      return text === null ? [] : [{ slug: p.slug, text }];
+      const block = elementText(p.html, fact.block_id);
+      return block === null ? [] : [{ slug: p.slug, block, section: sectionText(p.html, fact.block_id) ?? block }];
     });
-    const inBlock = homes.map((h) => ({ slug: h.slug, hit: find(fact, h.text, true) }));
-    if (inBlock.some((h) => h.hit?.ok)) continue;
-    // Not in its block: a block-level near miss is a change; otherwise accept an exact copy anywhere
-    // (a legal notice's name often lives in its section heading), else look for a near miss anywhere.
-    let change = inBlock.find((h) => h.hit?.after);
-    if (!change) {
+    let change;
+    if (homes.length) {
+      // Its block is on the site, so it is judged there and nowhere else: a copy on another page,
+      // or in the contact form note, cannot hide a change.
+      const hits = homes.map((h) => ({ slug: h.slug, hit: find(fact, h.block, true) }));
+      if (hits.some((h) => h.hit?.ok)) continue;
+      // A name (a legal notice's, say) often lives in the section heading rather than the block.
+      if (!['phone', 'email'].includes(fact.kind) && homes.some((h) => find(fact, h.section, false)?.ok)) continue;
+      change = hits.find((h) => h.hit?.after);
+    } else {
+      // Its block was shortened into a headline, so the fact may be wherever the new copy put it.
       if (site.some((p) => find(fact, p.text, false)?.ok)) continue;
       change = site.map((p) => ({ slug: p.slug, hit: find(fact, p.text, false) })).find((h) => h.hit?.after);
     }

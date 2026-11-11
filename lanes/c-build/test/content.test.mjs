@@ -84,3 +84,32 @@ test('a form that needs a backend renders the fallback with the phone and email,
   assert.match(fallback, /href="mailto:office@maplegrove-hs\.example"/);
   assert.doesNotMatch(out, /<form/);
 });
+
+// Issue #15: the dash rule must keep ranges as ranges. Built from char codes so this file has no dashes.
+test('the dash rule keeps ranges and grade spans, and only turns pauses into commas', () => {
+  const EN = String.fromCharCode(0x2013);
+  const cases = [
+    [`Grades K${EN}8`, 'Grades K-8'],
+    [`Pre-K${EN}5`, 'Pre-K-5'],
+    [`Open Mon${EN}Fri`, 'Open Mon to Fri'],
+    [`7:30 AM${EN}3:30 PM`, '7:30 AM to 3:30 PM'],
+    [`Grades 9${EN}12`, 'Grades 9-12'],
+    [`1990${EN}2000`, '1990-2000'],
+    [`Grades 9${EN}12 ${EM} about 640 students`, 'Grades 9-12, about 640 students'],
+    [`Since 1962${EM}and counting`, 'Since 1962, and counting'],
+    [`Principal ${EM} Dana Whitfield`, 'Principal, Dana Whitfield'],
+    // Spaced and a.m./p.m. ranges, the way school sites write office hours (review of PR #29).
+    [`8 a.m.${EN}4 p.m.`, '8 a.m. to 4 p.m.'],
+    [`8:00 AM ${EN} 4:00 PM`, '8:00 AM to 4:00 PM'],
+    [`Mon ${EN} Fri`, 'Mon to Fri'],
+    [`Monday ${EN} Thursday, 7:30 am ${EN} 3 pm`, 'Monday to Thursday, 7:30 am to 3 pm'],
+    [`September ${EN} June`, 'September to June'],
+    [`Mon${EM}Fri`, 'Mon to Fri'],
+    [`8 a.m. ${EN} noon`, '8 a.m. to noon'],
+    [`Room 5 ${EN} Monday only`, 'Room 5, Monday only'],
+    // Still pauses: a dash that does not sit between two range ends.
+    [`Open Monday ${EM} closed on holidays`, 'Open Monday, closed on holidays'],
+    [`We march ${EN} proudly`, 'We march, proudly'],
+  ];
+  for (const [input, want] of cases) assert.equal(noDashes(input), want, JSON.stringify(input));
+});

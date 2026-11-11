@@ -13,14 +13,47 @@ export function indexInventory(inventory) {
     for (const i of page.images) images.set(i.image_id, i);
     forms.set(page.page_id, page.forms);
   }
-  const fact = (kind) => inventory.facts.find((f) => f.kind === kind)?.value ?? null;
-  return { blocks, images, forms, phone: fact('phone'), email: fact('email') };
+  const pageOf = new Map(inventory.pages.flatMap((p) => p.blocks.map((b) => [b.block_id, p.page_id])));
+  return { blocks, images, forms, facts: inventory.facts, pageOf };
+}
+
+// The first fact of a kind on one of these old pages, else the first anywhere on the old site.
+function contactFact(index, kind, pageIds) {
+  const ofKind = index.facts.filter((f) => f.kind === kind);
+  return (ofKind.find((f) => pageIds.includes(index.pageOf.get(f.block_id))) ?? ofKind[0])?.value ?? null;
+}
+
+// A tel: link dials digits and a leading +, without an extension ("ext. 12" would be dialled too).
+export function telHref(phone) {
+  return `tel:${phone.replace(/\s*(?:ext\.?|extension|x)\s*\d+\s*$/i, '').replace(/[^\d+]/g, '')}`;
 }
 
 // An edited section's headline is a rewrite of edited_from_block_id, so that block is not repeated below it.
+const shortened = (section, id) => section.copy_status === 'edited' && id === section.edited_from_block_id;
+
+// Block ids the new site shows word for word. Anything else from the old site (footers, banners,
+// pages no new page uses) is not on it, and the fact diff and fidelity report treat it that way.
+export function shownBlockIds(storyboard) {
+  return new Set(storyboard.pages.flatMap((p) => p.sections.flatMap((s) => s.body_block_ids.filter((id) => !shortened(s, id)))));
+}
+
+// Blocks an edited section rewrote into its headline, with that section.
+export function shortenedBlocks(storyboard) {
+  return storyboard.pages.flatMap((p) => p.sections.filter((s) => s.copy_status === 'edited' && s.edited_from_block_id && s.body_block_ids.includes(s.edited_from_block_id)).map((s) => ({ id: s.edited_from_block_id, section: s })));
+}
+
+// Facts the new site cannot show: their block is neither shown nor shortened into a headline,
+// or the storyboard dropped it. The fact diff skips them and the fidelity report lists them.
+export function factsNotShown(inventory, storyboard) {
+  const shown = shownBlockIds(storyboard);
+  const kept = new Set(shortenedBlocks(storyboard).map((b) => b.id));
+  const dropped = new Set(storyboard.dropped.map((d) => d.ref));
+  return inventory.facts.filter((f) => dropped.has(f.block_id) || !(shown.has(f.block_id) || kept.has(f.block_id)));
+}
+
 export function sectionBlocks(section, index) {
   return section.body_block_ids
-    .filter((id) => !(section.copy_status === 'edited' && id === section.edited_from_block_id))
+    .filter((id) => !shortened(section, id))
     .map((id) => {
       const b = index.blocks.get(id);
       if (!b) throw fail(`20-storyboard.json: ${section.section_id} names block ${id}, which 10-inventory.json does not have`, 2);
@@ -43,5 +76,8 @@ export function formFallbacks(page, index) {
   return page.source_page_ids
     .flatMap((id) => index.forms.get(id) ?? [])
     .filter((f) => f.needs_backend)
-    .map((f) => ({ id: f.form_id, phone: index.phone, email: index.email }));
+    .map((f) => {
+      const phone = contactFact(index, 'phone', page.source_page_ids);
+      return { id: f.form_id, phone, tel: phone && telHref(phone), email: contactFact(index, 'email', page.source_page_ids) };
+    });
 }
