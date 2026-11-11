@@ -112,6 +112,8 @@ test('the dash rule keeps ranges and grade spans, and only turns pauses into com
     [`8am${EM}3pm`, '8am to 3pm'],
     [`Join us Friday ${EM} 7 p.m. at the gym`, 'Join us Friday, 7 p.m. at the gym'],
     [`in March ${EM} 12 spots left`, 'in March, 12 spots left'],
+    [`a ${EM} ${EM} b`, 'a, , b'],
+    [`Name ${EN}  ${EN} Phone`, 'Name, , Phone'],
     // Still pauses: a dash that does not sit between two range ends.
     [`Open Monday ${EM} closed on holidays`, 'Open Monday, closed on holidays'],
     [`We march ${EN} proudly`, 'We march, proudly'],

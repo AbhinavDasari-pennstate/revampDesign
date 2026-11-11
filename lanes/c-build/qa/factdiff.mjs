@@ -79,10 +79,13 @@ export function factDiff({ dist, pages, inventory, storyboard }) {
     if (homes.length) {
       // Its block is on the site, so it is judged there and nowhere else: a copy on another page,
       // or in the contact form note, cannot hide a change.
-      // A legal notice's value is a label ("Nondiscrimination notice"), not its text: it is kept when its own
-      // block still carries the notice, found by the same keywords Scout used.
-      if (fact.kind === 'legal_notice' && homes.some((h) => /discriminat|title ix/i.test(h.block))) continue;
-      const hits =homes.map((h) => ({ slug: h.slug, hit: find(fact, h.block, true) }));
+      // A legal notice's value is a label ("Nondiscrimination notice"), not its text: it is kept only when its own
+      // block still holds the old block's full text, so a notice cut short or swapped for another still fails.
+      if (fact.kind === 'legal_notice') {
+        const source = inventory.pages.flatMap((p) => p.blocks).find((b) => b.block_id === fact.block_id)?.text;
+        if (source && homes.some((h) => find({ kind: fact.kind, value: source }, h.block, true)?.ok)) continue;
+      }
+      const hits = homes.map((h) => ({ slug: h.slug, hit: find(fact, h.block, true) }));
       if (hits.some((h) => h.hit?.ok)) continue;
       // A name (a legal notice's, say) often lives in the section heading rather than the block.
       if (!['phone', 'email'].includes(fact.kind) && homes.some((h) => find(fact, h.section, false)?.ok)) continue;

@@ -168,3 +168,11 @@ test('a legal notice whose own text is gone from its block still fails', () => {
   const facts = factDiff({ dist, pages, inventory: docs.inventory, storyboard: docs.storyboard });
   assert.deepEqual(facts.missing, ['f006']);
 });
+
+test('a legal notice cut short, or swapped for another notice, fails', () => {
+  for (const edit of [(h) => h.replace(/(does not discriminate)[^<]*/, '$1'), (h) => h.replace(/Maple Grove Local School District does not discriminate[^<]*/, 'Title IX Coordinator: Dana Whitfield.')]) {
+    const dist = editedSite('about.html', (h) => edit(h.replaceAll('Nondiscrimination notice', 'Notices')));
+    const facts = factDiff({ dist, pages, inventory: docs.inventory, storyboard: docs.storyboard });
+    assert.deepEqual(facts.missing, ['f006']);
+  }
+});

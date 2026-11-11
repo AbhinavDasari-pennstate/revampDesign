@@ -18,7 +18,8 @@ const NAME = `\\b(?:${DAY}|${MONTH})\\b\\.?`;
 const AMPM = '(?:\\b|(?<=\\d))[ap]\\.?m\\b\\.?';
 const SPAN_RANGE = new RegExp(`(${NAME}(?=\\s*${ANY}\\s*${NAME})|${AMPM})\\s*${ANY}\\s*(?=\\d|${NAME}|\\b(?:noon|midnight)\\b)`, 'gi');
 // Starts only after a non-space, so a long run of spaces is scanned once, not once per space.
-const PAUSE = new RegExp(`(?<!\\s)\\s*${ANY}\\s*`, 'g');
+// The group is optional, so a dash right after spaces an earlier match took ("a, , b") still goes.
+const PAUSE = new RegExp(`(?:(?<!\\s)\\s*)?${ANY}\\s*`, 'g');
 
 export function noDashes(text) {
   return text.replace(GRADE_SPAN, '$1-').replace(NUMBER_RANGE, '$1-').replace(SPAN_RANGE, '$1 to ').replace(WORD_RANGE, '$1 to ').replace(PAUSE, ', ');
