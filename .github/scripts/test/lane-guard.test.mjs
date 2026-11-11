@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { violations } from '../lane-guard.mjs';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -45,4 +45,33 @@ test('a file moved out of another lane is caught, not hidden by rename detection
   rmSync(dir, { recursive: true, force: true });
   assert.equal(r.status, 1);
   assert.match(r.stderr, /contracts\/validate\.mjs/);
+});
+
+test('lane-b may also touch web/ui but not web/viewer or web/server', () => {
+  assert.deepEqual(violations('lane-b/x', ['web/ui/a.js', 'web/ui/css/app.css', 'lanes/b-design/a.mjs']), []);
+  assert.deepEqual(violations('lane-b/x', ['web/viewer/a.js', 'web/server/server.mjs', 'contracts/web/README.md']), ['web/viewer/a.js', 'web/server/server.mjs', 'contracts/web/README.md']);
+});
+
+test('lane-c may also touch web/viewer but not web/ui or web/server', () => {
+  assert.deepEqual(violations('lane-c/x', ['web/viewer/a.js', 'web/viewer/test/serve.test.mjs', 'lanes/c-build/a.mjs']), []);
+  assert.deepEqual(violations('lane-c/x', ['web/ui/a.js', 'web/server/server.mjs', 'contracts/web/README.md']), ['web/ui/a.js', 'web/server/server.mjs', 'contracts/web/README.md']);
+});
+
+test('lane-a owns web/server and contracts/web but may touch neither web/ui nor web/viewer', () => {
+  assert.deepEqual(violations('lane-a/x', ['web/server/server.mjs', 'contracts/web/README.md', 'contracts/test/web.test.mjs', '.gitignore']), []);
+  assert.deepEqual(violations('lane-a/x', ['web/ui/a.js', 'web/viewer/a.js']), ['web/ui/a.js', 'web/viewer/a.js']);
+});
+
+test('a folder that only starts with the same letters as a web folder is not that folder', () => {
+  assert.deepEqual(violations('lane-b/x', ['web/ui-extra/a.js', 'web/uix']), ['web/ui-extra/a.js', 'web/uix']);
+  assert.deepEqual(violations('lane-c/x', ['web/viewer-extra/a.js', 'web/viewers']), ['web/viewer-extra/a.js', 'web/viewers']);
+  assert.deepEqual(violations('lane-a/x', ['web/ui-extra/a.js', 'web/viewer-extra/a.js']), []);
+});
+
+test('CODEOWNERS names the web folder owners and .gitignore keeps web-data out of git', () => {
+  const root = join(import.meta.dirname, '../../..');
+  const owners = readFileSync(join(root, '.github/CODEOWNERS'), 'utf8').split(/\r?\n/).map((l) => l.trim().split(/\s+/));
+  assert.ok(owners.some(([path, who]) => path === '/web/ui/' && who === '@Nirmal-28'));
+  assert.ok(owners.some(([path, who]) => path === '/web/viewer/' && who === '@adithya916'));
+  assert.ok(readFileSync(join(root, '.gitignore'), 'utf8').split(/\r?\n/).includes('web-data/'));
 });

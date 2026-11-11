@@ -2,11 +2,13 @@
 import { execSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
-const OTHER_LANES = ['lanes/b-design/', 'lanes/c-build/'];
+// Lane A owns web/server/ and contracts/web/; web/ui/ belongs to Lane B and web/viewer/ to Lane C (plan/web-plan.md, section 3).
+const OTHER_LANES = ['lanes/b-design/', 'lanes/c-build/', 'web/ui/', 'web/viewer/'];
+const starts = (f, ...prefixes) => prefixes.some((p) => f.startsWith(p));
 const allowed = {
-  'lane-a/': (f) => !OTHER_LANES.some((p) => f.startsWith(p)),
-  'lane-b/': (f) => f.startsWith('lanes/b-design/'),
-  'lane-c/': (f) => f.startsWith('lanes/c-build/'),
+  'lane-a/': (f) => !starts(f, ...OTHER_LANES),
+  'lane-b/': (f) => starts(f, 'lanes/b-design/', 'web/ui/'),
+  'lane-c/': (f) => starts(f, 'lanes/c-build/', 'web/viewer/'),
 };
 
 export function violations(branch, files) {

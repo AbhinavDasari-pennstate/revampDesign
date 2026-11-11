@@ -60,3 +60,6 @@ jobs:
       - run: cd contracts && npm ci
       - run: cd lanes/c-build && npm ci && npx playwright install --with-deps chromium
       - run: cd lanes/c-build && node --test
+  # web/server, web/ui and web/viewer have no tests yet (plan/web-plan.md T40 to T42). The task that adds the first test
+  # to a web folder adds that folder's job here: cd web/<folder> && node --test. contracts/web/ is already covered by the
+  # contracts job above (contracts/test/web.test.mjs).
