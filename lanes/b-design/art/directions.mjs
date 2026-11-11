@@ -83,7 +83,7 @@ export function draftDirections(run, inv, sb, picks = {}) {
       layout: { ...p.layout, hero_pattern: pick.hero_pattern || p.layout.hero_pattern,
         section_patterns: Object.fromEntries(intents.map((it) => [it, p.patterns[it] ?? 'stacked text'])) },
       references: p.references,
-      // ponytail: no Gemini image generation yet (T18 part 2); strategy is site photos or type only.
+      // Site photos or type only here; with --live and no usable site photos, art/imagery.mjs adds Gemini images.
       imagery: { strategy: photos && p.direction_id !== 'd3' ? 'site_photos' : 'type_only', generated: [] },
       previews: { desktop: `b-design/previews/${p.direction_id}-desktop.png`, mobile: `b-design/previews/${p.direction_id}-mobile.png` },
       contrast_checks: contrastChecks(color),

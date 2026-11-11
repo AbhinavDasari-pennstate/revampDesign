@@ -1,0 +1,407 @@
+{
+  "set_version": "calibration-1",
+  "checked_at": "2026-11-08",
+  "note": "Manifest of URLs only. Screenshots are captured locally into calibration/images/ (gitignored) and never committed.",
+  "sites": [
+    {
+      "id": "award-01",
+      "label": "award",
+      "url": "https://trionn.com/",
+      "domain": "trionn.com",
+      "source": "https://www.awwwards.com/sites/trionn-2",
+      "note": "Awwwards Site of the Day, Jul 27, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-02",
+      "label": "award",
+      "url": "https://www.agrumeafarm.it/en",
+      "domain": "agrumeafarm.it",
+      "source": "https://www.awwwards.com/sites/agrumea-farm",
+      "note": "Awwwards Site of the Day, Nov 5, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-03",
+      "label": "award",
+      "url": "https://ascension.pegassi.be/",
+      "domain": "ascension.pegassi.be",
+      "source": "https://www.awwwards.com/sites/ascension-pegassi-r",
+      "note": "Awwwards Site of the Day, Oct 21, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-04",
+      "label": "award",
+      "url": "https://awards.racing/",
+      "domain": "awards.racing",
+      "source": "https://www.awwwards.com/sites/awards-racing",
+      "note": "Awwwards Site of the Day, Oct 27, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-05",
+      "label": "award",
+      "url": "https://belgradearbor.rs/en",
+      "domain": "belgradearbor.rs",
+      "source": "https://www.awwwards.com/sites/belgrade-arbor",
+      "note": "Awwwards Site of the Day, Oct 17, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-06",
+      "label": "award",
+      "url": "https://brandonyasin.com/",
+      "domain": "brandonyasin.com",
+      "source": "https://www.awwwards.com/sites/brandon-yasin",
+      "note": "Awwwards Site of the Day, Oct 24, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-07",
+      "label": "award",
+      "url": "https://www.deepbook.tech/",
+      "domain": "deepbook.tech",
+      "source": "https://www.awwwards.com/sites/deepbook",
+      "note": "Awwwards Site of the Day, Nov 3, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-08",
+      "label": "award",
+      "url": "https://emotion-agency.com/",
+      "domain": "emotion-agency.com",
+      "source": "https://www.awwwards.com/sites/emotion-agency-1",
+      "note": "Awwwards Site of the Day, Oct 22, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-09",
+      "label": "award",
+      "url": "https://www.esrbespoke.au/",
+      "domain": "esrbespoke.au",
+      "source": "https://www.awwwards.com/sites/esr-bespoke",
+      "note": "Awwwards Site of the Day, Oct 23, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-10",
+      "label": "award",
+      "url": "https://www.extrafazant.nl/",
+      "domain": "extrafazant.nl",
+      "source": "https://www.awwwards.com/sites/extrafazant",
+      "note": "Awwwards Site of the Day, Nov 8, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-11",
+      "label": "award",
+      "url": "https://forgeautomotive.co.uk/",
+      "domain": "forgeautomotive.co.uk",
+      "source": "https://www.awwwards.com/sites/forge-automotive",
+      "note": "Awwwards Site of the Day, Oct 25, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-12",
+      "label": "award",
+      "url": "https://format.obys.agency/",
+      "domain": "format.obys.agency",
+      "source": "https://www.awwwards.com/sites/format",
+      "note": "Awwwards Site of the Day, Oct 19, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-13",
+      "label": "award",
+      "url": "https://guillaumecolombel.fr/",
+      "domain": "guillaumecolombel.fr",
+      "source": "https://www.awwwards.com/sites/g-colombel-portfolio-2026",
+      "note": "Awwwards Site of the Day, Oct 28, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-14",
+      "label": "award",
+      "url": "https://grail-app.com/",
+      "domain": "grail-app.com",
+      "source": "https://www.awwwards.com/sites/grail",
+      "note": "Awwwards Site of the Day, Nov 4, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-15",
+      "label": "award",
+      "url": "https://heronaiapp.com/",
+      "domain": "heronaiapp.com",
+      "source": "https://www.awwwards.com/sites/heron-ai",
+      "note": "Awwwards Site of the Day, Oct 12, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-16",
+      "label": "award",
+      "url": "https://huyml.co/",
+      "domain": "huyml.co",
+      "source": "https://www.awwwards.com/sites/huy-phan-vol-2",
+      "note": "Awwwards Site of the Day, Oct 14, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-17",
+      "label": "award",
+      "url": "https://jjettas.com/",
+      "domain": "jjettas.com",
+      "source": "https://www.awwwards.com/sites/justin-jefferson",
+      "note": "Awwwards Site of the Day, Nov 7, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-18",
+      "label": "award",
+      "url": "https://lpas.com/",
+      "domain": "lpas.com",
+      "source": "https://www.awwwards.com/sites/lpas",
+      "note": "Awwwards Site of the Day, Oct 10, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-19",
+      "label": "award",
+      "url": "https://www.mariavasilyeva.com/",
+      "domain": "mariavasilyeva.com",
+      "source": "https://www.awwwards.com/sites/maria-vasilyeva-portfolio",
+      "note": "Awwwards Site of the Day, Oct 9, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-20",
+      "label": "award",
+      "url": "https://neutomni.com/",
+      "domain": "neutomni.com",
+      "source": "https://www.awwwards.com/sites/neutomni",
+      "note": "Awwwards Site of the Day, Oct 13, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-21",
+      "label": "award",
+      "url": "https://nickho-motorsports.nl/",
+      "domain": "nickho-motorsports.nl",
+      "source": "https://www.awwwards.com/sites/nick-ho",
+      "note": "Awwwards Site of the Day, Oct 11, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-22",
+      "label": "award",
+      "url": "https://www.offforum.com/",
+      "domain": "offforum.com",
+      "source": "https://www.awwwards.com/sites/offfforum",
+      "note": "Awwwards Site of the Day, Oct 16, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-23",
+      "label": "award",
+      "url": "https://overworldaudio.com/",
+      "domain": "overworldaudio.com",
+      "source": "https://www.awwwards.com/sites/overworld-audio",
+      "note": "Awwwards Site of the Day, Oct 15, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-24",
+      "label": "award",
+      "url": "https://signal-a.studio/",
+      "domain": "signal-a.studio",
+      "source": "https://www.awwwards.com/sites/signal-a-studio",
+      "note": "Awwwards Site of the Day, Oct 18, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "award-25",
+      "label": "award",
+      "url": "https://vivmgmt.com/",
+      "domain": "vivmgmt.com",
+      "source": "https://www.awwwards.com/sites/viv",
+      "note": "Awwwards Site of the Day, Nov 6, 2026. Award and site URL read from the Awwwards page on 2026-11-08."
+    },
+    {
+      "id": "legacy-01",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050531213857if_/http://www.fcps.edu/",
+      "domain": "fcps.edu",
+      "source": "https://web.archive.org/web/20050531213857/http://www.fcps.edu/",
+      "note": "US public school district home page as archived on 2005-05-31 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-02",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050531233541if_/http://www.mcps.k12.md.us/",
+      "domain": "mcps.k12.md.us",
+      "source": "https://web.archive.org/web/20050531233541/http://www.mcps.k12.md.us/",
+      "note": "US public school district home page as archived on 2005-05-31 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-03",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050601022351if_/http://www.lausd.k12.ca.us/",
+      "domain": "lausd.k12.ca.us",
+      "source": "https://web.archive.org/web/20050601022351/http://www.lausd.k12.ca.us/",
+      "note": "US public school district home page as archived on 2005-06-01 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-04",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050531222103if_/http://www.dallasisd.org/",
+      "domain": "dallasisd.org",
+      "source": "https://web.archive.org/web/20050531222103/http://www.dallasisd.org/",
+      "note": "US public school district home page as archived on 2005-05-31 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-05",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050601030417if_/http://www.houstonisd.org/",
+      "domain": "houstonisd.org",
+      "source": "https://web.archive.org/web/20050601030417/http://www.houstonisd.org/",
+      "note": "US public school district home page as archived on 2005-06-01 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-06",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050601005811if_/http://www.cps.k12.il.us/",
+      "domain": "cps.k12.il.us",
+      "source": "https://web.archive.org/web/20050601005811/http://www.cps.k12.il.us/",
+      "note": "US public school district home page as archived on 2005-06-01 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-07",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050622033836if_/http://www.bostonpublicschools.org/",
+      "domain": "bostonpublicschools.org",
+      "source": "https://web.archive.org/web/20050622033836/http://www.bostonpublicschools.org/",
+      "note": "US public school district home page as archived on 2005-06-22 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-08",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050531223642if_/http://www.pps.k12.or.us/",
+      "domain": "pps.k12.or.us",
+      "source": "https://web.archive.org/web/20050531223642/http://www.pps.k12.or.us/",
+      "note": "US public school district home page as archived on 2005-05-31 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-09",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050531223813if_/http://www.sfusd.k12.ca.us/",
+      "domain": "sfusd.k12.ca.us",
+      "source": "https://web.archive.org/web/20050531223813/http://www.sfusd.k12.ca.us/",
+      "note": "US public school district home page as archived on 2005-05-31 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-10",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050528012051if_/http://www.aps.edu/",
+      "domain": "aps.edu",
+      "source": "https://web.archive.org/web/20050528012051/http://www.aps.edu/",
+      "note": "US public school district home page as archived on 2005-05-28 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-11",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050626091027if_/http://www.dpsk12.org/",
+      "domain": "dpsk12.org",
+      "source": "https://web.archive.org/web/20050626091027/http://www.dpsk12.org/",
+      "note": "US public school district home page as archived on 2005-06-26 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-12",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050602000547if_/http://www.mpls.k12.mn.us/",
+      "domain": "mpls.k12.mn.us",
+      "source": "https://web.archive.org/web/20050602000547/http://www.mpls.k12.mn.us/",
+      "note": "US public school district home page as archived on 2005-06-02 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-13",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050605004228if_/http://www.spps.org/",
+      "domain": "spps.org",
+      "source": "https://web.archive.org/web/20050605004228/http://www.spps.org/",
+      "note": "US public school district home page as archived on 2005-06-05 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-14",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050531214631if_/http://www.cms.k12.nc.us/",
+      "domain": "cms.k12.nc.us",
+      "source": "https://web.archive.org/web/20050531214631/http://www.cms.k12.nc.us/",
+      "note": "US public school district home page as archived on 2005-05-31 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-15",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050602005125if_/http://www.wcpss.net/",
+      "domain": "wcpss.net",
+      "source": "https://web.archive.org/web/20050602005125/http://www.wcpss.net/",
+      "note": "US public school district home page as archived on 2005-06-02 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-16",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050601023323if_/http://www.pgcps.org/",
+      "domain": "pgcps.org",
+      "source": "https://web.archive.org/web/20050601023323/http://www.pgcps.org/",
+      "note": "US public school district home page as archived on 2005-06-01 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-17",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050601001952if_/http://www.bcps.org/",
+      "domain": "bcps.org",
+      "source": "https://web.archive.org/web/20050601001952/http://www.bcps.org/",
+      "note": "US public school district home page as archived on 2005-06-01 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-18",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050531212009if_/http://www.jefferson.k12.ky.us/",
+      "domain": "jefferson.k12.ky.us",
+      "source": "https://web.archive.org/web/20050531212009/http://www.jefferson.k12.ky.us/",
+      "note": "US public school district home page as archived on 2005-05-31 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-19",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050601034619if_/http://www.austinisd.org/",
+      "domain": "austinisd.org",
+      "source": "https://web.archive.org/web/20050601034619/http://www.austinisd.org/",
+      "note": "US public school district home page as archived on 2005-06-01 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-20",
+      "label": "legacy",
+      "url": "https://web.archive.org/web/20050601022540if_/http://www.madison.k12.wi.us/",
+      "domain": "madison.k12.wi.us",
+      "source": "https://web.archive.org/web/20050601022540/http://www.madison.k12.wi.us/",
+      "note": "US public school district home page as archived on 2005-06-01 by the Internet Archive. The if_ address hides the archive toolbar."
+    },
+    {
+      "id": "legacy-21",
+      "label": "legacy",
+      "url": "https://concordspedpac.org/",
+      "domain": "concordspedpac.org",
+      "source": "Web search, checked 2026-11-08 by fetching the home page",
+      "note": "Live small organisation site (special education parent council). No viewport meta, 237 font tags, layout tables, copyright 2000."
+    },
+    {
+      "id": "legacy-22",
+      "label": "legacy",
+      "url": "https://www.qsl.net/barc/",
+      "domain": "qsl.net",
+      "source": "Web search, checked 2026-11-08 by fetching the home page",
+      "note": "Live small organisation site (amateur radio club). No viewport meta, font and center tags, layout tables."
+    },
+    {
+      "id": "legacy-23",
+      "label": "legacy",
+      "url": "https://www.gfhistory.org/",
+      "domain": "gfhistory.org",
+      "source": "Web search, checked 2026-11-08 by fetching the home page",
+      "note": "Live small organisation site (historical society museum). No viewport meta, built with CoffeeCup Visual Site Designer."
+    },
+    {
+      "id": "legacy-24",
+      "label": "legacy",
+      "url": "https://www.damascusvfd.com/",
+      "domain": "damascusvfd.com",
+      "source": "Web search, checked 2026-11-08 by fetching the home page",
+      "note": "Live small organisation site (volunteer fire department). No viewport meta, 22 layout tables, Adobe ColdFusion."
+    },
+    {
+      "id": "legacy-25",
+      "label": "legacy",
+      "url": "https://newweb.altoona.k12.wi.us/",
+      "domain": "newweb.altoona.k12.wi.us",
+      "source": "Web search, checked 2026-11-08 by fetching the home page",
+      "note": "Live school district home page. No viewport meta, font tags."
+    }
+  ]
+}

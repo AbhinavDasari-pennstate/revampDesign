@@ -53,7 +53,7 @@ test('a heading that names a person is withheld on the boards the judges see; a 
   for (const id of ['d1', 'd2', 'd3']) assert.doesNotMatch(readFileSync(join(r, `b-design/boards/${id}.html`), 'utf8'), /Whitfield/);
 });
 
-test('no image is generated this week: strategy is site photos or type only and generated is empty', () => {
+test('without --live no image is generated: strategy is site photos or type only and generated is empty', () => {
   for (const d of draftDirections(run, inv, draftStory(run, inv)).directions) {
     assert.ok(['site_photos', 'type_only'].includes(d.imagery.strategy));
     assert.deepEqual(d.imagery.generated, []);

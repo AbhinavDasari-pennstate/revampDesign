@@ -18,7 +18,7 @@ node lanes/b-design/cli.mjs art     --run R --in R/00-run.json --in R/10-invento
 node lanes/b-design/cli.mjs council --run R --in R/30-directions.json --out R/40-verdict.json
 node lanes/b-design/cli.mjs learn   --in R/45-selection.json [--in ...] [--out data/preferences.jsonl]
 ```
-Flags: `--live` (use models from `models.json`), `--max-usd <n>` (default: `limits.lane_budget_usd.b` from the run file), `--no-images` (accepted; no image generation exists yet).
+Flags: `--live` (use models from `models.json`), `--max-usd <n>` (default: `limits.lane_budget_usd.b` from the run file), `--no-images` (skip Gemini imagery in live mode).
 Exit codes: 0 ok, 1 crash or usage, 2 input fails its schema or is missing, 3 quality gate failed (output still written), 4 budget (no output: Lane B contracts have no `status` field).
 
 ## What each stage does
@@ -33,5 +33,13 @@ Known limits:
 - `scrub()` withholds names only where Scout reports a `person` fact, and Scout reports none this week. So `--live` can still send names that sit in body text to providers. Do not run `--live` on a real school site until that is ruled on.
 - `learn` records a run once; a verdict added after its first row is not picked up.
 - The model ids in `models.json` were read from the OpenRouter models list on Nov 7.
-Not done, with a GitHub issue each: T05 calibration manifest and TERMS.md, T27 calibration run (needs the manifest and the key), T33 council fixes (needs real runs), T18 Gemini imagery, one live run of each stage saved to `test/recorded/`, and checking the model ids in `models.json` still exist before a live run.
+Not done, with a GitHub issue each: T27 live calibration run (code and manifest are in; needs the key), T33 council fixes (needs real runs), one live run of each stage saved to `test/recorded/`, and checking the model ids in `models.json` still exist before a live run.
 Read before changing: the gates in `story/story.mjs` `gate()` and `art/directions.mjs` `gate()` are what keep the contracts honest; extend them, do not loosen them.
+
+## Calibration (T05, T27; added by Nirmal, Nov 9)
+`calibration/sites.json` lists 25 Awwwards Site of the Day winners (each with its Awwwards page as `source`) and 25 legacy sites: 20 US school district home pages as archived in 2005 by the Internet Archive and 5 live legacy small organisation pages. The terms reading is in `calibration/TERMS.md`. Screenshots go to `calibration/images/`, which is gitignored and never committed.
+```
+node lanes/b-design/cli.mjs calibrate --capture          # 50 sites, desktop and mobile, local only
+node lanes/b-design/cli.mjs calibrate --live --pairs 100   # 100 pairs x 2 orders x 3 judges = 600 votes, capped at 10 USD unless --max-usd says otherwise
+```
+`--live` uses the council's own judges and rubric and writes `calibration/report.json`, which `council` already reads. Accuracy is the share of votes for the award site (a tie counts as a miss); exit 3 below 0.9. Before `--live`, look through `calibration/images/` and replace any site whose screenshot shows identifiable students.

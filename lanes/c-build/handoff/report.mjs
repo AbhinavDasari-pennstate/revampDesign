@@ -11,7 +11,7 @@ export function ownerReport({ name, pages, fidelity, qa, failures }) {
     `# New website for ${name}`,
     '',
     ready
-      ? '**Ready to publish.** Every check passed. See "Put it online" in the site folder\'s README.'
+      ? '**Ready to publish.** Every required check passed. See "Put it online" in the site folder\'s README.'
       : `**Not ready to publish.** ${plural(failures.length, 'problem needs', 'problems need')} fixing first; they are listed under "Fix before publishing".`,
     '',
     `${fidelity.pages_carried} of ${fidelity.pages_total} old pages were carried over. ${plural(fidelity.dropped.length, 'item was', 'items were')} left out and ${plural(fidelity.flagged.length, 'item needs', 'items need')} your attention.`,

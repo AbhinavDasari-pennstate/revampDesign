@@ -20,7 +20,10 @@ export function boardHtml(d, sb, { webFonts = true } = {}) {
   const fonts = webFonts && t.source === 'google'
     ? `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${[t.display_family, t.body_family].map((f) => encodeURIComponent(f)).join('&family=')}&display=swap">`
     : '';
-  const photo = d.imagery.strategy === 'site_photos' ? '<div class="photo" role="img" aria-label="Site photo placeholder">Site photo</div>' : '';
+  // A generated image (Gemini, never a site photo) is drawn; site photos stay placeholders.
+  const generated = d.imagery.generated[0]?.path.replace(/^b-design\//, '../');
+  const photo = generated ? `<img class="photo gen" src="${esc(generated)}" alt="">`
+    : d.imagery.strategy === 'site_photos' ? '<div class="photo" role="img" aria-label="Site photo placeholder">Site photo</div>' : '';
   const sections = rest.slice(0, 4).map((s) => `
     <section><h2>${esc(s.copy.headline)}</h2>${s.copy.subhead ? `<p>${esc(s.copy.subhead)}</p>` : ''}
       <div class="bar"></div><div class="bar"></div><div class="bar short"></div></section>`).join('');
@@ -45,6 +48,7 @@ export function boardHtml(d, sb, { webFonts = true } = {}) {
   .photo { aspect-ratio: 4 / 3; border-radius: ${d.tokens.radius_px}px; background: ${c.surface}; color: ${c.muted}; display: grid; place-items: center; border: 2px dashed ${c.muted}; }
   main { display: grid; gap: 24px; padding-block: 48px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
   section { background: ${c.surface}; border-radius: ${d.tokens.radius_px}px; padding: 24px; ${d.direction_id === 'd3' ? `border-top: 4px solid ${c.accent};` : ''} }
+  .photo.gen { width: 100%; height: auto; object-fit: cover; border: 0; display: block; }
   .bar { height: 10px; border-radius: 5px; background: ${c.muted}; opacity: 0.3; margin: 10px 0; }
   .bar.short { width: 60%; }
   @media (max-width: 640px) { .hero .inner { grid-template-columns: 1fr; } nav { margin-left: 0; } }
