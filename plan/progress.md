@@ -15,3 +15,6 @@
 | A-FU3 audit fixes | done | 6484a17, b9b2f29, PR #19 | master-reviewer PASS after one fix round | Scout survives legacy markup, redirects, robots globs; c-build job dropped until #20 |
 | A-FU4 Node warning and records | done | cd44bbd and fix round, PR #27 | master-reviewer FIX (M2 L1), fixed: missing .nvmrc no longer fails a run, log wiring tested (mutation fails), records corrected | warning in real mode plus test; STATUS, board, progress caught up |
 | T39 web API contract v1 | done, not pushed | 60eb9d7..ced54fe on lane-a/T39-web-contract | PASS after 2 fix rounds | rule 7 ruled twice (rulings.md): cap enforced at start as budget, daily_cap_reached reserved; issues #34 (Nirmal) #35 (Aditya) wait on the tag |
+| T40 web job server | done | c242be7, PR #37 merged | PASS first round (C0 H0 M0 L3) | L items folded into T47; rulings: queue counts running job, unresolvable host is bad_url |
+| T47 invites, caps, live switch | done | 26aef75..5e28941, PR #38 merged | FIX (H1 spend undercount, L1) then PASS | spend sums b-design/cost.jsonl (ruling); T40 L items folded in |
+| T43 live progress, stub detection | done | c3bd0e0..116e36a, PR #39 merged | PASS (L1) then PASS | real free run through web/server on the sample: six stages, done in 170 s |
