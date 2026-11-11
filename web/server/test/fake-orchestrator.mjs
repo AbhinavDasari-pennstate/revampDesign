@@ -15,6 +15,7 @@
 //   ?nolog=1      write no orchestrator.log at all
 //   ?failstage=<stage>  the stage the FAILED line of the log names (default: the first stage whose file was not written, or build when all six were). Lanes B and C write
 //                 their output file and then exit 3 when a quality gate fails, so ?exit=3&upto=3&failstage=art is a run whose art stage left its file and still failed
+//   ?lag=<ms>     after the last stage file is written, wait this long before the log and the exit: a lane whose process takes a while to end after it wrote its file (Lane B exits when its loop drains)
 // Files it leaves next to the run folder, for the tests: fake-timing.json {start, end} in ms, fake-grandchild.pid.
 // The run folder is <out-dir>/<run_id>/ with the contract files copied from contracts/fixtures/sample/ (no stage folders), like the real stub mode.
 // Like the real orchestrator it ends by writing <run folder>/orchestrator.log: one line `ok <stage> <file>` per stage file it wrote, STUB lines for ?stub=1, a FAILED line on a non zero exit.
@@ -98,6 +99,7 @@ for (let i = 0; i < upto; i++) {
   if (query.get('stub') === '1' && STAGE_NAMES[i] !== 'select') log.push(`STUB ${STAGE_NAMES[i]} (lane not present)`);
   log.push(`ok ${STAGE_NAMES[i]} ${name}`);
 }
+if (query.has('lag')) await new Promise((resolve) => setTimeout(resolve, Number(query.get('lag')))); // the files are there, the process lingers
 if (query.get('noise') === '1') log.push('SECRET-LOG-MARKER');
 if (exitCode !== 0) log.push(`FAILED stage ${query.get('failstage') ?? STAGE_NAMES[Math.min(upto, 5)]} failed with exit ${exitCode} SECRET-LOG-MARKER`);
 if (query.get('nolog') !== '1') writeFileSync(join(runDir, 'orchestrator.log'), log.join('\n') + '\n');

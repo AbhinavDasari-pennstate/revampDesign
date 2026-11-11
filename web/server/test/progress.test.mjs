@@ -9,7 +9,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createServer as createNetServer } from 'node:net';
 import { STAGES, STAGE_FILES, POLL_MS, PING_MS, classifyExit, failedStage, runDirOf, stagesDone, wasStubbed } from '../progress.mjs';
 import { startViewer } from '../server.mjs';
-import { VIEWER, FAKE, here, RUN_ERRORS, assertJob, assertValid, alive, getJob, post, request, site, sleep, jobDir, waitFor, startApp, finished, tempDir, cleanup, names, sseFixture, FIXTURE_JOB } from './harness.mjs';
+import { VIEWER, FAKE, here, RUN_ERRORS, assertJob, assertValid, alive, getJob, post, request, site, sleep, jobDir, waitFor, startApp, finished, tempDir, cleanup, names, readStream, sseFixture, FIXTURE_JOB } from './harness.mjs';
 
 afterEach(cleanup);
 
@@ -241,6 +241,33 @@ for (const [name, query, code, finalStates, failedStages] of FAILURES) {
     assert.deepEqual(names(seen).filter((n) => n.endsWith(':failed')), failedStages, 'no other stage is marked failed');
     for (const e of seen) assertValid(`event.v1#/$defs/${e.name}`, e.data);
     for (const text of [JSON.stringify(seen), JSON.stringify(job)]) assert.ok(!/SECRET-|FAILED stage|STUB|lane not present/.test(text), 'nothing the orchestrator printed or logged reaches a response or an event');
+  });
+}
+
+// A lane that wrote its file and then takes longer than a couple of polls to exit 3 (Lane B exits when its loop drains): the poller has already reported the stage done
+// and started the next one. The orchestrator's FAILED line still names the stage that failed, so it is shown failed, and every stage after it is pending again.
+const LAGGED = [
+  ['Lane B, art left its file and exited 3 late (the reviewer probe)', { exit: 3, upto: 3, failstage: 'art', lag: 1000 }, 'quality_gate', stageStates('done', 'done', 'failed'), ['art:done', 'council:running', 'art:failed', 'failed']],
+  ['Lane C, build left 50-handoff.json and exited 3 late', { exit: 3, upto: 6, lag: 1000 }, 'quality_gate', stageStates('done', 'done', 'done', 'done', 'done', 'failed'), ['build:running', 'build:done', 'build:failed', 'failed']],
+  ['Lane C, no budget, handoff written and exited 4 late', { exit: 4, upto: 6, lag: 1000 }, 'budget', stageStates('done', 'done', 'done', 'done', 'done', 'failed'), ['build:running', 'build:done', 'build:failed', 'failed']],
+  ['Lane B, story left its file and exited 3 late', { exit: 3, upto: 2, failstage: 'story', lag: 1000 }, 'quality_gate', stageStates('done', 'failed'), ['story:done', 'art:running', 'story:failed', 'failed']],
+];
+for (const [name, query, code, finalStates, tail] of LAGGED) {
+  test(`${name}: the stage the log names ends failed, the later ones pending, and the events stay valid`, async () => {
+    const { app, base } = await startApp({ pollMs: 200 });
+    const eventsOf = record(app);
+    const { json: posted } = await post(base, request({ url: site(query) }));
+    const job = await finished(base, posted.job_id);
+    const seen = eventsOf(posted.job_id);
+    assertJob(job);
+    assert.deepEqual(job.error, RUN_ERRORS[code]);
+    assert.deepEqual(stateList(job), finalStates, 'the stage that failed is failed, not done, and the next one is not blamed');
+    assert.deepEqual(names(seen).slice(-tail.length), tail, 'the last stage event before failed names the stage that failed');
+    assert.deepEqual([names(seen).filter((n) => n.endsWith(':failed')).length, names(seen).filter((n) => n === 'failed').length], [1, 1], 'one stage failed event, then one failed event');
+    for (const e of seen) assertValid(`event.v1#/$defs/${e.name}`, e.data);
+    const streamed = (await readStream(base, posted.job_id)).events;
+    assert.deepEqual(streamed.map(({ name: n, data }) => ({ name: n, data })), seen, 'the stream sends the same events');
+    assert.deepEqual(streamed.map((e) => e.id), seen.map((_, i) => i + 1));
   });
 }
 

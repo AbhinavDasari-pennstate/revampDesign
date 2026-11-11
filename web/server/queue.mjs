@@ -404,15 +404,24 @@ export class JobQueue extends EventEmitter {
     clearInterval(this.#poller);
     const dir = this.jobDir(job.job_id);
     let finished = stagesDone(dir); // one last look, so a stage that ended since the last poll is neither lost nor out of order
+    let named = null; // the stage the orchestrator says failed (only for a run that exited non zero on its own)
     if (code !== 0 && !timedOut) {
       // The stage that failed is not finished even if it left its file (a quality gate exit): stop the count at the stage the orchestrator names, else at the
       // first stage without a file, or the last stage when every file is there.
-      const named = failedStage(dir, code);
+      named = failedStage(dir, code);
       finished = Math.min(finished, named === null ? STAGES.length - 1 : STAGES.indexOf(named));
     }
     this.#advance(job, finished);
     const failure = classifyExit({ code, timedOut, stagesDone: finished, stubbed: code === 0 && wasStubbed(dir) });
-    const interrupted = job.stages.find((s) => s.state === 'running'); // the stage that was going when the run failed
+    let interrupted = job.stages.find((s) => s.state === 'running'); // the stage that was going when the run failed
+    const at = named === null ? -1 : STAGES.indexOf(named);
+    if (failure && at >= 0 && at < job.stages.filter((s) => s.state === 'done').length) {
+      // A lane that wrote its file and then took longer than two polls to exit 3 (Lane B exits when its loop drains) was already reported done, and the next stage
+      // started. The log names the stage that failed, so it is shown failed and every stage after it pending again. event.v1 has no pending state: the stream
+      // cannot take back the stages it announced, so it ends with this stage failed, then failed.
+      job.stages = STAGES.map((stage, i) => ({ stage, state: i < at ? 'done' : i === at ? 'failed' : 'pending' }));
+      interrupted = job.stages[at];
+    }
     if (failure) {
       this.#fail(job, failure);
     } else {
