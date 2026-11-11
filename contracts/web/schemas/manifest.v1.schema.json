@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manifest.v1",
+  "title": "GET /j/:job_id/manifest.json on the viewer: what the app may show for a finished job",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "job_id",
+    "site",
+    "compare_url",
+    "report_url",
+    "bundle_url",
+    "gates",
+    "fidelity"
+  ],
+  "properties": {
+    "job_id": {
+      "$ref": "job.v1#/$defs/jobId"
+    },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "home_url",
+        "pages"
+      ],
+      "properties": {
+        "home_url": {
+          "$ref": "#/$defs/runUrl"
+        },
+        "pages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "slug",
+              "url",
+              "screenshots"
+            ],
+            "properties": {
+              "slug": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]+$"
+              },
+              "url": {
+                "$ref": "#/$defs/runUrl"
+              },
+              "screenshots": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "desktop",
+                  "mobile"
+                ],
+                "properties": {
+                  "desktop": {
+                    "$ref": "#/$defs/runUrl"
+                  },
+                  "mobile": {
+                    "$ref": "#/$defs/runUrl"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "compare_url": {
+      "$ref": "#/$defs/runUrl"
+    },
+    "report_url": {
+      "type": "string",
+      "pattern": "^https?://[^/\\s?#]+/j/[A-Za-z0-9_-]{22}/report\\.md$"
+    },
+    "bundle_url": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^https?://[^/\\s?#]+/j/[A-Za-z0-9_-]{22}/bundle\\.tar\\.gz$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "axe_serious",
+        "axe_critical"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "axe_serious": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "axe_critical": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "fidelity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pages_carried",
+        "pages_total"
+      ],
+      "properties": {
+        "pages_carried": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pages_total": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "runUrl": {
+      "type": "string",
+      "pattern": "^https?://[^/\\s?#]+/j/[A-Za-z0-9_-]{22}/run/(?!(.*/)?\\.\\.(/|$))[^\\s?#]+$"
+    }
+  }
+}

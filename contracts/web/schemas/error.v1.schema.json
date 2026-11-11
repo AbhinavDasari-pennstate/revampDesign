@@ -1,0 +1,297 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "error.v1",
+  "title": "Body of every failed API call: {error: {code, message}}",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "$ref": "#/$defs/apiError"
+    }
+  },
+  "$defs": {
+    "apiError": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "bad_request"
+            },
+            "message": {
+              "const": "We could not read that request. Please reload the page and try again."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "bad_url"
+            },
+            "message": {
+              "const": "That does not look like a web address we can use. Enter the full address of your site, starting with http or https."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "host_not_public"
+            },
+            "message": {
+              "const": "We can only redesign sites that anyone on the internet can open. That address points to a private or local computer."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "owner_name_required"
+            },
+            "message": {
+              "const": "Please enter the name of the person who owns this site."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "consent_required"
+            },
+            "message": {
+              "const": "Please tick the box to confirm that you own this site or have the owner's permission."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "invite_invalid"
+            },
+            "message": {
+              "const": "That invite code was not recognised. Check it and try again."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "invite_used_today"
+            },
+            "message": {
+              "const": "This invite code has already been used today. Please try again tomorrow."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "daily_cap_reached"
+            },
+            "message": {
+              "const": "We have reached our limit for today. Please try again tomorrow."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "queue_full"
+            },
+            "message": {
+              "const": "Several redesigns are waiting right now. Please try again in a little while."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "not_found"
+            },
+            "message": {
+              "const": "We could not find that. Check the link and try again."
+            }
+          }
+        }
+      ]
+    },
+    "runFailure": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "site_blocked"
+            },
+            "message": {
+              "const": "We could not open any page of your site. It may block automated visitors, or it may be offline."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "quality_gate"
+            },
+            "message": {
+              "const": "We could not finish a redesign that passes our quality checks, so we are not showing one."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "budget"
+            },
+            "message": {
+              "const": "This run reached its spending limit before it finished, so it was stopped."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "not_real"
+            },
+            "message": {
+              "const": "This run could not build a real redesign of your site, so there is nothing to show."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "timeout"
+            },
+            "message": {
+              "const": "This run took too long and was stopped. Please try again later."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "crash"
+            },
+            "message": {
+              "const": "Something went wrong on our side while building your redesign. Please try again later."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "const": "server_restarted"
+            },
+            "message": {
+              "const": "The server restarted while your run was in progress, so it was stopped. Please start it again."
+            }
+          }
+        }
+      ]
+    }
+  }
+}

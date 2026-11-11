@@ -1,0 +1,37 @@
+{
+  "job_id": "Xk3nP9qLm2VbT7sRw4YdHa",
+  "status": "running",
+  "position": null,
+  "mode": "free",
+  "stages": [
+    {
+      "stage": "scout",
+      "state": "done"
+    },
+    {
+      "stage": "story",
+      "state": "done"
+    },
+    {
+      "stage": "art",
+      "state": "running"
+    },
+    {
+      "stage": "council",
+      "state": "pending"
+    },
+    {
+      "stage": "select",
+      "state": "pending"
+    },
+    {
+      "stage": "build",
+      "state": "pending"
+    }
+  ],
+  "created_at": "2026-11-11T18:00:00.000Z",
+  "started_at": "2026-11-11T18:03:10.000Z",
+  "finished_at": null,
+  "error": null,
+  "manifest_url": null
+}

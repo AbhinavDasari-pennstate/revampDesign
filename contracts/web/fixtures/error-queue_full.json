@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "queue_full",
+    "message": "Several redesigns are waiting right now. Please try again in a little while."
+  }
+}

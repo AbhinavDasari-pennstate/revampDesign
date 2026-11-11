@@ -1,0 +1,40 @@
+{
+  "job_id": "Xk3nP9qLm2VbT7sRw4YdHa",
+  "status": "failed",
+  "position": null,
+  "mode": "free",
+  "stages": [
+    {
+      "stage": "scout",
+      "state": "done"
+    },
+    {
+      "stage": "story",
+      "state": "done"
+    },
+    {
+      "stage": "art",
+      "state": "done"
+    },
+    {
+      "stage": "council",
+      "state": "done"
+    },
+    {
+      "stage": "select",
+      "state": "done"
+    },
+    {
+      "stage": "build",
+      "state": "failed"
+    }
+  ],
+  "created_at": "2026-11-11T18:00:00.000Z",
+  "started_at": "2026-11-11T18:00:02.000Z",
+  "finished_at": "2026-11-11T18:20:00.000Z",
+  "error": {
+    "code": "quality_gate",
+    "message": "We could not finish a redesign that passes our quality checks, so we are not showing one."
+  },
+  "manifest_url": null
+}

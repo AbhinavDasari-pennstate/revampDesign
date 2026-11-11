@@ -14,6 +14,8 @@ The only way lanes talk to each other. Owned by Lane A (Abhinav). Lanes B and C 
 
 Field-level summary: `plan/lanes.md`, section "Contracts". The schema files are the truth.
 
+The tester web app has its own HTTP contract (schemas, fixtures and a README) in `web/`, frozen at tag `contracts-web-v1.0.0`. It is not loaded by `validate.mjs`: start at `web/README.md`.
+
 ## Rules baked into the schemas
 - Every file starts with `contract`, `version` ("1.0.0") and `run_id`. No extra fields anywhere.
 - Ids: pages `p01`, blocks `p01-b003`, images `p01-i02`, forms `p01-f01`, facts `f001`, sections `s001`, directions `d1` to `d3`.
