@@ -31,10 +31,10 @@ export function nodeNote(version, wanted) {
   return have < want ? `Warning: running on Node ${have}, the project needs Node ${want} (.nvmrc). Lane C's build may fail.` : null;
 }
 
-// Owner name as it goes into the consent note: line breaks and tabs become spaces, other control characters are dropped, runs of spaces
-// collapse. Capped at 100 code points (the same unit as [...s].length, so an emoji counts once).
+// Owner name as it goes into the consent note: line breaks and tabs become spaces, other control characters and Unicode format characters
+// (bidi controls, zero width characters, the byte order mark: category Cf) are dropped, runs of spaces collapse. Capped at 100 code points (the same unit as [...s].length, so an emoji counts once).
 function cleanName(name) {
-  const text = name.replace(/[\u2028\u2029\t\n\r\f\v]/g, ' ').replace(/[\u0000-\u001f\u007f-\u009f]/g, '').replace(/\s+/g, ' ').trim();
+  const text = name.replace(/[\u2028\u2029\t\n\r\f\v]/g, ' ').replace(/[\u0000-\u001f\u007f-\u009f]/g, '').replace(/\p{Cf}/gu, '').replace(/\s+/g, ' ').trim();
   return [...text].slice(0, 100).join('').trim();
 }
 

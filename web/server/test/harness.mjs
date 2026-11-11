@@ -165,6 +165,11 @@ export function raw(base, method, path) {
 export const site = (params = {}, host = 'school.example') => `https://${host}/?${new URLSearchParams(params)}`;
 export const request = (over = {}) => ({ invite_code: 'K7M2PQ9XWD4R', url: site(), owner_name: 'Dana Whitfield', consent: true, ...over });
 export const jobDir = (dataDir, id) => join(dataDir, 'jobs', id);
+// The argument array the fake orchestrator was started with (it prints it into console.log).
+export const argvOf = (dataDir, id) => {
+  const line = readFileSync(join(jobDir(dataDir, id), 'console.log'), 'utf8').split('\n').find((l) => l.startsWith('FAKE-ARGV '));
+  return JSON.parse(line.slice('FAKE-ARGV '.length));
+};
 export const finished = (base, id) => waitFor(async () => {
   const j = (await getJob(base, id)).json;
   return j.status === 'done' || j.status === 'failed' ? j : null;

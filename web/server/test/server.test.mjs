@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { nodeNote } from '../server.mjs';
-import { FAKE, contracts, VIEWER, fixture, checkByHand, assertValid, assertJob, assertError, sleep, alive, oneUse, call, post, getJob, raw, site, request, jobDir, waitFor, startApp, finished, tempDir, cleanup } from './harness.mjs';
+import { FAKE, contracts, VIEWER, fixture, checkByHand, assertValid, assertJob, assertError, sleep, alive, oneUse, call, post, getJob, raw, site, request, jobDir, waitFor, startApp, finished, tempDir, cleanup, argvOf } from './harness.mjs';
 
 afterEach(cleanup);
 
@@ -218,6 +218,23 @@ test('the owner name in the consent note is capped at 100 code points (an emoji 
   const log = readFileSync(join(jobDir(dataDir, posted.job_id), 'console.log'), 'utf8');
   const argv = JSON.parse(log.split('\n').find((l) => l.startsWith('FAKE-ARGV ')).slice('FAKE-ARGV '.length));
   assert.match(argv[6], new RegExp(`^Owner ${'😀'.repeat(100)} confirmed consent in the tester app at `));
+});
+
+// Unicode format characters (category Cf) are invisible: bidi controls can reorder the note when it is shown, zero width ones can hide text.
+// Soft hyphen, zero width space, joiners, left to right and right to left marks, the bidi embeddings and isolates, word joiner and the byte order mark.
+const FORMAT_CHARS = [0x00ad, 0x200b, 0x200c, 0x200d, 0x200e, 0x200f, 0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x2060, 0x2066, 0x2067, 0x2068, 0x2069, 0xfeff].map((c) => String.fromCodePoint(c));
+test('the owner name loses Unicode format characters (bidi controls, zero width, byte order mark) before it goes into the consent note', async () => {
+  const { base, dataDir } = await startApp();
+  const noted = async (owner_name) => {
+    const { json } = await post(base, request({ owner_name }));
+    await finished(base, json.job_id);
+    return argvOf(dataDir, json.job_id)[6];
+  };
+  assert.match(await noted(`Da${FORMAT_CHARS.join('')}na`), /^Owner Dana confirmed consent in the tester app at /);
+  // a regular expression counts the byte order mark as white space, so it must be dropped before spaces are collapsed, not become a space
+  assert.match(await noted(`Whitfi${String.fromCodePoint(0xfeff)}eld`), /^Owner Whitfield confirmed /);
+  assert.match(await noted(`Dana ${String.fromCodePoint(0x202e)} Whitfield`), /^Owner Dana Whitfield confirmed /);
+  assertError(await post(base, request({ owner_name: FORMAT_CHARS.join('') })), 'owner_name_required', 400);
 });
 
 test('orchestrator stdout and stderr go to console.log in the job folder and never to the tester', async () => {
