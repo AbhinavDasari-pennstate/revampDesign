@@ -153,3 +153,26 @@ test('external links are checked for real but only reported', async () => {
     await new Promise((r) => server.close(r));
   }
 });
+
+// Real run on the sample site, Nov 10: Scout stores a legal notice as a label ("Nondiscrimination notice"),
+// and Lane B's real storyboard heads the section "Notices", so the label is nowhere on the page.
+test('a legal notice passes when its own block is shown, whatever the section heading says', () => {
+  const dist = editedSite('about.html', (h) => h.replaceAll('Nondiscrimination notice', 'Notices'));
+  const facts = factDiff({ dist, pages, inventory: docs.inventory, storyboard: docs.storyboard });
+  assert.deepEqual(facts.missing, []);
+  assert.deepEqual(facts.failures, []);
+});
+
+test('a legal notice whose own text is gone from its block still fails', () => {
+  const dist = editedSite('about.html', (h) => h.replaceAll('Nondiscrimination notice', 'Notices').replace(/does not discriminate[^<]*/, 'welcomes everyone.'));
+  const facts = factDiff({ dist, pages, inventory: docs.inventory, storyboard: docs.storyboard });
+  assert.deepEqual(facts.missing, ['f006']);
+});
+
+test('a legal notice cut short, or swapped for another notice, fails', () => {
+  for (const edit of [(h) => h.replace(/(does not discriminate)[^<]*/, '$1'), (h) => h.replace(/Maple Grove Local School District does not discriminate[^<]*/, 'Title IX Coordinator: Dana Whitfield.')]) {
+    const dist = editedSite('about.html', (h) => edit(h.replaceAll('Nondiscrimination notice', 'Notices')));
+    const facts = factDiff({ dist, pages, inventory: docs.inventory, storyboard: docs.storyboard });
+    assert.deepEqual(facts.missing, ['f006']);
+  }
+});
