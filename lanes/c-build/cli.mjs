@@ -2,7 +2,7 @@
 //   node lanes/c-build/cli.mjs build --run R --in R/00-run.json --in R/10-inventory.json --in R/20-storyboard.json
 //     --in R/30-directions.json --in R/45-selection.json --out R/50-handoff.json [--max-usd <n>]
 // Exit 0 ok, 1 crash, 2 input failed its schema, 3 quality gate failed, 4 budget cap hit.
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { buildPages } from './builder/pages.mjs';
@@ -12,6 +12,7 @@ import { ownerReport } from './handoff/report.mjs';
 import { makeRepo } from './handoff/repo.mjs';
 import { takeScreens } from './handoff/screens.mjs';
 import { fail, readContract, schemaErrors } from './lib/contracts.mjs';
+import { nodeTooOld } from './lib/node-version.mjs';
 import { checkA11y } from './qa/a11y.mjs';
 import { factDiff } from './qa/factdiff.mjs';
 import { checkLinks } from './qa/links.mjs';
@@ -98,6 +99,9 @@ function writeHandoff(out, runDir, { doc, report }) {
 }
 
 async function main(argv) {
+  const { engines } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+  const tooOld = nodeTooOld(process.version, engines.node);
+  if (tooOld) throw fail(tooOld, 1);
   const { runDir, ins, out, maxUsd } = parse(argv);
   const docs = loadInputs(ins);
   const cap = Math.min(maxUsd ?? Infinity, docs.run.limits.lane_budget_usd.c);
