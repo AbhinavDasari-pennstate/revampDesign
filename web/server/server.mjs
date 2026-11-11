@@ -1,17 +1,20 @@
 // The tester app server (plan/web-plan.md T40). Node stdlib only; listens on 127.0.0.1 only.
-//   node web/server/server.mjs [--port 8787] [--data-dir web-data] [--orchestrator orchestrator/cli.mjs] [--timeout-min 45] [--daily-usd-cap 0] [--allow-local]
-// Routes: POST /api/jobs, GET /api/jobs/:job_id (contracts/web/README.md); everything else under /api/ is 404 not_found; every other GET and HEAD is a
-// static file of web/ui/ (at the root and under /ui/), read as a file and never executed. The viewer (results, sandboxed) is a separate server.
+//   node web/server/server.mjs [--port 8787] [--data-dir web-data] [--orchestrator orchestrator/cli.mjs] [--timeout-min 45] [--daily-usd-cap 0] [--allow-local] [--viewer-port 8788] [--viewer-script web/viewer/server.mjs] [--no-viewer]
+// Routes: POST /api/jobs, GET /api/jobs/:job_id, GET /api/jobs/:job_id/events (contracts/web/README.md); everything else under /api/ is 404 not_found; every other GET and HEAD is a
+// static file of web/ui/ (at the root and under /ui/), read as a file and never executed. The viewer (results, sandboxed) is a separate server: this program starts
+// web/viewer/server.mjs as a child process when that file exists (startViewer), on --viewer-port, and says so when it does not.
 // The invite store (invites.mjs, <data dir>/invites.json) is injected as createApp option `invites`: with none, every start request is refused as invite_invalid.
-// The dollar cap for live jobs (--daily-usd-cap, default 0) and the live switch are in queue.mjs; the admin tool is admin.mjs.
+// The dollar cap for live jobs (--daily-usd-cap, default 0) and the live switch are in queue.mjs; the admin tool is admin.mjs. Progress (stages, SSE) is progress.mjs.
 import { createServer } from 'node:http';
+import { spawn } from 'node:child_process';
 import { readFile, realpath, stat } from 'node:fs/promises';
-import { existsSync, readFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync } from 'node:fs';
 import { dirname, extname, isAbsolute, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { createInviteStore } from './invites.mjs';
 import { API_ERRORS } from './messages.mjs';
+import { createEventHub } from './progress.mjs';
 import { JobQueue, isJobId } from './queue.mjs';
 import { checkHost, parseTarget } from './urlcheck.mjs';
 
@@ -31,6 +34,45 @@ const PLACEHOLDER = '<!doctype html><html lang="en"><head><meta charset="utf-8">
 export function nodeNote(version, wanted) {
   const [have, want] = [parseInt(version, 10), parseInt(String(wanted ?? '').trim().replace(/^v/, ''), 10)];
   return have < want ? `Warning: running on Node ${have}, the project needs Node ${want} (.nvmrc). Lane C's build may fail.` : null;
+}
+
+// Starts the results viewer (web/viewer/server.mjs, Lane C) as a child process, the way the queue starts the orchestrator: an argument array and no shell, its output
+// in a log file and never in a response. Returns { child, stop() } (stop() ends it and waits), or null when the script is not there: the tester app still runs, and
+// says that results cannot be viewed. A viewer that stops by itself is reported once.
+export function startViewer({ script, jobsRoot, port, appOrigin, logFile, log = console }) {
+  if (!existsSync(script)) {
+    (log.warn ?? log.error)?.call(log, `The results viewer (${script}) is not installed yet: results cannot be viewed.`);
+    return null;
+  }
+  let child;
+  let out;
+  try {
+    mkdirSync(dirname(logFile), { recursive: true });
+    out = openSync(logFile, 'a');
+    child = spawn(process.execPath, [script, '--jobs-root', jobsRoot, '--port', String(port), '--app-origin', appOrigin], { stdio: ['ignore', out, out], shell: false, windowsHide: true });
+  } catch (e) {
+    log.error?.(`The results viewer could not be started (${e.code ?? e.message}): results cannot be viewed.`);
+    return null;
+  } finally {
+    if (out !== undefined) closeSync(out);
+  }
+  const gone = () => child.exitCode !== null || child.signalCode !== null;
+  let stopping = false;
+  child.once('error', (e) => log.error?.(`The results viewer could not be run (${e.code ?? e.message}): results cannot be viewed.`));
+  child.once('exit', (code, signal) => {
+    if (!stopping) log.error?.(`The results viewer stopped by itself (${signal ?? `exit ${code}`}): results cannot be viewed until the server is started again. Its output is in ${logFile}.`);
+  });
+  return {
+    child,
+    async stop() {
+      stopping = true;
+      if (gone()) return;
+      const exited = new Promise((resolveExit) => child.once('exit', resolveExit));
+      child.kill();
+      await Promise.race([exited, new Promise((resolveWait) => setTimeout(resolveWait, 5000).unref())]);
+      if (!gone()) child.kill('SIGKILL');
+    },
+  };
 }
 
 // Owner name as it goes into the consent note: line breaks and tabs become spaces, other control characters and Unicode format characters
@@ -56,15 +98,18 @@ function readBody(req) {
 }
 
 // options: dataDir, orchestrator, uiDir, runTemplate (all absolute paths, defaults under the repo), invites { check(code), recordUse(label) }, lookup (DNS, for tests),
-// allowLocal, timeoutMs, maxLine, viewerOrigin, dailyUsdCap (dollars of live spend per Los Angeles day, default 0), log ({ log, error, warn }), now.
+// allowLocal, timeoutMs, maxLine, viewerOrigin (where the viewer is: the manifest_url of a finished job points there), dailyUsdCap (dollars of live spend per Los Angeles day,
+// default 0), pollMs (how often a running job's folder is looked at for new contract files, default 1 s) and pingMs (how often an idle event stream gets a ": ping", default 15 s),
+// both injectable so tests need not wait, log ({ log, error, warn }), now.
 // runTemplate is the 00-run.json the orchestrator starts every run from (its default fixture): a live job may cost its limits.lane_budget_usd b plus c.
 export function createApp({
   dataDir = join(repoRoot, 'web-data'), orchestrator = join(repoRoot, 'orchestrator', 'cli.mjs'), uiDir = join(here, '..', 'ui'), invites, lookup, allowLocal = false,
   timeoutMs = 45 * 60_000, maxLine = 5, viewerOrigin = 'http://127.0.0.1:8788', dailyUsdCap = 0, runTemplate = join(repoRoot, 'contracts', 'fixtures', 'sample', '00-run.json'),
-  log = console, now = () => new Date(),
+  pollMs, pingMs, log = console, now = () => new Date(),
 } = {}) {
   if (invites && (typeof invites.check !== 'function' || typeof invites.recordUse !== 'function')) throw new TypeError('invites needs check(code) and recordUse(label)');
-  const queue = new JobQueue({ dataDir, orchestrator, timeoutMs, maxLine, viewerOrigin, dailyUsdCap, runTemplate, log, now });
+  const queue = new JobQueue({ dataDir, orchestrator, timeoutMs, maxLine, viewerOrigin, dailyUsdCap, runTemplate, pollMs, log, now });
+  const hub = createEventHub(queue, { pingMs });
   const appCsp = [
     "default-src 'self'", `frame-src 'self' ${viewerOrigin}`, `img-src 'self' ${viewerOrigin}`, `connect-src 'self' ${viewerOrigin}`,
     "object-src 'none'", "base-uri 'none'", "frame-ancestors 'none'",
@@ -136,8 +181,9 @@ export function createApp({
 
   async function api(req, res, path) {
     if (req.method === 'POST' && path === '/api/jobs') return startJob(req, res);
-    const m = req.method === 'GET' ? /^\/api\/jobs\/([^/]+)$/.exec(path) : null;
+    const m = req.method === 'GET' ? /^\/api\/jobs\/([^/]+)(\/events)?$/.exec(path) : null;
     const job = m && isJobId(m[1]) ? queue.get(m[1]) : undefined;
+    if (job && m[2]) return hub.stream(req, res, job.job_id, baseHeaders); // a stream, or 404 as JSON below for a job that does not exist
     if (job) return sendJson(res, 200, queue.view(job));
     return sendError(res, 'not_found');
   }
@@ -209,7 +255,7 @@ export function createApp({
   });
 
   const app = {
-    server, queue, port: null,
+    server, queue, hub, port: null,
     // Always 127.0.0.1: there is deliberately no way to choose another address.
     listen: (port) => new Promise((resolveListen, reject) => {
       server.once('error', reject);
@@ -232,19 +278,25 @@ export function createApp({
 
 async function main() {
   const usage = (text) => {
-    console.error(`${text}\nusage: node web/server/server.mjs [--port 8787] [--data-dir web-data] [--orchestrator orchestrator/cli.mjs] [--timeout-min 45] [--daily-usd-cap 0] [--allow-local]`);
+    console.error(`${text}\nusage: node web/server/server.mjs [--port 8787] [--data-dir web-data] [--orchestrator orchestrator/cli.mjs] [--timeout-min 45] [--daily-usd-cap 0] [--allow-local] [--viewer-port 8788] [--viewer-script web/viewer/server.mjs] [--no-viewer]`);
     process.exit(2);
   };
   let values;
   try {
     ({ values } = parseArgs({
-      options: { port: { type: 'string' }, 'data-dir': { type: 'string' }, orchestrator: { type: 'string' }, 'timeout-min': { type: 'string' }, 'daily-usd-cap': { type: 'string' }, 'allow-local': { type: 'boolean' } },
+      options: {
+        port: { type: 'string' }, 'data-dir': { type: 'string' }, orchestrator: { type: 'string' }, 'timeout-min': { type: 'string' }, 'daily-usd-cap': { type: 'string' }, 'allow-local': { type: 'boolean' },
+        'viewer-port': { type: 'string' }, 'viewer-script': { type: 'string' }, 'no-viewer': { type: 'boolean' },
+      },
     }));
   } catch (e) {
     usage(e.message);
   }
   const port = values.port === undefined ? 8787 : Number(values.port);
   if (!Number.isInteger(port) || port < 0 || port > 65535) usage(`--port must be a whole number from 0 to 65535, got ${values.port}`);
+  const viewerPort = values['viewer-port'] === undefined ? 8788 : Number(values['viewer-port']);
+  if (!Number.isInteger(viewerPort) || viewerPort < 1 || viewerPort > 65535) usage(`--viewer-port must be a whole number from 1 to 65535, got ${values['viewer-port']}`);
+  if (viewerPort === port) usage(`--viewer-port must differ from --port (both are ${port}): the viewer has to be on its own origin`);
   const timeoutMin = values['timeout-min'] === undefined ? 45 : Number(values['timeout-min']);
   if (!Number.isFinite(timeoutMin) || timeoutMin <= 0) usage(`--timeout-min must be a number above 0, got ${values['timeout-min']}`);
   const capText = values['daily-usd-cap'];
@@ -264,14 +316,17 @@ async function main() {
   const uiDir = join(here, '..', 'ui');
   const dataDir = values['data-dir'] ? abs(values['data-dir']) : join(repoRoot, 'web-data');
   const invites = createInviteStore({ dataDir });
-  const app = createApp({ dataDir, orchestrator, uiDir, invites, dailyUsdCap, allowLocal: values['allow-local'], timeoutMs: Math.round(timeoutMin * 60_000) });
+  const app = createApp({ dataDir, orchestrator, uiDir, invites, dailyUsdCap, allowLocal: values['allow-local'], timeoutMs: Math.round(timeoutMin * 60_000), viewerOrigin: `http://127.0.0.1:${viewerPort}` });
   await app.listen(port);
   console.log(`Tester app server listening on http://127.0.0.1:${app.port}`);
+  const viewer = values['no-viewer'] ? null : startViewer({ script: values['viewer-script'] ? abs(values['viewer-script']) : join(repoRoot, 'web', 'viewer', 'server.mjs'), jobsRoot: join(dataDir, 'jobs'), port: viewerPort, appOrigin: `http://127.0.0.1:${app.port}`, logFile: join(dataDir, 'viewer.log'), log: console });
+  if (viewer) console.log(`Results viewer started on http://127.0.0.1:${viewerPort} (its output: ${join(dataDir, 'viewer.log')})`);
+  if (values['no-viewer']) console.log(`--no-viewer: results are linked to http://127.0.0.1:${viewerPort}, start the viewer yourself.`);
   if (!existsSync(join(uiDir, 'index.html'))) console.log('web/ui/ has no index.html yet: serving the placeholder page.');
   console.log(`Invite codes: ${join(dataDir, 'invites.json')} (make one with: node web/server/admin.mjs invite add <label>)`);
   console.log(`Daily dollar cap for live runs: $${dailyUsdCap.toFixed(2)}${dailyUsdCap === 0 ? ' (every live job fails at start with budget; raise it with --daily-usd-cap <dollars>)' : ''}`);
   if (values['allow-local']) console.error('WARNING: --allow-local is on. Private and local addresses are accepted as targets. Use it only on your own machine.');
-  const stop = () => app.close().finally(() => process.exit(0));
+  const stop = () => app.close().finally(() => viewer?.stop()).finally(() => process.exit(0));
   process.once('SIGINT', stop);
   process.once('SIGTERM', stop);
 }

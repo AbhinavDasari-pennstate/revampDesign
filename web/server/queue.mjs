@@ -1,11 +1,13 @@
 // The job store and the one-at-a-time queue. Node stdlib only.
 // A job is a plain record persisted as <data dir>/jobs/<job_id>/job.json; view() turns it into the job.v1 the API sends.
 // One orchestrator process runs at a time. Its stdout and stderr go to console.log in the job folder and nowhere else.
-// Events (the shapes of event.v1) are emitted as queue.emit('event', job_id, name, data) for the progress stream (T43) to store and replay.
+// Events (the shapes of event.v1) are emitted as queue.emit('event', job_id, name, data); progress.mjs stores and streams them (GET /api/jobs/:id/events).
+// Progress (T43): while a run is going, the contract files that appear in its run folder are polled (pollMs) and once more when it exits; each stage that ends,
+// and the next one that begins, becomes a `stage` event and an update of job.stages. How the run ended is classified by progress.mjs classifyExit().
 // The live switch (T47): a job runs with --live only if <job dir>/live.flag exists at the moment it leaves the line (admin.mjs live <job_id> on makes it).
 // A live job is refused there, failed as `budget` and never started, when today's spend or its own lane budgets would take the day over the dollar cap
 // (default 0: no live job ever starts). After every run the cost it reported is added to <data dir>/spend.json (ledger.mjs).
-// Seam for a later task: classifyExit() (T43 refines the failure codes). #start is the one place the argv is built.
+// #start is the one place the argv is built.
 import { EventEmitter } from 'node:events';
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
@@ -13,17 +15,10 @@ import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, 
 import { join } from 'node:path';
 import { LIVE_FLAG, addSpend, isJobId, laDay, spentOn } from './ledger.mjs';
 import { RUN_FAILURES } from './messages.mjs';
+import { POLL_MS, STAGES, classifyExit, failedStage, stagesDone, wasStubbed } from './progress.mjs';
 
 export { isJobId }; // server.mjs imports it from here
-export const STAGES = ['scout', 'story', 'art', 'council', 'select', 'build'];
 const pendingStages = () => STAGES.map((stage) => ({ stage, state: 'pending' }));
-
-// null when the run succeeded, else the run failure code for job.v1.error. T43 replaces this: exit 3 at scout is site_blocked,
-// exit 3 later quality_gate, exit 4 budget, and an exit 0 whose output shows a stub fallback is not_real.
-export function classifyExit({ code, timedOut }) {
-  if (timedOut) return 'timeout';
-  return code === 0 ? null : 'crash';
-}
 
 // Stop the process and everything it started: taskkill /T on Windows, the process group elsewhere (the child is its own group leader there).
 function killTree(child) {
@@ -45,16 +40,20 @@ export class JobQueue extends EventEmitter {
   #running = null;
   #child = null;
   #timer = null;
+  #poller = null; // the interval that looks for new contract files while a run is going
+  #seen = 0; // how many stages' files the last poll saw
   #exited = null; // promise that resolves when the current child has exited
   #announced = new Map(); // job_id -> last position sent as a queued event
   #closing = null;
 
   // dataDir: absolute. orchestrator: absolute path of the cli script. maxLine: places in line, the run in progress included.
   // dailyUsdCap: dollars of live spend allowed per Los Angeles day. runTemplate: the 00-run.json the orchestrator starts every run from (its limits.lane_budget_usd).
-  constructor({ dataDir, orchestrator, timeoutMs, maxLine = 5, viewerOrigin, dailyUsdCap = 0, runTemplate, log = console, now = () => new Date() }) {
+  // pollMs: how often a running job's run folder is looked at for new contract files (a test makes it short).
+  constructor({ dataDir, orchestrator, timeoutMs, maxLine = 5, viewerOrigin, dailyUsdCap = 0, runTemplate, pollMs = POLL_MS, log = console, now = () => new Date() }) {
     super();
     if (typeof dailyUsdCap !== 'number' || !Number.isFinite(dailyUsdCap) || dailyUsdCap < 0) throw new TypeError(`dailyUsdCap must be a number of dollars, 0 or more, got ${dailyUsdCap}`); // a NaN cap would let every comparison pass
-    Object.assign(this, { dataDir, orchestrator, timeoutMs, maxLine, viewerOrigin, dailyUsdCap, runTemplate, log, now });
+    if (typeof pollMs !== 'number' || !Number.isFinite(pollMs) || pollMs <= 0) throw new TypeError(`pollMs must be a number of milliseconds above 0, got ${pollMs}`);
+    Object.assign(this, { dataDir, orchestrator, timeoutMs, maxLine, viewerOrigin, dailyUsdCap, runTemplate, pollMs, log, now });
     this.jobsDir = join(dataDir, 'jobs');
     mkdirSync(this.jobsDir, { recursive: true });
     this.#recover();
@@ -318,8 +317,10 @@ export class JobQueue extends EventEmitter {
     this.#running = job;
     job.status = 'running';
     job.started_at = this.now().toISOString();
+    job.stages[0] = { stage: STAGES[0], state: 'running' }; // the first stage begins with the run
     this.#persist(job);
     this.#emit(job, 'started', { mode: job.mode });
+    this.#emit(job, 'stage', { stage: STAGES[0], state: 'running' });
     this.log.log?.(`job ${job.job_id} started${live ? ' (live)' : ''}`);
 
     // The one place the command line is built: an argument array and no shell, so nothing the tester typed can become a command.
@@ -344,6 +345,9 @@ export class JobQueue extends EventEmitter {
       killTree(child);
     }, this.timeoutMs);
     this.#timer.unref();
+    this.#seen = 0;
+    this.#poller = setInterval(() => this.#poll(job), this.pollMs);
+    this.#poller.unref();
     this.#exited = new Promise((resolve) => {
       let settled = false;
       const settle = (code) => {
@@ -360,6 +364,32 @@ export class JobQueue extends EventEmitter {
     });
   }
 
+  // Bring job.stages up to `count` finished stages, one event per change and in order: a stage ends and the next one begins. True when anything changed.
+  // The stage list is always done stages, then at most one running stage, then pending ones, and a stage is done only when every earlier one is.
+  #advance(job, count) {
+    let changed = false;
+    for (let i = job.stages.filter((s) => s.state === 'done').length; i < Math.min(count, STAGES.length); i++) {
+      job.stages[i] = { stage: STAGES[i], state: 'done' };
+      this.#emit(job, 'stage', { stage: STAGES[i], state: 'done' });
+      if (i + 1 < STAGES.length) {
+        job.stages[i + 1] = { stage: STAGES[i + 1], state: 'running' };
+        this.#emit(job, 'stage', { stage: STAGES[i + 1], state: 'running' });
+      }
+      changed = true;
+    }
+    return changed;
+  }
+
+  // The poll while a run is going: which contract files exist now (their names only, never their content). A file counts only once two polls in a row have
+  // seen it: lanes B and C write their output file and then exit 3 when a quality gate fails, and that stage must be reported failed, not done.
+  #poll(job) {
+    if (this.#closing || this.#running !== job) return;
+    const seen = stagesDone(this.jobDir(job.job_id));
+    const settled = Math.min(seen, this.#seen);
+    this.#seen = seen;
+    if (this.#advance(job, settled)) this.#persist(job);
+  }
+
   #fail(job, code) {
     job.status = 'failed';
     job.finished_at = this.now().toISOString();
@@ -371,21 +401,32 @@ export class JobQueue extends EventEmitter {
   #finish(job, { code, timedOut }) {
     if (this.#closing) return; // the server is stopping: leave the record for the next start to fail as server_restarted
     clearTimeout(this.#timer);
-    const failure = classifyExit({ code, timedOut });
+    clearInterval(this.#poller);
+    const dir = this.jobDir(job.job_id);
+    let finished = stagesDone(dir); // one last look, so a stage that ended since the last poll is neither lost nor out of order
+    if (code !== 0 && !timedOut) {
+      // The stage that failed is not finished even if it left its file (a quality gate exit): stop the count at the stage the orchestrator names, else at the
+      // first stage without a file, or the last stage when every file is there.
+      const named = failedStage(dir, code);
+      finished = Math.min(finished, named === null ? STAGES.length - 1 : STAGES.indexOf(named));
+    }
+    this.#advance(job, finished);
+    const failure = classifyExit({ code, timedOut, stagesDone: finished, stubbed: code === 0 && wasStubbed(dir) });
+    const interrupted = job.stages.find((s) => s.state === 'running'); // the stage that was going when the run failed
     if (failure) {
       this.#fail(job, failure);
     } else {
       job.status = 'done';
       job.finished_at = this.now().toISOString();
-      job.stages = STAGES.map((stage) => ({ stage, state: 'done' }));
-      job.manifest_url = `${this.viewerOrigin}/j/${job.job_id}/manifest.json`;
+      job.manifest_url = `${this.viewerOrigin}/j/${job.job_id}/manifest.json`; // every stage is done: classifyExit says success only when 50-handoff.json is there
     }
     const spent = this.#recordCost(job); // before the next job is looked at, so its cap check sees this run's cost
     if (spent !== null) job.cost_usd = spent;
     this.#persist(job);
-    this.log.log?.(`job ${job.job_id} ${job.status}${failure ? ` (${failure})` : ''}`);
+    this.log.log?.(`job ${job.job_id} ${job.status}${failure ? ` (${failure}, exit ${code})` : ''}`);
     this.#running = null;
     this.#child = null;
+    if (failure && interrupted) this.#emit(job, 'stage', { stage: interrupted.stage, state: 'failed' });
     if (job.status === 'done') this.#emit(job, 'done', { manifest_url: job.manifest_url });
     else this.#emit(job, 'failed', { code: job.error.code, message: job.error.message });
     this.#announce(); // the jobs behind it move up one place, then the first of them starts
@@ -396,6 +437,7 @@ export class JobQueue extends EventEmitter {
   close() {
     this.#closing ??= (async () => {
       clearTimeout(this.#timer);
+      clearInterval(this.#poller);
       if (this.#child) {
         killTree(this.#child);
         await Promise.race([this.#exited, new Promise((resolve) => setTimeout(resolve, 5000).unref())]);

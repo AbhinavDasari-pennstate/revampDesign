@@ -179,7 +179,8 @@ test('queue events, shaped like event.v1, say queued, queued again when the plac
   await finished(base, b);
   await waitFor(() => events.some((e) => e.jobId === b && e.name === 'done'), 'B done event');
   for (const e of events) assertValid(`event.v1#/$defs/${e.name}`, e.data);
-  const seq = (id) => events.filter((e) => e.jobId === id).map((e) => (e.name === 'queued' ? `queued:${e.data.position}` : e.name));
+  // The stage events (T43) between started and done are the subject of progress.test.mjs; this test is about the line.
+  const seq = (id) => events.filter((e) => e.jobId === id && e.name !== 'stage').map((e) => (e.name === 'queued' ? `queued:${e.data.position}` : e.name));
   assert.deepEqual(seq(a), ['queued:1', 'started', 'done']);
   assert.deepEqual(seq(b), ['queued:2', 'queued:1', 'started', 'done']);
   assert.deepEqual(events.find((e) => e.jobId === a && e.name === 'started').data, { mode: 'free' });
