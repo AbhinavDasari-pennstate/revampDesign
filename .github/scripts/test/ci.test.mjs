@@ -29,7 +29,7 @@ test('the jobs that were there before are still there', () => {
   for (const name of ['lane-guard', 'b-design', 'contracts', 'orchestrator', 'a-scout', 'c-build']) assert.ok(all[name], `${name} job is gone`);
 });
 
-for (const folder of ['server', 'ui', 'viewer']) {
+for (const folder of ['server', 'viewer']) {
   test(`web-${folder}: runs its tests once web/${folder}/test exists and says so while it does not`, () => {
     const job = all[`web-${folder}`];
     assert.ok(job, `no web-${folder} job`);
@@ -45,11 +45,21 @@ for (const folder of ['server', 'ui', 'viewer']) {
   });
 }
 
-test('web-ui and web-viewer install nothing: web/ has no dependencies and Playwright for web-viewer waits for its tests', () => {
-  for (const folder of ['ui', 'viewer']) {
-    const job = code(all[`web-${folder}`]);
-    assert.ok(!/npm (ci|install)|playwright install/.test(job), `web-${folder} installs something`);
-  }
+// web/ui is a React app built with Vite (plan/decisions.md, 2026-11-11): its job installs from its own lockfile, tests and builds, once package.json exists.
+test('web-ui: npm ci, test and build in web/ui once web/ui/package.json exists, and says so while it does not', () => {
+  const job = all['web-ui'];
+  assert.ok(job, 'no web-ui job');
+  assert.ok(job.includes('node-version-file: .nvmrc'));
+  assert.ok(/- run: \|\n/.test(job), 'the run step must be a block scalar');
+  assert.ok(job.includes('if [ -f web/ui/package.json ]; then'));
+  assert.ok(job.includes('cd web/ui && npm ci && npm test && npm run build'));
+  assert.ok(job.includes('echo "web/ui has no React app yet"'));
+  assert.ok(job.includes('\n          fi'), 'the if must be closed');
+  assert.ok(!/npm install|playwright install/.test(code(job)), 'web-ui installs only from its lockfile');
+});
+
+test('web-viewer installs nothing: web/viewer has no dependencies and Playwright waits for its tests', () => {
+  assert.ok(!/npm (ci|install)|playwright install/.test(code(all['web-viewer'])), 'web-viewer installs something');
   const viewer = all['web-viewer'];
   assert.ok(/#.*Playwright/.test(viewer) && /#.*lanes\/c-build/.test(viewer), 'web-viewer carries a comment about Playwright from lanes/c-build');
 });
