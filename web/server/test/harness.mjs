@@ -175,3 +175,60 @@ export const finished = (base, id) => waitFor(async () => {
   const j = (await getJob(base, id)).json;
   return j.status === 'done' || j.status === 'failed' ? j : null;
 }, `job ${id} to finish`);
+
+// ---- the progress stream (GET /api/jobs/:id/events) ----
+
+// The complete events and the comment lines of a text/event-stream body, the way a browser reads it: LF or CRLF line ends, lines that start with a colon are comments,
+// an event is the lines up to a blank line, and a last event without its blank line is not an event yet. `data` is parsed JSON.
+export function parseSse(text) {
+  const events = [];
+  const comments = [];
+  const blocks = text.split(/\r?\n\r?\n/);
+  if (!/\r?\n\r?\n$/.test(text)) blocks.pop();
+  for (const block of blocks) {
+    const fields = {};
+    for (const line of block.split(/\r?\n/)) {
+      if (line === '') continue;
+      if (line.startsWith(':')) comments.push(line.slice(1).trim());
+      else {
+        const at = line.indexOf(':');
+        fields[at < 0 ? line : line.slice(0, at)] = at < 0 ? '' : line.slice(at + 1).replace(/^ /, '');
+      }
+    }
+    if (fields.event !== undefined) events.push({ id: Number(fields.id), name: fields.event, data: JSON.parse(fields.data) });
+  }
+  return { events, comments };
+}
+
+// An open stream: whatever has arrived so far is in .text, and .ended says the server closed it.
+export function openStream(base, id, headers = {}) {
+  const abort = new AbortController();
+  const stream = { text: '', ended: false, status: null, headers: null, error: null, close: () => abort.abort() };
+  stream.ready = fetch(`${base}/api/jobs/${id}/events`, { headers, signal: abort.signal }).then(async (res) => {
+    stream.status = res.status;
+    stream.headers = res.headers;
+    const decoder = new TextDecoder();
+    for await (const chunk of res.body) stream.text += decoder.decode(chunk, { stream: true });
+    stream.ended = true;
+  }).catch((e) => {
+    if (e.name !== 'AbortError') stream.error = e;
+    stream.ended = true;
+  });
+  Object.defineProperties(stream, { events: { get: () => parseSse(stream.text).events }, comments: { get: () => parseSse(stream.text).comments } });
+  return stream;
+}
+// The whole stream of a job that ends by itself.
+export async function readStream(base, id, headers) {
+  const stream = openStream(base, id, headers);
+  await waitFor(() => stream.ended, `the stream of job ${id} to end`);
+  if (stream.error) throw stream.error;
+  return stream;
+}
+export const names = (events) => events.map((e) => (e.name === 'stage' ? `${e.data.stage}:${e.data.state}` : e.name === 'queued' ? `queued:${e.data.position}` : e.name));
+
+// Events of a contract .sse fixture, or of a real stream, with the job id swapped for a placeholder and the ids kept: what is left must be equal.
+export function normalised(events, jobId) {
+  return JSON.parse(JSON.stringify(events.map(({ id, name, data }) => ({ id, name, data }))).split(jobId).join('<job>'));
+}
+export const sseFixture = (name) => parseSse(readFileSync(join(contracts, 'web/fixtures', name), 'utf8'));
+export const FIXTURE_JOB = 'Xk3nP9qLm2VbT7sRw4YdHa';

@@ -4,13 +4,21 @@
 //   ?sleep=<ms>   wait this long before finishing (default 0)
 //   ?exit=<code>  exit with this code (default 0); contract files are written only for exit 0
 //   ?child=1      also start a grandchild (it ends by itself after 2 minutes) and write its pid to <out-dir>/fake-grandchild.pid (proves the whole tree is killed)
-//   ?noise=1      print one marker line to stdout and one to stderr (proves console output stays in console.log)
+//   ?noise=1      print one marker line to stdout and one to stderr (proves console output stays in console.log) and put one in orchestrator.log (proves no run output reaches a response)
 //   ?vcost=<x>    cost_usd written into 40-verdict.json (lane B's spend), and ?hcost=<x> into 50-handoff.json (lane C's); a value that is not a number is written as text, and str:<x> writes a numeric string such as "3"
 //   ?costlog=<s>  write <run>/b-design/cost.jsonl like lane B does: story:1.2,art:2.7,council:0.1 (see writeCostLog for the broken variants)
 //   ?files=1      write the contract files also when the exit code is not 0 (a run that spent money and then crashed)
 //   ?gate=1       after the sleep, wait until the file <out-dir>/go exists (the test releases the job, so a line of jobs can be set up without racing)
+//   ?upto=<n>     write only the first n of the six stage files (10-inventory.json to 50-handoff.json), also when the exit code is not 0: a run that stopped at stage n + 1
+//   ?steps=1      before writing stage file i (1 to 6) wait until the file <out-dir>/step-<i> exists, so a test sees each stage in turn without racing the poller
+//   ?stub=1       the log says STUB <stage> (lane not present) for the five lane stages, like a real run whose lane CLIs are missing
+//   ?nolog=1      write no orchestrator.log at all
+//   ?failstage=<stage>  the stage the FAILED line of the log names (default: the first stage whose file was not written, or build when all six were). Lanes B and C write
+//                 their output file and then exit 3 when a quality gate fails, so ?exit=3&upto=3&failstage=art is a run whose art stage left its file and still failed
+//   ?lag=<ms>     after the last stage file is written, wait this long before the log and the exit: a lane whose process takes a while to end after it wrote its file (Lane B exits when its loop drains)
 // Files it leaves next to the run folder, for the tests: fake-timing.json {start, end} in ms, fake-grandchild.pid.
 // The run folder is <out-dir>/<run_id>/ with the contract files copied from contracts/fixtures/sample/ (no stage folders), like the real stub mode.
+// Like the real orchestrator it ends by writing <run folder>/orchestrator.log: one line `ok <stage> <file>` per stage file it wrote, STUB lines for ?stub=1, a FAILED line on a non zero exit.
 import { parseArgs } from 'node:util';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -22,6 +30,7 @@ if (process.argv.length <= 2) process.exit(0);
 
 const sample = fileURLToPath(new URL('../../../contracts/fixtures/sample/', import.meta.url));
 const FILES = ['00-run.json', '10-inventory.json', '20-storyboard.json', '30-directions.json', '40-verdict.json', '45-selection.json', '50-handoff.json'];
+const STAGE_NAMES = ['scout', 'story', 'art', 'council', 'select', 'build'];
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
@@ -79,12 +88,20 @@ function writeCostLog(spec) {
   writeFileSync(file, lines.map((l) => `${l}\n`).join(''));
 }
 if ((exitCode === 0 || query.get('files') === '1') && query.get('costlog') !== null) writeCostLog(query.get('costlog'));
-if (exitCode === 0 || query.get('files') === '1') {
-  for (const name of FILES.slice(1)) {
-    const doc = JSON.parse(readFileSync(join(sample, name), 'utf8'));
-    const spent = name === '40-verdict.json' ? cost('vcost') : name === '50-handoff.json' ? cost('hcost') : {};
-    writeFileSync(join(runDir, name), JSON.stringify({ ...doc, run_id: runId, ...spent }, null, 2));
-  }
+const upto = query.has('upto') ? Number(query.get('upto')) : exitCode === 0 || query.get('files') === '1' ? 6 : 0;
+const log = [];
+for (let i = 0; i < upto; i++) {
+  if (query.get('steps') === '1') while (!existsSync(join(outDir, `step-${i + 1}`))) await new Promise((resolve) => setTimeout(resolve, 20));
+  const name = FILES[i + 1];
+  const doc = JSON.parse(readFileSync(join(sample, name), 'utf8'));
+  const spent = name === '40-verdict.json' ? cost('vcost') : name === '50-handoff.json' ? cost('hcost') : {};
+  writeFileSync(join(runDir, name), JSON.stringify({ ...doc, run_id: runId, ...spent }, null, 2));
+  if (query.get('stub') === '1' && STAGE_NAMES[i] !== 'select') log.push(`STUB ${STAGE_NAMES[i]} (lane not present)`);
+  log.push(`ok ${STAGE_NAMES[i]} ${name}`);
 }
+if (query.has('lag')) await new Promise((resolve) => setTimeout(resolve, Number(query.get('lag')))); // the files are there, the process lingers
+if (query.get('noise') === '1') log.push('SECRET-LOG-MARKER');
+if (exitCode !== 0) log.push(`FAILED stage ${query.get('failstage') ?? STAGE_NAMES[Math.min(upto, 5)]} failed with exit ${exitCode} SECRET-LOG-MARKER`);
+if (query.get('nolog') !== '1') writeFileSync(join(runDir, 'orchestrator.log'), log.join('\n') + '\n');
 writeFileSync(join(outDir, 'fake-timing.json'), JSON.stringify({ start, end: Date.now() }));
 process.exit(exitCode);

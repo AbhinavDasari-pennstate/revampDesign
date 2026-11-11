@@ -341,7 +341,7 @@ test('with the real store: a code works once per Los Angeles day, again the next
 
 const SERVER = join(serverDir, 'server.mjs');
 async function withServerProgram(dataDir, extraArgs, fn) {
-  const child = spawn(process.execPath, [SERVER, '--port', '0', '--data-dir', dataDir, '--orchestrator', FAKE, '--allow-local', ...extraArgs], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+  const child = spawn(process.execPath, [SERVER, '--port', '0', '--data-dir', dataDir, '--orchestrator', FAKE, '--allow-local', '--no-viewer', ...extraArgs], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
   let out = '';
   child.stdout.on('data', (d) => (out += d));
   child.stderr.on('data', () => {});
