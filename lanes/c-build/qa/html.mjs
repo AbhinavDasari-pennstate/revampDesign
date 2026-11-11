@@ -22,13 +22,15 @@ export function elementText(html, id) {
   return m ? strip(m[2]) : null;
 }
 
-// Text of the <section> that holds the element tagged data-src="<id>", heading included; null if none.
-export function sectionText(html, id) {
+// Text of the h1 or h2 heading of the <section> that holds the element tagged data-src="<id>",
+// or null. Only the heading: a sibling block in the same section is not the fact's place.
+export function sectionHeading(html, id) {
   const at = html.indexOf(` data-src="${id}"`);
   if (at < 0) return null;
   const start = html.lastIndexOf('<section', at);
-  const end = html.indexOf('</section>', at);
-  return start < 0 || end < 0 ? null : strip(html.slice(start, end));
+  if (start < 0) return null;
+  const heading = html.slice(start, at).match(/<(h[12])\b[^>]*>([\s\S]*?)<\/\1>/);
+  return heading ? strip(heading[2]) : null;
 }
 
 // href and src values of links, images, scripts and frames. Preconnect hints are not links.
