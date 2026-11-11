@@ -24,6 +24,14 @@ export async function buildSite({ templateDir, tokens, site, assets = [], workDi
 
   process.env.ASTRO_TELEMETRY_DISABLED = '1';
   const { build } = await import('astro');
-  await build({ root: workDir, logLevel: 'error' });
+  // Astro writes its .astro folder in the working directory and imports from it, so the build runs
+  // from the work folder, where packages resolve; the caller's directory is restored after.
+  const cwd = process.cwd();
+  process.chdir(workDir);
+  try {
+    await build({ root: workDir, logLevel: 'error' });
+  } finally {
+    process.chdir(cwd);
+  }
   return join(workDir, 'dist');
 }

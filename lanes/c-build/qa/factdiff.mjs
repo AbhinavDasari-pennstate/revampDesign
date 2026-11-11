@@ -1,19 +1,41 @@
 // Fact diff: every fact Scout found on the old site (phone, email, address, date, time, person,
 // legal notice, price) must still be on the new one. Facts whose block the new site does not show
 // are skipped here and listed in the fidelity report instead (issue #14). A fact whose block is
-// shown is judged only inside that block (and, for names, its section heading), so a copy that
+// shown is judged only inside that block (and, for short facts, its section's own heading), so a copy that
 // survives elsewhere cannot hide a change of any size (issue #16). A different phone or email in
 // the block is reported as changed; anything else not found is missing. Both fail the gate.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { factsNotShown } from '../builder/content.mjs';
 import { noDashes } from '../builder/text.mjs';
-import { elementText, pageText, sectionText } from './html.mjs';
+import { elementText, pageText, sectionHeading } from './html.mjs';
 
 // Bounded repeats keep both linear on long scraped text (an unbounded email local part took 50 s on 200k chars).
 const PHONE = /\+?\(?\d[\d\s().-]{5,25}\d/g;
 const EMAIL = /[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63}){1,8}/g;
 const digits = (s) => s.replace(/\D/g, '');
+const EXTENSION = /\s*(?:ext\.?|extension|x)\s*\d+\s*$/i;
+
+// Two digit strings are the same phone when equal, or when the longer only adds a country code
+// (1 to 3 digits) in front of a full 10 or more digit number. A shortened number never matches.
+function samePhone(a, b) {
+  const [long, short] = a.length >= b.length ? [a, b] : [b, a];
+  return long === short || (short.length >= 10 && long.length - short.length <= 3 && long.endsWith(short));
+}
+
+// The runs of whole whitespace-separated pieces in a phone-like match, so "OH 45000 (555) 010-0142"
+// also offers "(555) 010-0142". Digits are never split inside a piece.
+function phoneSpans(match) {
+  const pieces = match.trim().split(/\s+/);
+  const spans = [];
+  for (let i = 0; i < pieces.length; i++) {
+    for (let j = i + 1; j <= pieces.length; j++) {
+      const text = pieces.slice(i, j).join(' ').replace(/^[^\d(+]+|[^\d)]+$/g, '');
+      if (digits(text).length >= 7) spans.push({ text, digits: digits(text) });
+    }
+  }
+  return spans;
+}
 const words = (s) => noDashes(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
 function charsOff(a, b) {
@@ -38,10 +60,11 @@ function editDistance(a, b) {
 // and any other phone or email there is what replaced it, however many characters differ.
 function find(fact, text, inBlock) {
   if (fact.kind === 'phone') {
-    const want = digits(fact.value);
+    const want = digits(fact.value.replace(EXTENSION, ''));
     const found = (text.match(PHONE) ?? []).map((c) => c.trim());
-    if (found.some((c) => { const d = digits(c); return d.length >= 7 && (d.includes(want) || want.includes(d)); })) return { ok: true };
-    const near = found.find((c) => charsOff(digits(c), want) <= 2) ?? (inBlock ? found[0] : undefined);
+    const spans = found.flatMap(phoneSpans);
+    if (spans.some((s) => samePhone(s.digits, want))) return { ok: true };
+    const near = spans.find((s) => charsOff(s.digits, want) <= 2)?.text ?? (inBlock ? found[0] : undefined);
     return near ? { after: near } : null;
   }
   if (fact.kind === 'email') {
@@ -73,7 +96,7 @@ export function factDiff({ dist, pages, inventory, storyboard }) {
     result.checked++;
     const homes = html.flatMap((p) => {
       const block = elementText(p.html, fact.block_id);
-      return block === null ? [] : [{ slug: p.slug, block, section: sectionText(p.html, fact.block_id) ?? block }];
+      return block === null ? [] : [{ slug: p.slug, block, heading: sectionHeading(p.html, fact.block_id) }];
     });
     let change;
     if (homes.length) {
@@ -87,8 +110,10 @@ export function factDiff({ dist, pages, inventory, storyboard }) {
       }
       const hits = homes.map((h) => ({ slug: h.slug, hit: find(fact, h.block, true) }));
       if (hits.some((h) => h.hit?.ok)) continue;
-      // A name (a legal notice's, say) often lives in the section heading rather than the block.
-      if (!['phone', 'email'].includes(fact.kind) && homes.some((h) => find(fact, h.section, false)?.ok)) continue;
+      // A short fact (a year, a name) may sit in the section's own heading ("Since 1962") rather than the
+      // block; only that heading counts, never a sibling block. Phones and emails count only in the block,
+      // and a legal notice only by its full text above, so a heading that names it cannot rescue a cut notice.
+      if (!['phone', 'email', 'legal_notice'].includes(fact.kind) && homes.some((h) => h.heading && find(fact, h.heading, false)?.ok)) continue;
       change = hits.find((h) => h.hit?.after);
     } else {
       // Its block was shortened into a headline, so the fact may be wherever the new copy put it.

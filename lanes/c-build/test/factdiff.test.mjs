@@ -108,6 +108,35 @@ test('facts on a page the storyboard leaves out are not checked', () => {
   assert.equal(facts.checked, 4, 'f001, f002, f003 and f007 sit on the contact page');
 });
 
+// Issue #32 item 1: a phone counts only when its digits match whole, give or take a country code or extension.
+test('a phone cut short, or missing its area code, fails; a country code or extension is fine', () => {
+  const swap = (to) => factDiff({ dist: editedSite('contact.html', (h) => h.replace('Phone: (555) 010-0142', `Phone: ${to}`)), pages, inventory: docs.inventory, storyboard: docs.storyboard });
+  for (const shortened of ['(555) 010-014', '010-0142']) {
+    assert.deepEqual(swap(shortened).changed.map((c) => c.fact_id), ['f001'], `${shortened} is not the old number`);
+  }
+  for (const same of ['+1 (555) 010-0142', '(555) 010-0142 ext. 12', '555.010.0142']) {
+    assert.deepEqual(swap(same).failures, [], `${same} is the old number`);
+  }
+});
+
+test('a phone right after other digits in its block still matches', () => {
+  const dist = editedSite('contact.html', (h) => h.replace('Phone: (555) 010-0142', 'OH 45000 (555) 010-0142'));
+  assert.deepEqual(factDiff({ dist, pages, inventory: docs.inventory, storyboard: docs.storyboard }).failures, []);
+});
+
+// Issue #32 item 2: outside its block, a fact may match only the section heading, not a sibling block.
+test('a changed name is not rescued by the old name in another block of the same section', () => {
+  const dist = editedSite('about.html', (h) => h.replace('Principal: Dana Whitfield', 'Principal: Dana Whitman').replace(/(data-src="p02-b003"[^>]*>[^<]*<\/p>)/, '$1<p>Our former principal was Dana Whitfield, Principal.</p>'));
+  const facts = factDiff({ dist, pages, inventory: docs.inventory, storyboard: docs.storyboard });
+  assert.deepEqual(facts.missing, ['f005']);
+});
+
+test('a legal notice cut short fails even when its section heading still names it', () => {
+  const dist = editedSite('about.html', (h) => h.replace(/(does not discriminate)[^<]*/, '$1'));
+  assert.match(readFileSync(join(dist, 'about.html'), 'utf8'), /Nondiscrimination notice/, 'the heading keeps the label');
+  assert.deepEqual(factDiff({ dist, pages, inventory: docs.inventory, storyboard: docs.storyboard }).missing, ['f006']);
+});
+
 test('a huge scraped block does not stall the fact diff', () => {
   const junk = `<p>${'a'.repeat(200000)}@b ${'a.'.repeat(100000)}@ ${'1 '.repeat(100000)}x</p>`;
   const dist = editedSite('contact.html', (h) => h.replace('</main>', `${junk}</main>`));

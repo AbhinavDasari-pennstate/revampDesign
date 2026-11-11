@@ -28,7 +28,7 @@ ${pages.map((p) => `- ${p.title}: \`dist/${p.file}.html\``).join('\n')}
 ## Change it
 
 The text and page order live in \`src/data/site.json\`; colours, fonts and sizes in \`tokens.json\`.
-After an edit, rebuild with Node 22 or later:
+After an edit, rebuild with Node 22.22 or later:
 
 \`\`\`
 npm install
