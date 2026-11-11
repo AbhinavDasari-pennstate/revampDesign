@@ -1,7 +1,7 @@
 // The tester app server (plan/web-plan.md T40). Node stdlib only; listens on 127.0.0.1 only.
 //   node web/server/server.mjs [--port 8787] [--data-dir web-data] [--orchestrator orchestrator/cli.mjs] [--timeout-min 45] [--daily-usd-cap 0] [--allow-local] [--viewer-port 8788] [--viewer-script web/viewer/server.mjs] [--no-viewer]
 // Routes: POST /api/jobs, GET /api/jobs/:job_id, GET /api/jobs/:job_id/events (contracts/web/README.md); everything else under /api/ is 404 not_found; every other GET and HEAD is a
-// static file of web/ui/ (at the root and under /ui/), read as a file and never executed. The viewer (results, sandboxed) is a separate server: this program starts
+// static file of the React build in web/ui/dist/ (at the root and under /ui/), read as a file and never executed. The viewer (results, sandboxed) is a separate server: this program starts
 // web/viewer/server.mjs as a child process when that file exists (startViewer), on --viewer-port, and says so when it does not.
 // The invite store (invites.mjs, <data dir>/invites.json) is injected as createApp option `invites`: with none, every start request is refused as invite_invalid.
 // The dollar cap for live jobs (--daily-usd-cap, default 0) and the live switch are in queue.mjs; the admin tool is admin.mjs. Progress (stages, SSE) is progress.mjs.
@@ -27,8 +27,8 @@ const MIME = {
   '.json': 'application/json; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2',
 };
-const NOT_SERVED = new Set(['dev', 'test']); // top level folders of web/ui/ that are tools, not pages
-const PLACEHOLDER = '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Tester app</title></head><body><h1>Tester app</h1><p>The tester page is not installed yet. The job API is running at /api/jobs.</p></body></html>';
+const NOT_SERVED = new Set(['dev', 'test']); // top level tool folders (dev, test) that are never served, even if a build copies them
+const PLACEHOLDER = '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Tester app</title></head><body><h1>Tester app</h1><p>The tester page is not built yet (run npm ci and npm run build in web/ui). The job API is running at /api/jobs.</p></body></html>';
 
 // Warns when the running Node is older than .nvmrc (Lane C's build needs 24). A warning, never a stop. Returns null when fine or unreadable.
 export function nodeNote(version, wanted) {
@@ -313,7 +313,7 @@ async function main() {
   const note = nodeNote(process.versions.node, wanted);
   if (note) console.error(note);
 
-  const uiDir = join(here, '..', 'ui');
+  const uiDir = join(here, '..', 'ui', 'dist'); // the React build (npm run build in web/ui), never its sources
   const dataDir = values['data-dir'] ? abs(values['data-dir']) : join(repoRoot, 'web-data');
   const invites = createInviteStore({ dataDir });
   const app = createApp({ dataDir, orchestrator, uiDir, invites, dailyUsdCap, allowLocal: values['allow-local'], timeoutMs: Math.round(timeoutMin * 60_000), viewerOrigin: `http://127.0.0.1:${viewerPort}` });
@@ -322,7 +322,7 @@ async function main() {
   const viewer = values['no-viewer'] ? null : startViewer({ script: values['viewer-script'] ? abs(values['viewer-script']) : join(repoRoot, 'web', 'viewer', 'server.mjs'), jobsRoot: join(dataDir, 'jobs'), port: viewerPort, appOrigin: `http://127.0.0.1:${app.port}`, logFile: join(dataDir, 'viewer.log'), log: console });
   if (viewer) console.log(`Results viewer started on http://127.0.0.1:${viewerPort} (its output: ${join(dataDir, 'viewer.log')})`);
   if (values['no-viewer']) console.log(`--no-viewer: results are linked to http://127.0.0.1:${viewerPort}, start the viewer yourself.`);
-  if (!existsSync(join(uiDir, 'index.html'))) console.log('web/ui/ has no index.html yet: serving the placeholder page.');
+  if (!existsSync(join(uiDir, 'index.html'))) console.log('web/ui/dist/ has no index.html yet (run npm ci and npm run build in web/ui): serving the placeholder page.');
   console.log(`Invite codes: ${join(dataDir, 'invites.json')} (make one with: node web/server/admin.mjs invite add <label>)`);
   console.log(`Daily dollar cap for live runs: $${dailyUsdCap.toFixed(2)}${dailyUsdCap === 0 ? ' (every live job fails at start with budget; raise it with --daily-usd-cap <dollars>)' : ''}`);
   if (values['allow-local']) console.error('WARNING: --allow-local is on. Private and local addresses are accepted as targets. Use it only on your own machine.');

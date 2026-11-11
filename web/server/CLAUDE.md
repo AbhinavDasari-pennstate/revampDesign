@@ -9,7 +9,7 @@ Wraps the orchestrator behind a small HTTP API for invited testers. Plan: `plan/
 - `test/fake-orchestrator.mjs` stands in for `orchestrator/cli.mjs`; each job is steered by the query string of its url (`?sleep=300&exit=1&child=1&noise=1&vcost=0.3&hcost=0.2&files=1&gate=1&costlog=story:1.2,art:2.7&upto=3&steps=1&stub=1&nolog=1&failstage=art`, see the file header). Like the real orchestrator it writes `orchestrator.log` last. `node --test` runs every file under `test/`, so the fake and `harness.mjs` do nothing when loaded without arguments. `harness.mjs` holds what the test files share (the server on an ephemeral port, the contract checks).
 
 ## Files
-- `server.mjs`: routes (the event stream included), the request checks in contract order, static files of `web/ui/`, `startViewer`, command line.
+- `server.mjs`: routes (the event stream included), the request checks in contract order, static files of the React build `web/ui/dist/`, `startViewer`, command line.
 - `queue.mjs`: job records (`web-data/jobs/<id>/job.json`), the one-at-a-time line, the child process, timeout kill, restart recovery, the live switch, the dollar cap at the head of the line, the cost of each run into `spend.json`, the stage bookkeeping (poll and final scan) and the end of a run.
 - `progress.mjs`: the stage table, what the run folder says (`stagesDone`, `wasStubbed`, `failedStage`), `classifyExit`, and `createEventHub` (the events of every job, and `GET /api/jobs/:id/events`).
 - `invites.mjs`: the invite store (`web-data/invites.json`), codes, hashes, the one run per Los Angeles day rule.
@@ -19,10 +19,10 @@ Wraps the orchestrator behind a small HTTP API for invited testers. Plan: `plan/
 - `messages.mjs`: the fixed texts and HTTP statuses; a test compares them with the contract fixtures.
 
 ## Rules for this folder
-- Node stdlib only, Node 22 and 24. No `package.json` dependencies.
+- Node stdlib only, Node 22 and 24. No `package.json` dependencies. (`web/ui/` is React with its own dependencies; this server only reads its built files.)
 - Listen on 127.0.0.1 only; there is deliberately no host option.
 - The orchestrator is started with an argument array and `shell: false`. Its stdout and stderr go to `console.log` in the job folder and never to a response. Run failure text comes only from `messages.mjs`, never from scraped text or orchestrator output.
-- No cookies. Static files are read as files, never executed; `dev/` and `test/` of `web/ui/`, dot files and non-web file types are never served.
+- No cookies. Static files come from `web/ui/dist/` and are read as files, never executed; `dev/` and `test/` folders, dot files and non-web file types are never served.
 - A request that fails a rule never uses up an invite code, and no DNS lookup happens before rules 1 to 6 pass. The code is used up only after the job was accepted (`queue.add` first, then `recordUse`).
 - Invite codes are never stored: only a salted SHA-256 hash (`invites.json`, gitignored `web-data/`), compared with `crypto.timingSafeEqual` against every entry. A job keeps the invite label, never the code. `invite_code` must be a non empty string before the store sees it.
 - `--live` is added in exactly one place, `JobQueue#start`, and only for a job whose `live.flag` exists at that moment and that passed the cap check. The default cap is 0, so every live job fails at start with `budget` until Abhinav sets `--daily-usd-cap`. A free run is never refused for the cap. `daily_cap_reached` is reserved by the contract and never sent.
