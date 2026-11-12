@@ -182,3 +182,37 @@ describe('mock progress stream', () => {
     }
   });
 });
+
+describe('mock viewer manifest and report', () => {
+  const atViewer = (value) => JSON.parse(JSON.stringify(value).replaceAll('http://127.0.0.1:8788', mock.viewerUrl));
+
+  it('serves manifest.json for the done job, on its own origin, with CORS for the app origin only', async () => {
+    const res = await fetch(`${mock.viewerUrl}/j/${JOB}/manifest.json`, { headers: { origin: mock.appUrl } });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toMatch(/^application\/json/);
+    expect(res.headers.get('access-control-allow-origin')).toBe(mock.appUrl);
+    expect(await res.json()).toEqual(atViewer(fixture('manifest.json')));
+    const other = await fetch(`${mock.viewerUrl}/j/${JOB}/manifest.json`, { headers: { origin: 'http://evil.example' } });
+    expect(other.headers.get('access-control-allow-origin')).toBeNull();
+  });
+
+  it('serves report.md as text/plain with CORS for the app origin', async () => {
+    const res = await fetch(`${mock.viewerUrl}/j/${JOB}/report.md`, { headers: { origin: mock.appUrl } });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('text/plain; charset=utf-8');
+    expect(res.headers.get('access-control-allow-origin')).toBe(mock.appUrl);
+    expect(await res.text()).toMatch(/^# Maple Grove High School redesign report/);
+  });
+
+  it('serves every page, screenshot and compare link of the manifest', async () => {
+    const m = atViewer(fixture('manifest.json'));
+    const urls = [m.compare_url, m.report_url, ...m.site.pages.flatMap((p) => [p.url, p.screenshots.desktop, p.screenshots.mobile])];
+    for (const url of urls) expect((await fetch(url)).status, url).toBe(200);
+  });
+
+  it('has no manifest for a job that did not finish', async () => {
+    for (const id of Object.keys(SCENARIOS).filter((id) => id !== JOB)) {
+      expect((await fetch(`${mock.viewerUrl}/j/${id}/manifest.json`)).status).toBe(404);
+    }
+  });
+});

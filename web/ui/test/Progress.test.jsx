@@ -103,7 +103,8 @@ describe('JobView', () => {
     act(() => events.slice(9).forEach((e) => latest().emit(e)));
     await flush();
     expect(latest().closed).toBe(true);
-    expect(calls).toEqual([`/api/jobs/${JOB}`, `/api/jobs/${JOB}`]);
+    // Two job reads, then the results view asks the viewer for the manifest.
+    expect(calls).toEqual([`/api/jobs/${JOB}`, `/api/jobs/${JOB}`, fixture('job-done.json').manifest_url]);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/ready/i);
   });
 

@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from 'react';
 import Progress from './Progress.jsx';
+import Results from './Results.jsx';
 import { getJob, isJobId, MESSAGES } from './api.js';
 import { EVENT_NAMES, initialState, applyEvent, fromJob, isFinished } from './progress.js';
 
@@ -90,5 +91,6 @@ export default function JobView({ jobId }) {
       </section>
     );
   }
+  if (state.status === 'done' && state.manifestUrl) return <Results manifestUrl={state.manifestUrl} />;
   return <Progress state={state} />;
 }

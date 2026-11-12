@@ -10,7 +10,9 @@
 // answers with error-<code>.json and the contract's HTTP status instead. ?run=done|failed|queued the same way picks
 // which fixture stream the new job plays (default done). GET /api/jobs/<id> and /events follow that stream, one event
 // every gapMs (1 s) from the POST; the job ids are in SCENARIOS, so http://127.0.0.1:8787/?job=<id> works without a POST.
-// Viewer: GET /j/<job_id>/run/<path> serves the sample run, only under the folders the contract allows.
+// Viewer: GET /j/<job_id>/run/<path> serves the sample run, only under the folders the contract allows; for the done
+// job, /j/<job_id>/manifest.json (manifest.json with its links on this origin) and /j/<job_id>/report.md (the sample
+// report), with CORS for the app origins. The mock has no bundle.tar.gz: that link answers 404.
 import http from 'node:http';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { dirname, extname, join, sep } from 'node:path';
@@ -232,6 +234,16 @@ export async function createMock({ appPort = 8787, viewerPort = 8788, uiDir = jo
       const file = allowed && await fileUnder(SAMPLE, segments);
       if (file) return sendFile(req, res, file, viewerHeaders);
     }
+    // The manifest and the report exist only for the run that finished (the contract job id), and only they allow
+    // CORS, for the app origins only. The manifest's links are moved onto this viewer's own origin.
+    const doneJob = SCENARIOS[m[1]] === 'events-done.sse';
+    const cors = appOrigins.includes(req.headers.origin) ? { 'access-control-allow-origin': req.headers.origin, vary: 'Origin' } : { vary: 'Origin' };
+    if (doneJob && rest === 'manifest.json') {
+      const manifest = JSON.parse(JSON.stringify(await fixture('manifest.json')).replaceAll('http://127.0.0.1:8788', viewerUrl));
+      res.writeHead(200, { ...common, ...cors, 'content-type': MIME['.json'] });
+      return res.end(JSON.stringify(manifest));
+    }
+    if (doneJob && rest === 'report.md') return sendFile(req, res, join(SAMPLE, 'c-build', 'report.md'), cors);
     return sendText(res, 404, 'Not found');
   }
 

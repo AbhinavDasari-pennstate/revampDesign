@@ -59,6 +59,58 @@ export async function getJob(jobId, fetchImpl = fetch) {
   }
 }
 
+// A manifest.v1 the page may use: every link http or https, on the manifest's own origin (the viewer) and under
+// /j/<job_id>/, and every count a whole number. Anything else is refused as a whole, so no frame or image ever points
+// somewhere the viewer does not serve.
+export function checkManifest(m, manifestUrl) {
+  if (!m || typeof m !== 'object' || !isJobId(m.job_id)) return false;
+  let origin;
+  try {
+    origin = new URL(manifestUrl).origin;
+  } catch {
+    return false;
+  }
+  const prefix = `${origin}/j/${m.job_id}/`;
+  if (!manifestUrl.startsWith(prefix)) return false;
+  const isOurs = (u) => {
+    if (typeof u !== 'string') return false;
+    try {
+      const url = new URL(u);
+      return (url.protocol === 'http:' || url.protocol === 'https:') && url.href === u && u.startsWith(prefix);
+    } catch {
+      return false;
+    }
+  };
+  const count = (n) => Number.isInteger(n) && n >= 0;
+  const pages = m.site && Array.isArray(m.site.pages) ? m.site.pages : [];
+  return pages.length > 0
+    && pages.every((p) => p && typeof p.slug === 'string' && p.slug !== '' && isOurs(p.url) && p.screenshots && isOurs(p.screenshots.desktop) && isOurs(p.screenshots.mobile))
+    && isOurs(m.site.home_url) && isOurs(m.compare_url) && isOurs(m.report_url) && (m.bundle_url === null || isOurs(m.bundle_url))
+    && Boolean(m.gates) && typeof m.gates.passed === 'boolean' && count(m.gates.axe_serious) && count(m.gates.axe_critical)
+    && Boolean(m.fidelity) && count(m.fidelity.pages_carried) && count(m.fidelity.pages_total);
+}
+
+// GET the viewer's manifest.v1. Resolves to {ok: true, manifest} or {ok: false}; never throws.
+export async function getManifest(manifestUrl, fetchImpl = fetch) {
+  try {
+    const res = await fetchImpl(manifestUrl, { credentials: 'omit', referrerPolicy: 'no-referrer' });
+    const body = res.status === 200 ? await readJson(res) : null;
+    return checkManifest(body, manifestUrl) ? { ok: true, manifest: body } : { ok: false };
+  } catch {
+    return { ok: false };
+  }
+}
+
+// GET the run's report.md as text. Resolves to {ok: true, text} or {ok: false}; never throws.
+export async function getReport(reportUrl, fetchImpl = fetch) {
+  try {
+    const res = await fetchImpl(reportUrl, { credentials: 'omit', referrerPolicy: 'no-referrer' });
+    return res.status === 200 ? { ok: true, text: await res.text() } : { ok: false };
+  } catch {
+    return { ok: false };
+  }
+}
+
 // Sends start-request.v1. Resolves to {ok: true, job} or {ok: false, code, message}; never throws.
 export async function startJob(request, fetchImpl = fetch) {
   try {
