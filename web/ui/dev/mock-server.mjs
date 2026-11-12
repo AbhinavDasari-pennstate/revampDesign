@@ -7,7 +7,9 @@
 //
 // App: serves the built UI from dist/ with the same CSP as the real server, and POST /api/jobs answers with
 // job-queued.json. ?fail=<code> on the POST, or on the page that posts it (http://127.0.0.1:8787/?fail=queue_full),
-// answers with error-<code>.json and the contract's HTTP status instead.
+// answers with error-<code>.json and the contract's HTTP status instead. ?run=done|failed|queued the same way picks
+// which fixture stream the new job plays (default done). GET /api/jobs/<id> and /events follow that stream, one event
+// every gapMs (1 s) from the POST; the job ids are in SCENARIOS, so http://127.0.0.1:8787/?job=<id> works without a POST.
 // Viewer: GET /j/<job_id>/run/<path> serves the sample run, only under the folders the contract allows.
 import http from 'node:http';
 import { readFile, realpath, stat } from 'node:fs/promises';
@@ -34,7 +36,49 @@ const MIME = {
 const VIEWER_ALLOWED = ['c-build/site/dist/', 'c-build/screens/', 'b-design/compare.html', 'b-design/previews/', 'b-design/boards/'];
 const JOB_ID = /^[A-Za-z0-9_-]{22}$/;
 
+// One job id per fixture stream. The done run uses the contract's own job id, so job-done.json and manifest.json fit it.
+export const SCENARIOS = Object.freeze({
+  Xk3nP9qLm2VbT7sRw4YdHa: 'events-done.sse',
+  MockFailedRunQualGate0: 'events-failed.sse',
+  MockQueuedRunWaiting00: 'events-queued.sse',
+});
+const JOB_OF_RUN = Object.fromEntries(Object.entries(SCENARIOS).map(([id, file]) => [file.slice('events-'.length, -'.sse'.length), id]));
+
+// An event stream as [{id, name, data}]: LF or CRLF line ends, comment lines skipped (contracts/web/README.md).
+export function parseSse(text) {
+  const events = [];
+  for (const block of text.split(/\r?\n\r?\n/)) {
+    const event = {};
+    for (const line of block.split(/\r?\n/)) {
+      if (line === '' || line.startsWith(':')) continue;
+      const at = line.indexOf(':');
+      const field = at < 0 ? line : line.slice(0, at);
+      const value = at < 0 ? '' : line.slice(at + 1).replace(/^ /, '');
+      if (field === 'id') event.id = Number(value);
+      else if (field === 'event') event.name = value;
+      else if (field === 'data') event.data = JSON.parse(value);
+    }
+    if (event.name) events.push(event);
+  }
+  return events;
+}
+const formatEvent = ({ id, name, data }) => `id: ${id}\nevent: ${name}\ndata: ${JSON.stringify(data)}\n\n`;
+
 const fixture = async (name) => JSON.parse(await readFile(join(FIXTURES, name), 'utf8'));
+const streamOf = async (id) => parseSse(await readFile(join(FIXTURES, SCENARIOS[id]), 'utf8'));
+
+// job.v1 after the given events, built from the contract's job fixtures.
+async function jobAfter(id, events) {
+  let job = { ...(await fixture('job-queued.json')), job_id: id };
+  for (const { name, data } of events) {
+    if (name === 'queued') job.position = data.position;
+    if (name === 'started') job = { ...job, status: 'running', position: null, mode: data.mode, started_at: (await fixture('job-running.json')).started_at };
+    if (name === 'stage') job.stages = job.stages.map((s) => (s.stage === data.stage ? { ...s, state: data.state } : s));
+    if (name === 'done') return { ...(await fixture('job-done.json')), job_id: id };
+    if (name === 'failed') return { ...(await fixture('job-failed-quality_gate.json')), job_id: id };
+  }
+  return job;
+}
 
 // URL path to decoded segments, or null when any segment is empty, a dot segment, or holds a slash, backslash or NUL.
 function segmentsOf(path) {
@@ -86,7 +130,7 @@ function listen(server, port) {
   });
 }
 
-export async function createMock({ appPort = 8787, viewerPort = 8788, uiDir = join(here, '..', 'dist') } = {}) {
+export async function createMock({ appPort = 8787, viewerPort = 8788, uiDir = join(here, '..', 'dist'), gapMs = 1000 } = {}) {
   const app = http.createServer();
   const viewer = http.createServer();
   const realViewerPort = await listen(viewer, viewerPort);
@@ -121,12 +165,46 @@ export async function createMock({ appPort = 8787, viewerPort = 8788, uiDir = jo
     res.end(req.method === 'HEAD' ? undefined : body);
   };
 
+  // When each job's run began (its POST, or the first request that named it). Event i happens i * gapMs later.
+  const startedAt = new Map();
+  const startOf = (id) => {
+    if (!startedAt.has(id)) startedAt.set(id, Date.now());
+    return startedAt.get(id);
+  };
+  const happened = (id, events) => events.slice(0, Math.min(events.length, Math.floor((Date.now() - startOf(id)) / gapMs) + 1));
+
+  // Like the real server: the whole history from id 1 on every connect (Last-Event-ID too), then each event on time,
+  // a ping every 15 s, and the end of the stream after done or failed. A queued stream stays open.
+  function sendStream(req, res, id, events) {
+    res.writeHead(200, { ...common, 'content-type': 'text/event-stream; charset=utf-8', connection: 'keep-alive' });
+    const t0 = startOf(id);
+    const now = Date.now();
+    const timers = events.map((event, i) => setTimeout(() => {
+      res.write(formatEvent(event));
+      if (event.name === 'done' || event.name === 'failed') res.end();
+    }, Math.max(0, t0 + i * gapMs - now)));
+    const ping = setInterval(() => res.write(': ping\n\n'), 15_000);
+    res.on('close', () => {
+      timers.forEach(clearTimeout);
+      clearInterval(ping);
+    });
+  }
+
   async function api(req, res, url) {
     if (url.pathname === '/api/jobs' && req.method === 'POST') {
       await drain(req);
       const fail = url.searchParams.get('fail') ?? fromReferer(req, 'fail');
       if (fail !== null) return sendError(res, Object.hasOwn(HTTP_STATUS, fail) ? fail : 'bad_request');
-      return sendJson(res, 202, await fixture('job-queued.json'));
+      const run = url.searchParams.get('run') ?? fromReferer(req, 'run');
+      const id = JOB_OF_RUN[run] ?? JOB_OF_RUN.done;
+      startedAt.set(id, Date.now());
+      return sendJson(res, 202, { ...(await fixture('job-queued.json')), job_id: id });
+    }
+    const m = /^\/api\/jobs\/([^/]+)(\/events)?$/.exec(url.pathname);
+    if (req.method === 'GET' && m && Object.hasOwn(SCENARIOS, m[1])) {
+      const events = await streamOf(m[1]);
+      if (m[2]) return sendStream(req, res, m[1], events);
+      return sendJson(res, 200, await jobAfter(m[1], happened(m[1], events)));
     }
     return sendError(res, 'not_found');
   }
@@ -177,4 +255,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   console.log(`mock app    ${mock.appUrl}/  (serves dist/: run npm run build first, or npm run dev for http://127.0.0.1:5173/)`);
   console.log(`mock viewer ${mock.viewerUrl}/j/<job_id>/run/...`);
   console.log(`errors      ${mock.appUrl}/?fail=<code>, for example ?fail=invite_used_today`);
+  console.log(`runs        ${mock.appUrl}/?run=done|failed|queued, or open a job: ${Object.keys(SCENARIOS).map((id) => `?job=${id}`).join(' ')}`);
 }

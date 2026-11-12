@@ -1,5 +1,5 @@
 import StartForm from './StartForm.jsx';
-import { isJobId } from './api.js';
+import JobView from './JobView.jsx';
 
 // One page, no router: the start form at /, the job view at /?job=<job_id>.
 const goToJob = (jobId) => window.location.assign(`/?job=${encodeURIComponent(jobId)}`);
@@ -28,15 +28,6 @@ function StartPage() {
   );
 }
 
-function JobStarted() {
-  return (
-    <section className="panel narrow" aria-labelledby="job-title">
-      <h1 id="job-title">Your redesign is in line</h1>
-      <p>Keep this page open. Runs usually take several minutes.</p>
-    </section>
-  );
-}
-
 export default function App() {
   const jobId = new URLSearchParams(window.location.search).get('job');
   return (
@@ -44,7 +35,7 @@ export default function App() {
       <header className="masthead">
         <a className="wordmark" href="/">Redesign preview</a>
       </header>
-      <main id="main">{isJobId(jobId) ? <JobStarted /> : <StartPage />}</main>
+      <main id="main">{jobId === null ? <StartPage /> : <JobView jobId={jobId} />}</main>
       <footer className="colophon">
         <p>A preview made by automated tools for invited testers. Nothing is published.</p>
       </footer>

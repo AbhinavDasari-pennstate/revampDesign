@@ -47,6 +47,18 @@ async function readJson(res) {
   }
 }
 
+// GET /api/jobs/:id. Resolves to {ok: true, job} or {ok: false, code, message} (code not_found for an unknown job); never throws.
+export async function getJob(jobId, fetchImpl = fetch) {
+  try {
+    const res = await fetchImpl(`/api/jobs/${encodeURIComponent(jobId)}`);
+    const body = await readJson(res);
+    if (res.status === 200 && isJob(body) && body.job_id === jobId) return { ok: true, job: body };
+    return { ok: false, ...readError(body) };
+  } catch {
+    return { ok: false, code: null, message: GENERIC_MESSAGE };
+  }
+}
+
 // Sends start-request.v1. Resolves to {ok: true, job} or {ok: false, code, message}; never throws.
 export async function startJob(request, fetchImpl = fetch) {
   try {
