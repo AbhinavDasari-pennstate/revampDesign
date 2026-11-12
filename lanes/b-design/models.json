@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-07, ids from https://openrouter.ai/api/v1/models",
+  "checked_at": "2026-11-12, every id listed at https://openrouter.ai/api/v1/models and every judge takes image input",
   "story": "anthropic/claude-sonnet-5.5",
   "art": "anthropic/claude-sonnet-5.5",
   "image": "google/gemini-nano-banana-2.1",
